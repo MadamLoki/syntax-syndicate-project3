@@ -1,0 +1,11 @@
+{
+  "name": "syntax-syndicate-project3",
+  "version": "1.0.0",
+  "description": "bootcamp final project",
+  "main": "server.js",
+  "scripts": {
+    "test": "test"
+  },
+  "author": "",
+  "license": "ISC"
+}
