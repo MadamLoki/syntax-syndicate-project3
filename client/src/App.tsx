@@ -2,6 +2,7 @@ import './App.css';
 import { Outlet } from 'react-router-dom';
 import { ApolloClient, InMemoryCache, ApolloProvider, createHttpLink } from '@apollo/client';
 import { setContext } from '@apollo/client/link/context';
+import Footer from './components/layout/Footer';
 
 const httpLink = createHttpLink({
     uri: '/graphql'
@@ -27,6 +28,7 @@ export default function App() {
         <div>
             <ApolloProvider client={client}>
                 <Outlet />
+                <Footer />
             </ApolloProvider>
         </div>
     );
