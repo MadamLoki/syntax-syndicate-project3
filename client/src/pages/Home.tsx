@@ -25,11 +25,7 @@ const LandingPage = () => {
                             </div>
                         </div>
                         <div className="lg:w-1/2 mt-8 lg:mt-0">
-                            <img
-                                src="/api/placeholder/600/400"
-                                alt="Happy dog with owner"
-                                className="rounded-lg shadow-xl"
-                            />
+                            <img src="https://img.freepik.com/premium-photo/australian-shepherd-dog-1-year-old_926199-2702571.jpg" alt="Happy dog" className="rounded-lg shadow-xl" />
                         </div>
                     </div>
                 </div>
