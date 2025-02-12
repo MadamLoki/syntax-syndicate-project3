@@ -17,7 +17,7 @@ import mergedResolvers from './resolvers/index.js';
 dotenv.config();
 
 const PORT = process.env.PORT || 3001;
-const app: express.Application = express();
+const app = express();
 
 const getUserFromToken = (access_token: string) => {
     try {
@@ -26,26 +26,31 @@ const getUserFromToken = (access_token: string) => {
             throw new Error('JWT_SECRET is not defined');
         }
         return jwt.verify(access_token, secret);
-    }catch (err) {
+    } catch (err) {
         console.error(err);
         return null;
     }
 };
 
 const startApolloServer = async () => {
+    const server = new ApolloServer({ 
+        typeDefs, 
+        resolvers: mergedResolvers, 
+        context: async ({ req }: { req: express.Request }) => {
+            const token = req.headers.authorization || '';
+            const user = getUserFromToken(token);
+            return { user };
+        }
+    });
+
+    await server.start();
     console.log('Apollo Server started');
 
     app.use(express.urlencoded({ extended: true }));
     app.use(express.json());
 
-    const server = new ApolloServer({ typeDefs, resolvers: mergedResolvers, context: async ({ req }) => {
-        const token = req.headers.authorization || '';
-        const user = getUserFromToken(token);
-        return { user };
-    } });
-
-    await server.start();
-    console.log('Apollo Server started',server );
+    // Apply Apollo Server middleware
+    server.applyMiddleware({ app: app as any });
 
     if (process.env.NODE_ENV === 'production') {
         app.use(express.static(path.join(__dirname, '../../client/dist')));
@@ -54,18 +59,12 @@ const startApolloServer = async () => {
         });
     }
 
-    server.applyMiddleware({ app: app as any }); 
-
     try {
-        await new Promise<void>(async (resolve) => {
-            const connection = await db();
-            connection.once('open', () => {
-                console.log('MongoDB connection established');
-                app.listen(PORT, () => {
-                    console.log(`🚀 Server ready at http://localhost:${PORT}/graphql`);
-                    resolve();
-                });
-            });
+        await db();
+        console.log('MongoDB connection established');
+        
+        app.listen(PORT, () => {
+            console.log(`🚀 Server ready at http://localhost:${PORT}${server.graphqlPath}`);
         });
     } catch (error) {
         console.error('Server startup error:', error);
