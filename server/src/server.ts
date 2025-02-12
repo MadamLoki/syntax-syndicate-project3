@@ -33,7 +33,6 @@ const getUserFromToken = (access_token: string) => {
 };
 
 const startApolloServer = async () => {
-    // await server.start();
     console.log('Apollo Server started');
 
     app.use(express.urlencoded({ extended: true }));

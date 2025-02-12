@@ -1,5 +1,4 @@
-import React from 'react';
-import { Heart, Users, MessageCircle, ArrowRight, Search } from 'lucide-react';
+import { ArrowRight, Search } from 'lucide-react';
 
 const LandingPage = () => {
     return (
@@ -27,30 +26,6 @@ const LandingPage = () => {
                         <div className="lg:w-1/2 mt-8 lg:mt-0">
                             <img src="https://img.freepik.com/premium-photo/australian-shepherd-dog-1-year-old_926199-2702571.jpg" alt="Happy dog" className="rounded-lg shadow-xl" />
                         </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Features Section */}
-            <section className="py-16">
-                <div className="container mx-auto px-6">
-                    <h2 className="text-3xl font-bold text-center mb-12">Why Choose NewLeash?</h2>
-                    <div className="grid md:grid-cols-3 gap-8">
-                        <FeatureCard
-                            icon={<Heart className="w-12 h-12 text-red-500" />}
-                            title="Find Your Match"
-                            description="Browse through profiles of adorable pets waiting for their forever homes, with detailed information and photos."
-                        />
-                        <FeatureCard
-                            icon={<Users className="w-12 h-12 text-blue-500" />}
-                            title="Community Support"
-                            description="Connect with other pet owners, share experiences, and get advice from our supportive community."
-                        />
-                        <FeatureCard
-                            icon={<MessageCircle className="w-12 h-12 text-green-500" />}
-                            title="Direct Communication"
-                            description="Chat directly with shelters and foster families to learn more about your potential new family member."
-                        />
                     </div>
                 </div>
             </section>
@@ -92,19 +67,6 @@ const LandingPage = () => {
                     </div>
                 </div>
             </section>
-        </div>
-    );
-};
-
-// Feature Card Component
-const FeatureCard = ({ icon, title, description }) => {
-    return (
-        <div className="bg-white p-6 rounded-lg shadow-lg text-center">
-            <div className="flex justify-center mb-4">
-                {icon}
-            </div>
-            <h3 className="text-xl font-semibold mb-4">{title}</h3>
-            <p className="text-gray-600">{description}</p>
         </div>
     );
 };
