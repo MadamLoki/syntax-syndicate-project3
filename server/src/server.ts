@@ -54,7 +54,7 @@ const startApolloServer = async () => {
         });
     }
 
- //server.applyMiddleware({ app }); 
+    server.applyMiddleware({ app: app as any }); 
 
     try {
         await new Promise<void>(async (resolve) => {
