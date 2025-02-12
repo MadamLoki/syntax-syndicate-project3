@@ -1,107 +1,131 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Menu, X, Heart, Search, User, LogOut } from 'lucide-react';
 
 const NavBar = () => {
-    const [isOpen, setIsOpen] = useState(false);
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const navigate = useNavigate();
+    const [isLoggedIn, setIsLoggedIn] = useState(false); // Replace with actual auth state
 
-    const handleClickAway = () => {
-        if (isDropdownOpen) setIsDropdownOpen(false);
+    const handleLogout = () => {
+        // Add logout logic here
+        setIsLoggedIn(false);
+        navigate('/login');
     };
 
     return (
-        <div className="min-h-screen">
-            <div className="antialiased bg-gray-100 dark-mode:bg-gray-900">
-                <div className="w-full text-gray-700 bg-white dark-mode:text-gray-200 dark-mode:bg-gray-800">
-                    <div className="flex flex-col max-w-screen-xl px-4 mx-auto md:items-center md:justify-between md:flex-row md:px-6 lg:px-8">
-                        <div className="flex flex-row items-center justify-between p-4">
-                            <a href="#" className="text-lg font-semibold tracking-widest text-gray-900 uppercase rounded-lg dark-mode:text-white focus:outline-none focus:shadow-outline">
-                                Flowtrail UI
-                            </a>
-                            <button className="rounded-lg md:hidden focus:outline-none focus:shadow-outline" onClick={() => setIsOpen(!isOpen)} >
-                                <svg fill="currentColor" viewBox="0 0 20 20" className="w-6 h-6">
-                                    {!isOpen ? (
-                                        <path fillRule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM9 15a1 1 0 011-1h6a1 1 0 110 2h-6a1 1 0 01-1-1z" clipRule="evenodd" />
-                                    ) : (
-                                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                                    )}
-                                </svg>
-                            </button>
+        <nav className="bg-white shadow-sm">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex justify-between h-16">
+                    {/* Logo and primary navigation */}
+                    <div className="flex">
+                        <div className="flex-shrink-0 flex items-center">
+                            <Link to="/" className="text-2xl font-bold text-blue-600">
+                                NewLeash
+                            </Link>
                         </div>
-                        <nav className={`flex-col flex-grow pb-4 md:pb-0 md:flex md:justify-end md:flex-row ${isOpen ? 'flex' : 'hidden'}`}>
-                            <a className="px-4 py-2 mt-2 text-sm font-semibold bg-transparent rounded-lg dark-mode:bg-transparent dark-mode:hover:bg-gray-600 dark-mode:focus:bg-gray-600 dark-mode:focus:text-white dark-mode:hover:text-white dark-mode:text-gray-200 md:mt-0 md:ml-4 hover:text-gray-900 focus:text-gray-900 hover:bg-gray-200 focus:bg-gray-200 focus:outline-none focus:shadow-outline" href="#">Blog</a>
-                            <a className="px-4 py-2 mt-2 text-sm font-semibold bg-transparent rounded-lg dark-mode:bg-transparent dark-mode:hover:bg-gray-600 dark-mode:focus:bg-gray-600 dark-mode:focus:text-white dark-mode:hover:text-white dark-mode:text-gray-200 md:mt-0 md:ml-4 hover:text-gray-900 focus:text-gray-900 hover:bg-gray-200 focus:bg-gray-200 focus:outline-none focus:shadow-outline" href="#">Portfolio</a>
-                            <a className="px-4 py-2 mt-2 text-sm font-semibold bg-transparent rounded-lg dark-mode:bg-transparent dark-mode:hover:bg-gray-600 dark-mode:focus:bg-gray-600 dark-mode:focus:text-white dark-mode:hover:text-white dark-mode:text-gray-200 md:mt-0 md:ml-4 hover:text-gray-900 focus:text-gray-900 hover:bg-gray-200 focus:bg-gray-200 focus:outline-none focus:shadow-outline" href="#">About</a>
-                            <a className="px-4 py-2 mt-2 text-sm font-semibold bg-transparent rounded-lg dark-mode:bg-transparent dark-mode:hover:bg-gray-600 dark-mode:focus:bg-gray-600 dark-mode:focus:text-white dark-mode:hover:text-white dark-mode:text-gray-200 md:mt-0 md:ml-4 hover:text-gray-900 focus:text-gray-900 hover:bg-gray-200 focus:bg-gray-200 focus:outline-none focus:shadow-outline" href="#">Contact</a>
-                            <div className="relative" onClick={handleClickAway}>
-                                <button
-                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                    className="flex flex-row text-gray-900 bg-gray-200 items-center w-full px-4 py-2 mt-2 text-sm font-semibold text-left bg-transparent rounded-lg dark-mode:bg-transparent dark-mode:focus:text-white dark-mode:hover:text-white dark-mode:focus:bg-gray-600 dark-mode:hover:bg-gray-600 md:w-auto md:inline md:mt-0 md:ml-4 hover:text-gray-900 focus:text-gray-900 hover:bg-gray-200 focus:bg-gray-200 focus:outline-none focus:shadow-outline" >
-                                    <span>More</span>
-                                    <svg fill="currentColor" viewBox="0 0 20 20" className={`inline w-4 h-4 mt-1 ml-1 transition-transform duration-200 transform md:-mt-1 ${isDropdownOpen ? 'rotate-180' : 'rotate-0'}`} >
-                                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                                    </svg>
-                                </button>
+                        
+                        {/* Desktop Navigation */}
+                        <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+                            <Link to="/search" className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-700 hover:text-blue-600">
+                                <Search className="w-4 h-4 mr-1" />
+                                Find Pets
+                            </Link>
+                            <Link to="/shelters" className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-700 hover:text-blue-600">
+                                Shelters
+                            </Link>
+                            <Link to="/about" className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-700 hover:text-blue-600">
+                                About
+                            </Link>
+                        </div>
+                    </div>
 
-                                {isDropdownOpen && (
-                                    <div className="absolute right-0 w-full md:max-w-screen-sm md:w-screen mt-2 origin-top-right">
-                                        <div className="px-2 pt-2 pb-4 bg-white rounded-md shadow-lg dark-mode:bg-gray-700">
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <DropdownItem
-                                                    icon={<path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />}
-                                                    title="Appearance"
-                                                    description="Easy customization"
-                                                />
-                                                <DropdownItem
-                                                    icon={<path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />}
-                                                    title="Comments"
-                                                    description="Check your latest comments"
-                                                />
-                                                <DropdownItem
-                                                    icon={<>
-                                                        <path d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-                                                        <path d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
-                                                    </>}
-                                                    title="Analytics"
-                                                    description="Take a look at your statistics"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
+                    {/* Right side buttons */}
+                    <div className="hidden sm:flex items-center space-x-4">
+                        {isLoggedIn ? (
+                            <>
+                                <Link to="/favorites" className="text-gray-700 hover:text-blue-600">
+                                    <Heart className="w-6 h-6" />
+                                </Link>
+                                <div className="h-6 w-px bg-gray-200"></div>
+                                <Link to="/profile" className="text-gray-700 hover:text-blue-600">
+                                    <User className="w-6 h-6" />
+                                </Link>
+                                <button onClick={handleLogout} className="text-gray-700 hover:text-blue-600">
+                                    <LogOut className="w-6 h-6" />
+                                </button>
+                            </>
+                        ) : (
+                            <div className="flex space-x-4">
+                                <Link to="/login" className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-600 bg-white hover:bg-blue-50">
+                                    Sign in
+                                </Link>
+                                <Link to="/signup" className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                                    Sign up
+                                </Link>
                             </div>
-                        </nav>
+                        )}
+                    </div>
+
+                    {/* Mobile menu button */}
+                    <div className="flex items-center sm:hidden">
+                        <button
+                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                            className="inline-flex items-center justify-center p-2 rounded-md text-gray-700 hover:text-blue-600 hover:bg-gray-100"
+                        >
+                            {isMobileMenuOpen ? (
+                                <X className="block h-6 w-6" />
+                            ) : (
+                                <Menu className="block h-6 w-6" />
+                            )}
+                        </button>
                     </div>
                 </div>
             </div>
-        </div>
+
+            {/* Mobile menu */}
+            {isMobileMenuOpen && (
+                <div className="sm:hidden">
+                    <div className="pt-2 pb-3 space-y-1">
+                        <Link to="/search" className="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50">
+                            Find Pets
+                        </Link>
+                        <Link to="/shelters" className="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50">
+                            Shelters
+                        </Link>
+                        <Link to="/about" className="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50">
+                            About
+                        </Link>
+                        {!isLoggedIn && (
+                            <>
+                                <Link to="/login" className="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50">
+                                    Sign in
+                                </Link>
+                                <Link to="/signup" className="block pl-3 pr-4 py-2 text-base font-medium text-blue-600 hover:bg-gray-50">
+                                    Sign up
+                                </Link>
+                            </>
+                        )}
+                    </div>
+                    {isLoggedIn && (
+                        <div className="pt-4 pb-3 border-t border-gray-200">
+                            <div className="flex items-center px-4 space-x-4">
+                                <Link to="/favorites" className="text-gray-700 hover:text-blue-600">
+                                    <Heart className="w-6 h-6" />
+                                </Link>
+                                <Link to="/profile" className="text-gray-700 hover:text-blue-600">
+                                    <User className="w-6 h-6" />
+                                </Link>
+                                <button onClick={handleLogout} className="text-gray-700 hover:text-blue-600">
+                                    <LogOut className="w-6 h-6" />
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+        </nav>
     );
 };
-
-interface DropdownItemProps {
-    icon: React.ReactNode;
-    title: string;
-    description: string;
-}
-
-const DropdownItem: React.FC<DropdownItemProps> = ({ icon, title, description }) => (
-    <a className="flex row items-start rounded-lg bg-transparent p-2 dark-mode:hover:bg-gray-600 dark-mode:focus:bg-gray-600 dark-mode:focus:text-white dark-mode:hover:text-white dark-mode:text-gray-200 hover:text-gray-900 focus:text-gray-900 hover:bg-gray-200 focus:bg-gray-200 focus:outline-none focus:shadow-outline" href="#">
-        <div className="bg-teal-500 text-white rounded-lg p-3">
-            <svg
-                fill="none"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-                className="md:h-6 md:w-6 h-4 w-4" >
-                {icon}
-            </svg>
-        </div>
-        <div className="ml-3">
-            <p className="font-semibold">{title}</p>
-            <p className="text-sm">{description}</p>
-        </div>
-    </a>
-);
 
 export default NavBar;
