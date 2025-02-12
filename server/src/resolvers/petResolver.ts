@@ -1,5 +1,5 @@
 import { IResolvers } from '@graphql-tools/utils';
-import { IPet } from '../models/Pet.js';
+import Pet, { IPet } from '../models/Pet.js';
 
 
 const petResolvers: IResolvers = {
@@ -35,7 +35,7 @@ const petResolvers: IResolvers = {
             if (pet.shelterId.toString() !== context.user.id) {
               throw new Error('Unauthorized');
             }
-            await pet.remove();
+            await Pet.deleteOne({ _id: id });
             return true;
           },
         },
