@@ -7,8 +7,8 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 
 
-import db from './config/connection.js'; //(we dont have this file )
-import typeDefs from '../schema/typeDefs.js';
+import db from './config/connection.js';
+import typeDefs from './schema/typeDefs.js';
 import mergedResolvers from './resolvers/index.js';
 
 
@@ -58,8 +58,9 @@ const startApolloServer = async () => {
  //server.applyMiddleware({ app }); 
 
     try {
-        await new Promise<void>((resolve) => {
-            db.once('open', () => {
+        await new Promise<void>(async (resolve) => {
+            const connection = await db();
+            connection.once('open', () => {
                 console.log('MongoDB connection established');
                 app.listen(PORT, () => {
                     console.log(`🚀 Server ready at http://localhost:${PORT}/graphql`);

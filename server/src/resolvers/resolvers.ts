@@ -50,17 +50,17 @@ const resolvers = {
     },
 
     Mutation: {
-        addProfile: async (_parent: unknown, { input }: AddProfileArgs): Promise<{ token: string; profile: Profile }> => {
+        addProfile: async (_parent: unknown, { input }: AddProfileArgs): Promise<{ token: string }> => {
             // Create a new profile with provided name, email, and password
             const profileDoc = await ProfileModel.create({ name: input.name, email: input.email, password: input.password, username: input.username });
             const profile = profileDoc.toObject();
             // Sign a JWT token for the new profile
             const token = signToken(profile.username, profile.email, profile._id);
 
-            return { token, profile };
+            return { token };
         },
 
-        login: async (_parent: unknown, { email, password }: { email: string; password: string }): Promise<{ token: string; profile: Profile }> => {
+        login: async (_parent: unknown, { email, password }: { email: string; password: string }): Promise<{ token: string }> => {
             // Find a profile by email
             const profile = await ProfileModel.findOne({ email });
             if (!profile) {
@@ -75,7 +75,7 @@ const resolvers = {
             }
             // Sign a JWT token for the authenticated profile
             const token = signToken(profile.username, profile.email, profile._id);
-            return { token, profile };
+            return { token };
         },
 
         removeProfile: async (_parent: unknown, _args: unknown, context: Context): Promise<Profile | null> => {

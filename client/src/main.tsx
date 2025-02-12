@@ -1,6 +1,8 @@
 import ReactDOM from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 
+import './App.css'
+
 import App from './App.jsx'
 import LoginForm from './components/auth/LoginForm.js'
 import Error from './pages/Error.js'
