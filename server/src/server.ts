@@ -1,5 +1,8 @@
 import express from 'express';
 import path from 'node:path';
+import { ApolloServer } from 'apollo-server-express';
+import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 
 import db from './config/connection.js';
 
