@@ -17,7 +17,7 @@ import mergedResolvers from './resolvers/index.js';
 dotenv.config();
 
 const PORT = process.env.PORT || 3001;
-const app = express();
+const app: express.Application = express();
 
 const getUserFromToken = (access_token: string) => {
     try {
