@@ -22,6 +22,7 @@ const app = express();
 const getUserFromToken = (access_token: string) => {
     try {
         const secret = process.env.JWT_SECRET;
+        console.log(secret, "secret key....")
         if (!secret) {
             throw new Error('JWT_SECRET is not defined');
         }

@@ -2,6 +2,7 @@ const typeDefs = `
     type Profile {
         _id: ID
         name: String
+        username: String
         email: String
         password: String
         skills: [String]!
@@ -14,6 +15,7 @@ const typeDefs = `
     
     input ProfileInput {
         name: String!
+        username: String!
         email: String!
         password: String!
     }
