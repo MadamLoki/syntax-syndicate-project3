@@ -1,6 +1,6 @@
 import express from 'express';
 import path from 'node:path';
-//import { fileURLToPath } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { ApolloServer } from 'apollo-server-express';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
@@ -12,8 +12,8 @@ import typeDefs from './schema/typeDefs.js';
 import mergedResolvers from './resolvers/index.js';
 
 
-// const __filename = fileURLToPath(import.meta.url);
-// const __dirname = path.dirname(__filename);
+ //const __filename = fileURLToPath(import.meta.url);
+ //const __dirname = path.dirname(__filename);
 dotenv.config();
 
 const PORT = process.env.PORT || 3001;
