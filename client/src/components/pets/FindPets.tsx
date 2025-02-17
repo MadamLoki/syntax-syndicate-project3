@@ -1,12 +1,29 @@
 import { useState } from 'react';
 import { useQuery, useLazyQuery } from '@apollo/client';
 import { Search, Filter, X } from 'lucide-react';
-import { SEARCH_PETFINDER_PETS, GET_PETFINDER_TYPES, GET_PETFINDER_BREEDS } from '../../utils/petfinderQueries';
-import { Link } from 'react-router-dom';
+import {
+    SEARCH_PETFINDER_PETS,
+    GET_PETFINDER_TYPES,
+    GET_PETFINDER_BREEDS
+} from '../../utils/petfinderQueries';
+import { ErrorBoundary } from '../ErrorBoundary';
+import { ErrorMessage } from '../ErrorMessage';
+import { LoadingError } from '../LoadingError';
+import { PetfinderApiError } from '../../types/errors';
+
+interface SearchFilters {
+    type: string;
+    breed: string;
+    size: string;
+    gender: string;
+    age: string;
+    location: string;
+    distance: string;
+}
 
 const FindPets = () => {
     const [searchTerm, setSearchTerm] = useState('');
-    const [filters, setFilters] = useState({
+    const [filters, setFilters] = useState<SearchFilters>({
         type: '',
         breed: '',
         size: '',
@@ -16,33 +33,104 @@ const FindPets = () => {
         distance: '100'
     });
     const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const [searchErrorState, setSearchErrorState] = useState<Error | null>(null);
 
-    const { data: typesData } = useQuery(GET_PETFINDER_TYPES);
-    const [getBreeds, { data: breedsData }] = useLazyQuery(GET_PETFINDER_BREEDS);
-    const [searchPets, { loading, error, data: petsData }] = useLazyQuery(SEARCH_PETFINDER_PETS);
+    // Queries with error handling
+    const {
+        data: typesData,
+        error: typesError,
+        refetch: refetchTypes
+    } = useQuery(GET_PETFINDER_TYPES, {
+        onError: (error) => {
+            console.error('Error fetching pet types:', error);
+            // Check if it's a network error
+            if (error.networkError) {
+                setSearchErrorState(new Error('Network error. Please check your connection.'));
+            } else if (error.graphQLErrors?.length > 0) {
+                // Handle GraphQL errors
+                const firstError = error.graphQLErrors[0];
+                if (firstError.extensions?.code === 'UNAUTHENTICATED') {
+                    setSearchErrorState(new Error('Authentication failed. Please try again.'));
+                } else {
+                    setSearchErrorState(new Error(firstError.message));
+                }
+            }
+        },
+        // Add fetchPolicy to ensure we're not using cached data that might be invalid
+        fetchPolicy: 'network-only'
+    });
 
-    const handleTypeChange = (type: string) => {
-        handleFilterChange('type', type);
-        if (type) {
-            getBreeds({ variables: { type: type.toLowerCase() } });
+    const [getBreeds, {
+        data: breedsData,
+    }] = useLazyQuery(GET_PETFINDER_BREEDS, {
+        onError: (error) => {
+            console.error('Error fetching breeds:', error);
+            if (error.networkError) {
+                setSearchErrorState(new Error('Network error. Please check your connection.'));
+            } else if (error.graphQLErrors?.length > 0) {
+                setSearchErrorState(new Error(error.graphQLErrors[0].message));
+            }
+        }
+    });
+
+    const [searchPets, {
+        loading,
+        error: searchError,
+        data: petsData,
+    }] = useLazyQuery(SEARCH_PETFINDER_PETS, {
+        onError: (error) => {
+            // Convert Apollo error to PetfinderApiError if applicable
+            const petfinderError = error.graphQLErrors?.[0]?.extensions?.response;
+            if (petfinderError) {
+                setSearchErrorState(new PetfinderApiError(petfinderError));
+            } else {
+                setSearchErrorState(error);
+            }
+        }
+    });
+
+    // Handle type change with error handling
+    const handleTypeChange = async (type: string) => {
+        try {
+            handleFilterChange('type', type);
+            if (type) {
+                await getBreeds({
+                    variables: { type: type.toLowerCase() },
+                    onError: (error) => {
+                        console.error('Error fetching breeds:', error);
+                        // Handle breed fetch error
+                        const petfinderError = error.graphQLErrors?.[0]?.extensions?.response;
+                        if (petfinderError) {
+                            setSearchErrorState(new PetfinderApiError(petfinderError));
+                        }
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error handling type change:', error);
         }
     };
 
-    const handleFilterChange = (key: string, value: string) => {
-        setFilters(prev => ({ ...prev, [key]: value }));
-    };
-
-    const handleSearch = () => {
-        searchPets({
-            variables: {
+    const handleSearch = async () => {
+        try {
+            setSearchErrorState(null);
+            const searchVars = {
                 input: {
                     ...filters,
                     name: searchTerm,
                     distance: parseInt(filters.distance),
                     limit: 100
                 }
-            }
-        });
+            };
+            await searchPets({ variables: searchVars });
+        } catch (error) {
+            console.error('Error performing search:', error);
+        }
+    };
+
+    const handleFilterChange = (key: keyof SearchFilters, value: string) => {
+        setFilters(prev => ({ ...prev, [key]: value }));
+        setSearchErrorState(null); // Clear any previous errors
     };
 
     const clearFilters = () => {
@@ -56,134 +144,173 @@ const FindPets = () => {
             distance: '100'
         });
         setSearchTerm('');
+        setSearchErrorState(null);
     };
 
-    return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header Section */}
-            <div className="bg-white shadow-sm">
-                <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-                    <h1 className="text-3xl font-bold text-gray-900">Find Your Perfect Pet</h1>
-                    <p className="mt-2 text-gray-600">Search through available pets and find your new companion</p>
-                </div>
-            </div>
+    // Render error states
+    if (typesError) {
+        return (
+            <LoadingError
+                error={typesError}
+                onRetry={() => refetchTypes()}
+            />
+        );
+    }
 
-            {/* Search and Filters Section */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                <div className="bg-white rounded-lg shadow p-6">
-                    {/* Search Bar */}
-                    <div className="flex flex-col sm:flex-row gap-4">
-                        <div className="relative flex-1">
-                            <Search className="absolute left-3 top-3 text-gray-400" />
-                            <input
-                                type="text"
-                                placeholder="Search pets..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            />
-                        </div>
-                        <button
-                            onClick={() => setIsFilterOpen(!isFilterOpen)}
-                            className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 sm:w-auto"
-                        >
-                            <Filter className="w-5 h-5 mr-2" />
-                            Filters
-                        </button>
-                        <button
-                            onClick={handleSearch}
-                            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                        >
-                            Search
-                        </button>
+    return (
+        <ErrorBoundary>
+            <div className="min-h-screen bg-gray-50 p-6">
+                <div className="max-w-7xl mx-auto">
+                    {/* Search Header */}
+                    <div className="mb-8">
+                        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                            Find Your Perfect Pet
+                        </h1>
+                        <p className="text-gray-600">
+                            Search through available pets and find your new companion
+                        </p>
                     </div>
 
-                    {/* Filters Panel */}
-                    {isFilterOpen && (
-                        <div className="mt-4 border-t pt-4">
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="font-semibold text-gray-700">Filters</h3>
-                                <button
-                                    onClick={clearFilters}
-                                    className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                                >
-                                    <X className="w-4 h-4" />
-                                    Clear all
-                                </button>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                                <select
-                                    value={filters.type}
-                                    onChange={(e) => handleTypeChange(e.target.value)}
-                                    className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                >
-                                    <option value="">Pet Type</option>
-                                    {typesData?.getPetfinderTypes?.map((type: string) => (
-                                        <option key={type} value={type}>{type}</option>
-                                    ))}
-                                </select>
-
-                                <select
-                                    value={filters.breed}
-                                    onChange={(e) => handleFilterChange('breed', e.target.value)}
-                                    className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                >
-                                    <option value="">Breed</option>
-                                    {breedsData?.getPetfinderBreeds?.map((breed: string) => (
-                                        <option key={breed} value={breed}>{breed}</option>
-                                    ))}
-                                </select>
-
-                                <select
-                                    value={filters.age}
-                                    onChange={(e) => handleFilterChange('age', e.target.value)}
-                                    className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                >
-                                    <option value="">Age</option>
-                                    <option value="baby">Baby</option>
-                                    <option value="young">Young</option>
-                                    <option value="adult">Adult</option>
-                                    <option value="senior">Senior</option>
-                                </select>
-
-                                <select
-                                    value={filters.size}
-                                    onChange={(e) => handleFilterChange('size', e.target.value)}
-                                    className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                >
-                                    <option value="">Size</option>
-                                    <option value="small">Small</option>
-                                    <option value="medium">Medium</option>
-                                    <option value="large">Large</option>
-                                    <option value="xlarge">Extra Large</option>
-                                </select>
-                            </div>
-                        </div>
+                    {/* Error Message Display */}
+                    {searchErrorState && (
+                        <ErrorMessage
+                            error={searchErrorState}
+                            className="mb-4"
+                        />
                     )}
-                </div>
 
-                {/* Results Section */}
-                <div className="mt-6">
-                    {loading ? (
-                        <div className="text-center py-12">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                            <p className="mt-4 text-gray-600">Loading pets...</p>
+                    {/* Search Bar and Filters */}
+                    <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+                        <div className="flex gap-4 mb-4">
+                            <div className="flex-1 relative">
+                                <Search className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
+                                <input
+                                    type="text"
+                                    placeholder="Search pets..."
+                                    value={searchTerm}
+                                    onChange={(e) => {
+                                        setSearchTerm(e.target.value);
+                                        setSearchErrorState(null);
+                                    }}
+                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                            </div>
+                            <button
+                                onClick={() => setIsFilterOpen(!isFilterOpen)}
+                                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                            >
+                                <Filter className="w-5 h-5" />
+                                Filters
+                            </button>
                         </div>
-                    ) : error ? (
-                        <div className="text-center py-12">
-                            <p className="text-red-600">Error loading pets. Please try again later.</p>
-                        </div>
-                    ) : petsData?.searchPetfinderPets?.animals?.length === 0 ? (
-                        <div className="text-center py-12">
-                            <p className="text-gray-600">No pets found matching your criteria.</p>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {petsData?.searchPetfinderPets?.animals?.map((pet: any) => (
+
+                        {/* Filter Panel */}
+                        {isFilterOpen && (
+                            <div className="border-t pt-4">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="font-semibold">Filters</h3>
+                                    <button
+                                        onClick={clearFilters}
+                                        className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                                    >
+                                        <X className="w-4 h-4" />
+                                        Clear all
+                                    </button>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Search Radius</label>
+                                        <select
+                                            value={filters.distance}
+                                            onChange={(e) => handleFilterChange('distance', e.target.value)}
+                                            className="w-full border border-gray-300 rounded-lg p-2"
+                                        >
+                                            <option value="10">10 miles</option>
+                                            <option value="25">25 miles</option>
+                                            <option value="50">50 miles</option>
+                                            <option value="100">100 miles</option>
+                                            <option value="500">500 miles</option>
+                                        </select>
+                                    </div>
+                                    <select
+                                        value={filters.type}
+                                        onChange={(e) => handleTypeChange(e.target.value)}
+                                        className="border border-gray-300 rounded-lg p-2"
+                                    >
+                                        <option value="">Pet Type</option>
+                                        {typesData?.getPetfinderTypes?.map((type: string) => (
+                                            <option key={type} value={type.toLowerCase()}>
+                                                {type}
+                                            </option>
+                                        ))}
+                                    </select>
+
+                                    <select
+                                        value={filters.breed}
+                                        onChange={(e) => handleFilterChange('breed', e.target.value)}
+                                        className="border border-gray-300 rounded-lg p-2"
+                                        disabled={!filters.type}
+                                    >
+                                        <option value="">Breed</option>
+                                        {breedsData?.getPetfinderBreeds?.map((breed: string) => (
+                                            <option key={breed} value={breed}>
+                                                {breed}
+                                            </option>
+                                        ))}
+                                    </select>
+
+                                    <select
+                                        value={filters.age}
+                                        onChange={(e) => handleFilterChange('age', e.target.value)}
+                                        className="border border-gray-300 rounded-lg p-2"
+                                    >
+                                        <option value="">Age</option>
+                                        <option value="baby">Baby</option>
+                                        <option value="young">Young</option>
+                                        <option value="adult">Adult</option>
+                                        <option value="senior">Senior</option>
+                                    </select>
+
+                                    <select
+                                        value={filters.size}
+                                        onChange={(e) => handleFilterChange('size', e.target.value)}
+                                        className="border border-gray-300 rounded-lg p-2"
+                                    >
+                                        <option value="">Size</option>
+                                        <option value="small">Small</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="large">Large</option>
+                                        <option value="xlarge">Extra Large</option>
+                                    </select>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Results Section */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {loading ? (
+                            <div className="col-span-full text-center py-12">
+                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                                <p className="mt-4 text-gray-600">Loading pets...</p>
+                            </div>
+                        ) : searchErrorState ? (
+                            <div className="col-span-full">
+                                <LoadingError
+                                    error={searchError ?? null}
+                                    onRetry={handleSearch}
+                                />
+                            </div>
+                        ) : petsData?.pets?.length === 0 ? (
+                            <div className="col-span-full text-center py-12">
+                                <p className="text-gray-600">No pets found matching your criteria.</p>
+                            </div>
+                        ) : (
+                            petsData?.pets?.map((pet: any) => (
                                 <div key={pet.id} className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
                                     <div className="aspect-w-16 aspect-h-9 bg-gray-200">
                                         <img
-                                            src={pet.photos?.[0]?.medium || "/api/placeholder/400/300"}
+                                            src={pet.photos[0]?.medium || "/api/placeholder/400/300"}
                                             alt={pet.name}
                                             className="object-cover w-full h-48"
                                         />
@@ -191,16 +318,12 @@ const FindPets = () => {
                                     <div className="p-4">
                                         <h3 className="font-semibold text-lg mb-2">{pet.name}</h3>
                                         <div className="flex flex-wrap gap-2 mb-3">
-                                            {pet.breeds?.primary && (
-                                                <span className="px-2 py-1 bg-gray-100 rounded-full text-sm">
-                                                    {pet.breeds.primary}
-                                                </span>
-                                            )}
-                                            {pet.age && (
-                                                <span className="px-2 py-1 bg-gray-100 rounded-full text-sm">
-                                                    {pet.age}
-                                                </span>
-                                            )}
+                                            <span className="px-2 py-1 bg-gray-100 rounded-full text-sm">
+                                                {pet.breeds.primary}
+                                            </span>
+                                            <span className="px-2 py-1 bg-gray-100 rounded-full text-sm">
+                                                {pet.age}
+                                            </span>
                                             <span className={`px-2 py-1 rounded-full text-sm ${pet.status === 'adoptable'
                                                     ? 'bg-green-100 text-green-800'
                                                     : 'bg-yellow-100 text-yellow-800'
@@ -208,20 +331,20 @@ const FindPets = () => {
                                                 {pet.status}
                                             </span>
                                         </div>
-                                        <Link
-                                            to={`/pet/${pet.id}`}
-                                            className="block w-full text-center bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                                        >
+                                        <div className="text-sm text-gray-600 mb-4">
+                                            <p>{pet.contact.address.city}, {pet.contact.address.state}</p>
+                                        </div>
+                                        <button className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors">
                                             View Details
-                                        </Link>
+                                        </button>
                                     </div>
                                 </div>
-                            ))}
-                        </div>
-                    )}
+                            ))
+                        )}
+                    </div>
                 </div>
             </div>
-        </div>
+        </ErrorBoundary>
     );
 };
 

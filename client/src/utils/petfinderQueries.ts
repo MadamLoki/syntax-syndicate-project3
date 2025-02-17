@@ -1,9 +1,7 @@
-// client/src/utils/queries.ts
-
 import { gql } from '@apollo/client';
 
 export const SEARCH_PETFINDER_PETS = gql`
-    query SearchPetfinderPets($input: PetfinderSearchInput!) {
+    query SearchPetfinderPets($input: PetfinderSearchInput) {
         searchPetfinderPets(input: $input) {
         animals {
             id
@@ -13,28 +11,41 @@ export const SEARCH_PETFINDER_PETS = gql`
             primary
             secondary
             mixed
+            unknown
             }
             age
             gender
             size
             photos {
+            small
             medium
             large
+            full
             }
             status
+            attributes {
+            spayed_neutered
+            house_trained
+            declawed
+            special_needs
+            shots_current
+            }
             contact {
             email
             phone
             address {
                 city
                 state
+                postcode
+                country
             }
             }
         }
         pagination {
+            count_per_page
+            total_count
             current_page
             total_pages
-            total_count
         }
         }
     }
