@@ -78,6 +78,9 @@ const LoginForm = () => {
                         password: formData.password
                     }
                 });
+                console.log('Login successful');
+                // Redirect to dashboard or home page
+                navigate('/'); // Redirect after successful login
             } catch (error) {
                 console.error('Login error:', error);
                 setLoginError('Invalid email or password');

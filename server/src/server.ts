@@ -8,7 +8,7 @@ import dotenv from 'dotenv';
 
 
 import db from './config/connection.js';
-import typeDefs from './schema/typeDefs.js';
+import typeDefs from './typeDefs/typeDefs.js';
 import mergedResolvers from './resolvers/index.js';
 
 
@@ -19,16 +19,19 @@ dotenv.config();
 const PORT = process.env.PORT || 3001;
 const app = express();
 
-const getUserFromToken = (access_token: string) => {
+const getUserFromToken = (authHeader: string) => {
     try {
-        const secret = process.env.JWT_SECRET;
-        console.log(secret, "secret key....")
+        const token = authHeader.split(' ')[1];
+        if (!token) return null;
+
+        const secret = process.env.JWT_SECRET_KEY;
         if (!secret) {
-            throw new Error('JWT_SECRET is not defined');
+            throw new Error('JWT_SECRET_KEY is not defined');
         }
-        return jwt.verify(access_token, secret);
+        
+        return jwt.verify(token, secret);
     } catch (err) {
-        console.error(err);
+        console.error('Token verification error:', err);
         return null;
     }
 };
@@ -37,6 +40,8 @@ const startApolloServer = async () => {
     const server = new ApolloServer({ 
         typeDefs, 
         resolvers: mergedResolvers, 
+        cache: 'bounded',
+        persistedQueries: false,
         context: async ({ req }: { req: express.Request }) => {
             const token = req.headers.authorization || '';
             const user = getUserFromToken(token);
