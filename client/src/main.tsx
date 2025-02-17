@@ -7,6 +7,7 @@ import Home from './pages/Home'
 import LoginForm from './components/auth/LoginForm'
 import Error from './pages/Error'
 import SignupForm from './components/auth/SignupForm'
+import FindPets from './components/pets/FindPets'
 
 const router = createBrowserRouter([
     {
@@ -27,6 +28,11 @@ const router = createBrowserRouter([
             {
                 path: '/signup',
                 element: <SignupForm />,
+                errorElement: <Error />,
+            },
+            {
+                path: '/findpets',
+                element: <FindPets />,
                 errorElement: <Error />,
             }
         ]
