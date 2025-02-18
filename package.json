@@ -26,6 +26,7 @@
     "@apollo/client": "^3.12.11",
     "@tailwindcss/vite": "^4.0.6",
     "apollo-server-express": "^3.13.0",
+    "fullcalendar": "^6.1.15",
     "graphql": "^16.10.0",
     "jwt-decode": "^4.0.0",
     "react": "^19.0.0",
