@@ -1,7 +1,10 @@
-import './App.css';
 import { Outlet } from 'react-router-dom';
 import { ApolloClient, InMemoryCache, ApolloProvider, createHttpLink } from '@apollo/client';
 import { setContext } from '@apollo/client/link/context';
+
+import '../src/index.css';
+
+import NavBar from './components/layout/NavBar';
 import Footer from './components/layout/Footer';
 
 const httpLink = createHttpLink({
@@ -27,6 +30,7 @@ export default function App() {
     return (
         <div>
             <ApolloProvider client={client}>
+                <NavBar />
                 <Outlet />
                 <Footer />
             </ApolloProvider>

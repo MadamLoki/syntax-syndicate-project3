@@ -1,62 +1,52 @@
-import { Schema, model, Document } from 'mongoose';
+import mongoose, { Schema, model, Document } from 'mongoose';
 import bcrypt from 'bcrypt';
 
 // Define an interface for the Profile document
-interface IProfile extends Document {
-    _id: string;
-    name: string;
+export interface IProfile extends Document {
+    username: string;
     email: string;
     password: string;
-    skills: string[];
+    savedPets: mongoose.Types.ObjectId[];
     isCorrectPassword(password: string): Promise<boolean>;
 }
 
 // Define the schema for the Profile document
-const profileSchema = new Schema<IProfile>(
-    {
-        name: {
-            type: String,
-            required: true,
-            unique: true,
-            trim: true,
-        },
-        email: {
-            type: String,
-            required: true,
-            unique: true,
-            match: [/.+@.+\..+/, 'Must match an email address!'],
-        },
-        password: {
-            type: String,
-            required: true,
-            minlength: 5,
-        },
-        skills: [
-            {
-                type: String,
-                trim: true,
-            },
-        ],
+const profileSchema = new Schema({
+    username: {
+        type: String,
+        required: true,
+        unique: true,
     },
-    {
-        timestamps: true,
-        toJSON: { getters: true },
-        toObject: { getters: true },
-    }
-);
+    email: {
+        type: String,
+        required: true,
+        unique: true,
+    },
+    password: {
+        type: String,
+        required: true,
+    },
+    savedPets: [{
+        type: Schema.Types.ObjectId,
+        ref: 'Pet'
+    }]
+}, {
+    timestamps: true,
+    toJSON: { getters: true },
+    toObject: { getters: true }
+});
 
 // set up pre-save middleware to create password
-profileSchema.pre<IProfile>('save', async function (next) {
+profileSchema.pre('save', async function(this: IProfile, next: mongoose.CallbackWithoutResultAndOptionalError) {
     if (this.isNew || this.isModified('password')) {
         const saltRounds = 10;
         this.password = await bcrypt.hash(this.password, saltRounds);
     }
-
     next();
 });
 
 // compare the incoming password with the hashed password
-profileSchema.methods.isCorrectPassword = async function (password: string): Promise<boolean> {
+profileSchema.methods.isCorrectPassword = async function(this: IProfile, password: string): Promise<boolean> {
     return bcrypt.compare(password, this.password);
 };
 

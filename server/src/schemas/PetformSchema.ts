@@ -1,5 +1,4 @@
-const petForm=`
-
+const petForm = `
 type Pet {
   id: ID!
   name: String!
@@ -8,6 +7,19 @@ type Pet {
   images: [String]
   status: String  
   shelterId: ID!
+}
+
+type Query {
+  pets(
+    searchTerm: String
+    type: String
+    breed: String
+    age: String
+    status: String
+    limit: Int
+    offset: Int
+  ): [Pet]!
+  pet(id: ID!): Pet
 }
 
 input CreatePetInput {
@@ -29,7 +41,7 @@ input UpdatePetInput {
 type Application {
   id: ID!
   petId: ID!
-  adopterId: ID  // This may be null if the adopter isn’t registered
+  adopterId: ID  // This may be null if the adopter isn't registered
   message: String!
   status: String!  // "Pending", "Reviewed", "Accepted", "Rejected"
   createdAt: String!
@@ -39,13 +51,13 @@ input CreateApplicationInput {
   petId: ID!
   message: String!
 }
-  type Mutation {
-  
+
+type Mutation {
   createPet(input: CreatePetInput!): Pet!
   updatePet(id: ID!, input: UpdatePetInput!): Pet!
   deletePet(id: ID!): Boolean!
-
-  
   createApplication(input: CreateApplicationInput!): Application!
 }
-  `;
+`;
+
+export default petForm;

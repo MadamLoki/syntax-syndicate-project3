@@ -1,18 +1,39 @@
 import ReactDOM from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 
-import App from './App.jsx'
-import LoginForm from './components/auth/LoginForm.js'
+import './index.css'
+import App from './App'
+import Home from './pages/Home'
+import LoginForm from './components/auth/LoginForm'
+import Error from './pages/Error'
+import SignupForm from './components/auth/SignupForm'
+import FindPets from './components/pets/FindPets'
 
 const router = createBrowserRouter([
     {
         path: '/',
         element: <App />,
-        errorElement: <h1 className='display-2'>Wrong page!</h1>,
+        errorElement: <Error />,
         children: [
             {
                 index: true,
-                element: <LoginForm />
+                element: <Home />,
+                errorElement: <Error />,
+            },
+            {
+                path: '/login',
+                element: <LoginForm />,
+                errorElement: <Error />,
+            },
+            {
+                path: '/signup',
+                element: <SignupForm />,
+                errorElement: <Error />,
+            },
+            {
+                path: '/findpets',
+                element: <FindPets />,
+                errorElement: <Error />,
             }
         ]
     }
