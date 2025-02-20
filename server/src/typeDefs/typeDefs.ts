@@ -55,6 +55,19 @@ const typeDefs = `
         createdAt: String!
     }
 
+     input CreateShelterInput {
+        latitude: Float 
+        longitude: Float
+        contactInfo: String
+    }
+
+    type Shelter {
+        _id: ID!
+        latitude: Float
+        longitude: Float
+        contactInfo: String
+    }
+
     input CreateApplicationInput {
         petId: ID!
         message: String!
@@ -68,6 +81,7 @@ const typeDefs = `
         pet(id: ID!): Pet
         applications: [Application]!
         application(id: ID!): Application
+        shelters: [Shelter]
     }
 
     type Mutation {
@@ -78,6 +92,7 @@ const typeDefs = `
         updatePet(id: ID!, input: UpdatePetInput!): Pet!
         deletePet(id: ID!): Boolean!
         createApplication(input: CreateApplicationInput!): Application!
+        createShelter(input: CreateShelterInput!): Shelter
     }
 `;
 
