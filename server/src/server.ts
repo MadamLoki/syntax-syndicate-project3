@@ -47,6 +47,7 @@ const startApolloServer = async () => {
     const server = new ApolloServer({ 
         typeDefs, 
         resolvers: mergedResolvers,
+        persistedQueries: false,
         context: async ({ req }) => {
             const token = req.headers.authorization || '';
             const user = getUserFromToken(token);
