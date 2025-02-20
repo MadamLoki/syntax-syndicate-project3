@@ -12,52 +12,79 @@ const typeDefs = `
         token: ID!
         profile: Profile
     }
-    
-    input ProfileInput {
-        name: String!
-        username: String!
-        email: String!
-        password: String!
-    }
 
-    type Pet {
-        id: ID!
-        name: String!
+    input PetfinderSearchInput {
+        type: String
         breed: String
-        age: Int
-        images: [String]
-        status: String  
-        shelterId: ID!
-    }
-
-    input CreatePetInput {
-        name: String!
-        breed: String
-        age: Int
-        images: [String]
-        status: String
-    }
-
-    input UpdatePetInput {
+        size: String
+        gender: String
+        age: String
+        location: String
+        distance: Int
         name: String
-        breed: String
-        age: Int
-        images: [String]
-        status: String
+        page: Int
+        limit: Int
     }
 
-    type Application {
+    type PetfinderBreed {
+        primary: String
+        secondary: String
+        mixed: Boolean
+        unknown: Boolean
+    }
+
+    type PetfinderPhoto {
+        small: String
+        medium: String
+        large: String
+        full: String
+    }
+
+    type PetfinderAttributes {
+        spayed_neutered: Boolean
+        house_trained: Boolean
+        declawed: Boolean
+        special_needs: Boolean
+        shots_current: Boolean
+    }
+
+    type PetfinderContact {
+        email: String
+        phone: String
+        address: PetfinderAddress
+    }
+
+    type PetfinderAddress {
+        city: String
+        state: String
+        postcode: String
+        country: String
+    }
+
+    type PetfinderAnimal {
         id: ID!
-        petId: ID!
-        adopterId: ID
-        message: String!
-        status: String!
-        createdAt: String!
+        name: String!
+        type: String!
+        breeds: PetfinderBreed
+        age: String
+        gender: String
+        size: String
+        photos: [PetfinderPhoto]
+        status: String
+        attributes: PetfinderAttributes
+        contact: PetfinderContact
     }
 
-    input CreateApplicationInput {
-        petId: ID!
-        message: String!
+    type PetfinderPagination {
+        count_per_page: Int
+        total_count: Int
+        current_page: Int
+        total_pages: Int
+    }
+
+    type PetfinderResponse {
+        animals: [PetfinderAnimal]
+        pagination: PetfinderPagination
     }
 
     type Query {
@@ -68,16 +95,21 @@ const typeDefs = `
         pet(id: ID!): Pet
         applications: [Application]!
         application(id: ID!): Application
+        shelters: [Shelter]
+        getPetfinderTypes: [String!]!
+        getPetfinderBreeds(type: String!): [String!]!
+        searchPetfinderPets(input: PetfinderSearchInput): PetfinderResponse
     }
 
     type Mutation {
         addProfile(input: ProfileInput!): Auth
-        login(email: String!, password: String!): Auth
+        login(username: String!, password: String!): Auth
         removeProfile: Profile
         createPet(input: CreatePetInput!): Pet!
         updatePet(id: ID!, input: UpdatePetInput!): Pet!
         deletePet(id: ID!): Boolean!
         createApplication(input: CreateApplicationInput!): Application!
+        createShelter(input: CreateShelterInput!): Shelter
     }
 `;
 

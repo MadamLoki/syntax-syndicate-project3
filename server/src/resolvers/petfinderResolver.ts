@@ -1,40 +1,65 @@
 import { IResolvers } from '@graphql-tools/utils';
-import PetfinderAPI from '../routes/api/petFinderApi.js';
+import { ApolloError } from 'apollo-server-express';
+import type PetfinderAPI from '../routes/api/petFinderApi';
+
+interface Context {
+    petfinderAPI: PetfinderAPI;
+}
 
 const petfinderResolvers: IResolvers = {
     Query: {
-        getPetfinderTypes: async () => {
+        getPetfinderTypes: async (_, __, context) => {
+            console.log('Context in resolver:', context);
+            console.log('PetfinderAPI instance:', context.petfinderAPI);
+            
+            if (!context.petfinderAPI) {
+                throw new Error('Petfinder API not initialized in context');
+            }
+
             try {
-                return await PetfinderAPI.getTypes();
+                const types = await context.petfinderAPI.getTypes();
+                console.log('Retrieved types:', types);
+                return types;
             } catch (error) {
-                console.error('Error fetching pet types:', error);
-                throw error;
+                console.error('Error in getPetfinderTypes:', error);
+                throw new ApolloError(
+                    'Failed to fetch pet types',
+                    'PETFINDER_API_ERROR',
+                    { originalError: error }
+                );
             }
         },
 
-        getPetfinderBreeds: async (_: any, { type }: { type: string }) => {
+        getPetfinderBreeds: async (_, { type }: { type: string }, { petfinderAPI }: Context) => {
             try {
-                return await PetfinderAPI.getBreeds(type.toLowerCase());
+                return await petfinderAPI.getBreeds(type.toLowerCase());
             } catch (error) {
                 console.error('Error fetching breeds:', error);
-                throw error;
+                if (error instanceof ApolloError) {
+                    throw error;
+                }
+                throw new ApolloError(
+                    'Failed to fetch breeds',
+                    'PETFINDER_API_ERROR',
+                    { originalError: error }
+                );
             }
         },
 
-        searchPetfinderPets: async (_: any, { input }: { input: any }) => {
+        searchPetfinderPets: async (_, { input }: { input: any }, { petfinderAPI }: Context) => {
             try {
-                // Clean up input parameters
-                const cleanInput = Object.entries(input || {}).reduce((acc: any, [key, value]) => {
-                    if (value !== null && value !== undefined && value !== '') {
-                        acc[key] = value;
-                    }
-                    return acc;
-                }, {});
-
-                return await PetfinderAPI.searchPets(cleanInput);
+                // The cleanup is now handled inside the PetfinderAPI class
+                return await petfinderAPI.searchPets(input);
             } catch (error) {
                 console.error('Error searching pets:', error);
-                throw error;
+                if (error instanceof ApolloError) {
+                    throw error;
+                }
+                throw new ApolloError(
+                    'Failed to search pets',
+                    'PETFINDER_API_ERROR',
+                    { originalError: error }
+                );
             }
         },
     },

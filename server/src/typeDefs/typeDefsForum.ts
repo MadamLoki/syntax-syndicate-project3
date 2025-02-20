@@ -1,10 +1,10 @@
-const ForumTypeDefs = `# GraphQL Types
+const ForumTypeDefs = `
 
 type Thread {
   id: ID!
   title: String!
   content: String!
-  author: User!           # assuming you have a User type defined
+  author: User!           
   comments: [Comment]
   createdAt: String!
   updatedAt: String!
@@ -30,14 +30,14 @@ input CreateThreadInput {
 input CreateCommentInput {
   threadId: ID!
   content: String!
-  parentCommentId: ID  # optional, if this is a reply to another comment
+  parentCommentId: ID  
 }
 
 # Queries
 
 type Query {
-  threads: [Thread]               # Fetch all threads
-  thread(id: ID!): Thread           # Fetch a single thread with its comments
+  threads: [Thread]               
+  thread(id: ID!): Thread           
 }
 
 # Mutations

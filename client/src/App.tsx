@@ -3,7 +3,7 @@ import { ApolloClient, InMemoryCache, ApolloProvider, createHttpLink } from '@ap
 import { setContext } from '@apollo/client/link/context';
 
 import '../src/index.css';
-
+import { AuthProvider } from './components/auth/AuthContext';
 import NavBar from './components/layout/NavBar';
 import Footer from './components/layout/Footer';
 
@@ -11,7 +11,9 @@ const httpLink = createHttpLink({
     uri: '/graphql'
 });
 
-const authLink = setContext((_, { headers = {} }) => {
+// Auth middleware
+const authLink = setContext((_, { headers }) => {
+    // get the authentication token from local storage if it exists
     const token = localStorage.getItem('id_token');
     return {
         headers: {
@@ -23,17 +25,35 @@ const authLink = setContext((_, { headers = {} }) => {
 
 const client = new ApolloClient({
     link: authLink.concat(httpLink),
-    cache: new InMemoryCache()
+    cache: new InMemoryCache(),
+    defaultOptions: {
+        watchQuery: {
+            fetchPolicy: 'network-only',
+            errorPolicy: 'all',
+        },
+        query: {
+            fetchPolicy: 'network-only',
+            errorPolicy: 'all',
+        },
+    },
 });
+
+const AppContent = () => {
+    return (
+        <div>
+            <NavBar />
+            <Outlet />
+            <Footer />
+        </div>
+    );
+};
 
 export default function App() {
     return (
-        <div>
+        <AuthProvider>
             <ApolloProvider client={client}>
-                <NavBar />
-                <Outlet />
-                <Footer />
+                <AppContent />
             </ApolloProvider>
-        </div>
+        </AuthProvider>
     );
 }

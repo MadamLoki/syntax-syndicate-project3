@@ -1,8 +1,4 @@
-import fetch from 'node-fetch';
-import dotenv from 'dotenv';
 import { ApolloError } from 'apollo-server-errors';
-
-dotenv.config();
 
 interface PetfinderToken {
     token: string;
@@ -10,8 +6,9 @@ interface PetfinderToken {
 }
 
 interface PetfinderAuthResponse {
-    access_token: string;
+    token_type: string;
     expires_in: number;
+    access_token: string;
 }
 
 interface PetfinderSearchParams {
@@ -25,95 +22,176 @@ interface PetfinderSearchParams {
     name?: string;
     page?: number;
     limit?: number;
+    [key: string]: any; // Allow for additional parameters
 }
 
 class PetfinderAPI {
     private static instance: PetfinderAPI;
     private token: string | null = null;
     private tokenExpiration: number = 0;
-    private baseUrl = 'https://api.petfinder.com/v2';
+    private readonly baseUrl = 'https://api.petfinder.com/v2';
+    private readonly apiKey: string;
+    private readonly apiSecret: string;
+    private tokenRefreshPromise: Promise<string> | null = null;
 
-    private constructor() { }
+    private constructor(apiKey: string, apiSecret: string) {
+        if (!apiKey || !apiSecret) {
+            throw new Error('API key and secret are required');
+        }
+        this.apiKey = apiKey;
+        this.apiSecret = apiSecret;
+    }
 
-    public static getInstance(): PetfinderAPI {
+    public static getInstance(apiKey?: string, apiSecret?: string): PetfinderAPI {
         if (!PetfinderAPI.instance) {
-            PetfinderAPI.instance = new PetfinderAPI();
+            if (!apiKey || !apiSecret) {
+                throw new Error('API key and secret are required for initialization');
+            }
+            PetfinderAPI.instance = new PetfinderAPI(apiKey, apiSecret);
         }
         return PetfinderAPI.instance;
     }
 
     private async getToken(): Promise<string> {
-        // Check if we have a valid token
-        if (this.token && Date.now() < this.tokenExpiration) {
+        console.log('Getting token...');
+        // If we have a valid token, return it
+        if (this.token && Date.now() < this.tokenExpiration - 30000) { // 30-second buffer
+            console.log('Using existing token');
             return this.token;
         }
 
-        try {
-            const response = await fetch(`${this.baseUrl}/oauth2/token`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: new URLSearchParams({
-                    'grant_type': 'client_credentials',
-                    'client_id': process.env.PETFINDER_API_KEY || '',
-                    'client_secret': process.env.PETFINDER_SECRET || '',
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error(`Failed to get access token: ${response.statusText}`);
-            }
-
-            const data = await response.json();
-            this.token = data.access_token;
-            // Set expiration to slightly before the actual expiration to be safe
-            this.tokenExpiration = Date.now() + (data.expires_in * 1000) - 60000; // Subtract 1 minute
-            return this.token!;
-        } catch (error) {
-            console.error('Error getting token:', error);
-            throw new ApolloError('Failed to authenticate with Petfinder API', (error as Error).message);
+        // If a token refresh is already in progress, wait for it
+        if (this.tokenRefreshPromise) {
+            return this.tokenRefreshPromise;
         }
+
+        // Start a new token refresh
+        this.tokenRefreshPromise = (async () => {
+            try {
+                console.log('Requesting new token...');
+                console.log('API Key length:', this.apiKey.length);
+                console.log('API Secret length:', this.apiSecret.length);
+                
+                const response = await fetch(`${this.baseUrl}/oauth2/token`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        'grant_type': 'client_credentials',
+                        'client_id': this.apiKey,
+                        'client_secret': this.apiSecret,
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Authentication failed: ${response.statusText}`);
+                }
+
+                const data = await response.json() as PetfinderAuthResponse;
+                
+                if (data.token_type !== 'Bearer') {
+                    throw new Error('Unexpected token type received');
+                }
+
+                this.token = data.access_token;
+                // Set expiration to 60 seconds before actual expiration for safety
+                this.tokenExpiration = Date.now() + (data.expires_in * 1000) - 60000;
+                
+                return this.token;
+            } catch (error) {
+                console.error('Token refresh error:', error);
+                throw new ApolloError(
+                    'Failed to authenticate with Petfinder API',
+                    'PETFINDER_AUTH_ERROR',
+                    { originalError: error }
+                );
+            } finally {
+                this.tokenRefreshPromise = null;
+            }
+        })();
+
+        return this.tokenRefreshPromise;
     }
 
-    private async makeRequest<T>(endpoint: string, params: Record<string, any> = {}): Promise<T> {
+    private async makeRequest<T>(endpoint: string, params: Record<string, any> = {}) {
         try {
             const token = await this.getToken();
-            const queryString = new URLSearchParams(params).toString();
-            const url = `${this.baseUrl}/${endpoint}${queryString ? `?${queryString}` : ''}`;
-
+            
+            // Properly encode parameters
+            const queryParams = Object.entries(params)
+                .filter(([_, value]) => value != null && value !== '')
+                .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+                .join('&');
+    
+            const url = `${this.baseUrl}/${endpoint}${queryParams ? `?${queryParams}` : ''}`;
+            
+            console.log('Making request to:', url); // Add this for debugging
+    
             const response = await fetch(url, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
             });
-
+    
             if (!response.ok) {
-                throw new Error(`Petfinder API error: ${response.status} ${response.statusText}`);
+                const errorData = await response.json();
+                throw new ApolloError(
+                    'Petfinder API request failed',
+                    'PETFINDER_API_ERROR',
+                    errorData
+                );
             }
-
+    
             return response.json();
         } catch (error) {
-            console.error(`Error making request to ${endpoint}:`, error);
-            throw new ApolloError('Failed to authenticate with Petfinder API', (error as Error).message);
+            console.error('API request error:', error);
+            throw error;
         }
     }
 
     // Public methods for GraphQL resolvers
-    public async getTypes() {
+    public async getTypes(): Promise<string[]> {
         const response = await this.makeRequest<{ types: { name: string }[] }>('types');
-        return response.types.map((type) => type.name);
+        return response.types.map((type: {name: string}) => type.name);
     }
 
-    public async getBreeds(type: string) {
-        const response = await this.makeRequest<{ breeds: { name: string }[] }>(`types/${type}/breeds`);
-        return response.breeds.map((breed) => breed.name);
+    public async getBreeds(type: string): Promise<string[]> {
+        if (!type) {
+            throw new Error('Type parameter is required');
+        }
+        const response = await this.makeRequest<{ breeds: { name: string }[] }>(`types/${type.toLowerCase()}/breeds`);
+           // Ensure the response has the expected structure
+        return response.breeds.map((breed: { name: string }) => breed.name);
     }
 
-    public async searchPets(params: Record<string, any>) {
-        return this.makeRequest('animals', params);
+    public async searchPets(params: PetfinderSearchParams) {
+        // Clean up parameters
+        const cleanParams: { [key: string]: any } = {
+            type: params.type?.toLowerCase(),
+            breed: params.breed,
+            size: params.size?.toLowerCase(),
+            gender: params.gender?.toLowerCase(),
+            age: params.age?.toLowerCase(),
+            location: params.location,
+            distance: params.distance,
+            limit: params.limit || 100,
+            name: params.name
+        };
+    
+        // Remove undefined or empty values
+        Object.keys(cleanParams).forEach(key => 
+            (cleanParams[key] === undefined || cleanParams[key] === '') && delete cleanParams[key]
+        );
+    
+        return this.makeRequest('animals', cleanParams);
     }
 }
 
-export default PetfinderAPI.getInstance();
+// Export factory function for creating singleton instance
+export const createPetfinderAPI = (apiKey: string, apiSecret: string): PetfinderAPI => {
+    return PetfinderAPI.getInstance(apiKey, apiSecret);
+};
+
+export default PetfinderAPI;
