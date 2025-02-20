@@ -33,6 +33,26 @@ app.get('/test-petfinder', async (_req, res) => {
     }
 });
 
+app.get('/debug-petfinder', async (_req, res) => {
+    try {
+        const types = await petfinderAPI.getTypes();
+        const searchResult = await petfinderAPI.searchPets({
+            type: 'Dog',
+            limit: 1
+        });
+        res.json({
+            types,
+            searchSample: searchResult
+        });
+    } catch (error) {
+        console.error('Debug endpoint error:', error);
+        res.status(500).json({
+            error: (error as any).message,
+            stack: process.env.NODE_ENV === 'development' ? (error as Error).stack : undefined
+        });
+    }
+});
+
 const getUserFromToken = (authHeader: string) => {
     try {
         const token = authHeader.split(' ')[1];

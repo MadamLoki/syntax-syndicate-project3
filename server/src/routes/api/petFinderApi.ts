@@ -114,68 +114,47 @@ class PetfinderAPI {
         return this.tokenRefreshPromise;
     }
 
-    private async makeRequest<T>(endpoint: string, params: Record<string, any> = {}): Promise<T> {
-        const maxRetries = 2;
-        let lastError: Error | null = null;
-
-        for (let attempt = 0; attempt <= maxRetries; attempt++) {
-            try {
-                const token = await this.getToken();
-                
-                const queryString = new URLSearchParams(
-                    Object.entries(params)
-                        .filter(([_, value]) => value !== undefined && value !== null && value !== '')
-                        .reduce((acc, [key, value]) => ({ ...acc, [key]: String(value) }), {})
-                ).toString();
-
-                const url = `${this.baseUrl}/${endpoint}${queryString ? `?${queryString}` : ''}`;
-
-                const response = await fetch(url, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                    },
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    
-                    // If token is expired, invalidate it and retry
-                    if (response.status === 401 && attempt < maxRetries) {
-                        this.token = null;
-                        this.tokenExpiration = 0;
-                        continue;
-                    }
-
-                    throw new ApolloError(
-                        'Petfinder API request failed',
-                        'PETFINDER_API_ERROR',
-                        errorData
-                    );
-                }
-
-                return response.json();
-            } catch (error) {
-                lastError = error instanceof Error ? error : new Error(String(error));
-                
-                if (attempt === maxRetries) {
-                    throw error instanceof ApolloError ? error : new ApolloError(
-                        'Failed to fetch data from Petfinder API',
-                        'PETFINDER_API_ERROR',
-                        { originalError: lastError }
-                    );
-                }
+    private async makeRequest<T>(endpoint: string, params: Record<string, any> = {}) {
+        try {
+            const token = await this.getToken();
+            
+            // Properly encode parameters
+            const queryParams = Object.entries(params)
+                .filter(([_, value]) => value != null && value !== '')
+                .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+                .join('&');
+    
+            const url = `${this.baseUrl}/${endpoint}${queryParams ? `?${queryParams}` : ''}`;
+            
+            console.log('Making request to:', url); // Add this for debugging
+    
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+    
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new ApolloError(
+                    'Petfinder API request failed',
+                    'PETFINDER_API_ERROR',
+                    errorData
+                );
             }
+    
+            return response.json();
+        } catch (error) {
+            console.error('API request error:', error);
+            throw error;
         }
-
-        // This should never be reached due to the throw in the loop
-        throw lastError || new Error('Unknown error occurred');
     }
 
     // Public methods for GraphQL resolvers
     public async getTypes(): Promise<string[]> {
         const response = await this.makeRequest<{ types: { name: string }[] }>('types');
-        return response.types.map(type => type.name);
+        return response.types.map((type: {name: string}) => type.name);
     }
 
     public async getBreeds(type: string): Promise<string[]> {
@@ -183,14 +162,30 @@ class PetfinderAPI {
             throw new Error('Type parameter is required');
         }
         const response = await this.makeRequest<{ breeds: { name: string }[] }>(`types/${type.toLowerCase()}/breeds`);
-        return response.breeds.map(breed => breed.name);
+           // Ensure the response has the expected structure
+        return response.breeds.map((breed: { name: string }) => breed.name);
     }
 
     public async searchPets(params: PetfinderSearchParams) {
-        return this.makeRequest('animals', {
-            ...params,
-            limit: params.limit || 100
-        });
+        // Clean up parameters
+        const cleanParams: { [key: string]: any } = {
+            type: params.type?.toLowerCase(),
+            breed: params.breed,
+            size: params.size?.toLowerCase(),
+            gender: params.gender?.toLowerCase(),
+            age: params.age?.toLowerCase(),
+            location: params.location,
+            distance: params.distance,
+            limit: params.limit || 100,
+            name: params.name
+        };
+    
+        // Remove undefined or empty values
+        Object.keys(cleanParams).forEach(key => 
+            (cleanParams[key] === undefined || cleanParams[key] === '') && delete cleanParams[key]
+        );
+    
+        return this.makeRequest('animals', cleanParams);
     }
 }
 

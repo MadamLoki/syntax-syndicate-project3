@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { ApolloError } from '@apollo/client';
 import { useQuery, useLazyQuery } from '@apollo/client';
 import { Search, Filter } from 'lucide-react';
@@ -67,17 +67,6 @@ const PetSearch = () => {
         },
         fetchPolicy: 'network-only'
     });
-
-    // Retry logic for failed requests
-    // useEffect(() => {
-    //     if (error) {
-    //         // const retryTimer = setTimeout(() => {
-    //         //     refetchTypes();
-    //         //     setError(null);
-    //         // }, 10000); // Retry after 10seconds
-    //         // return () => clearTimeout(retryTimer);
-    //     }
-    // }, [error, refetchTypes]);
 
     interface Filters {
         type: string;
