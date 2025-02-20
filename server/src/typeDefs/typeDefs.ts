@@ -8,6 +8,68 @@ const typeDefs = `
         skills: [String]!
     }
 
+    input ProfileInput {
+        name: String!
+        email: String!
+        password: String!
+        username: String!
+    }
+
+    type Pet {
+        _id: ID!
+        name: String!
+        breed: String
+        age: Int
+        images: [String]
+        status: String
+        shelterId: ID!
+    }
+
+    input CreatePetInput {
+        name: String!
+        breed: String
+        age: Int
+        images: [String]
+        status: String
+    }
+
+    input UpdatePetInput {
+        name: String
+        breed: String
+        age: Int
+        images: [String]
+        status: String
+    }
+
+    type Application {
+        _id: ID!
+        petId: ID!
+        adopterId: ID
+        message: String!
+        status: String!
+        createdAt: String!
+    }
+
+    input CreateApplicationInput {
+        petId: ID!
+        message: String!
+    }
+
+    type Shelter {
+        _id: ID!
+        name: String!
+        latitude: Float!
+        longitude: Float!
+        contactInfo: String!
+    }
+
+    input CreateShelterInput {
+        name: String!
+        latitude: Float!
+        longitude: Float!
+        contactInfo: String!
+    }
+
     type Auth {
         token: ID!
         profile: Profile
@@ -95,7 +157,7 @@ const typeDefs = `
         pet(id: ID!): Pet
         applications: [Application]!
         application(id: ID!): Application
-        shelters: [Shelter]
+        shelters: [Shelter]!
         getPetfinderTypes: [String!]!
         getPetfinderBreeds(type: String!): [String!]!
         searchPetfinderPets(input: PetfinderSearchInput): PetfinderResponse
@@ -109,7 +171,7 @@ const typeDefs = `
         updatePet(id: ID!, input: UpdatePetInput!): Pet!
         deletePet(id: ID!): Boolean!
         createApplication(input: CreateApplicationInput!): Application!
-        createShelter(input: CreateShelterInput!): Shelter
+        createShelter(input: CreateShelterInput!): Shelter!
     }
 `;
 
