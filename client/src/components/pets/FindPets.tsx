@@ -42,13 +42,13 @@ const PetSearch = () => {
     const [error, setError] = useState<ApolloError | null>(null);
 
     // Fetch types with error handling and retry logic
-    const { data: typesData, loading: typesLoading, refetch: refetchTypes } = useQuery(GET_PETFINDER_TYPES, {
+    const { loading: typesLoading, refetch: refetchTypes } = useQuery(GET_PETFINDER_TYPES, {
         onError: (error) => {
-            console.error('Error fetching types:', error);
-            setError(error);
+            console.error('GraphQL error:', error);
         },
-        notifyOnNetworkStatusChange: true,
-        fetchPolicy: 'network-only'
+        onCompleted: (data) => {
+            console.log('Retrieved data:', data);
+        }
     });
 
     // Lazy query for breeds
@@ -179,7 +179,7 @@ const PetSearch = () => {
                                 className="border rounded-lg p-2"
                             >
                                 <option value="">Select Type</option>
-                                {typesData?.getPetfinderTypes?.map((type: string) => (
+                                {petsData?.getPetfinderTypes?.map((type: string) => (
                                     <option key={type} value={type}>
                                         {type}
                                     </option>

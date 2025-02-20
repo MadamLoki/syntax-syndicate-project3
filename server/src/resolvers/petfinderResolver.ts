@@ -8,20 +8,20 @@ interface Context {
 
 const petfinderResolvers: IResolvers = {
     Query: {
-        getPetfinderTypes: async (_, __, { petfinderAPI }: Context) => {
+        getPetfinderTypes: async (_, __, context) => {
+            console.log('Context in resolver:', context);
+            console.log('PetfinderAPI instance:', context.petfinderAPI);
+            
+            if (!context.petfinderAPI) {
+                throw new Error('Petfinder API not initialized in context');
+            }
+
             try {
-                if (!petfinderAPI) {
-                    throw new Error ('Petfinder API not initialized');
-                }
-                console.log('Fetching pet types...');
-                const types = await petfinderAPI.getTypes();
-                console.log('Pet types fetched:', types);
+                const types = await context.petfinderAPI.getTypes();
+                console.log('Retrieved types:', types);
                 return types;
             } catch (error) {
                 console.error('Error in getPetfinderTypes:', error);
-                if (error instanceof ApolloError) {
-                    throw error;
-                }
                 throw new ApolloError(
                     'Failed to fetch pet types',
                     'PETFINDER_API_ERROR',

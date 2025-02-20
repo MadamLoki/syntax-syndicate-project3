@@ -3,6 +3,7 @@ import { gql } from '@apollo/client';
 // Simplified query to just get types first
 export const GET_PETFINDER_TYPES = gql`
     query GetPetfinderTypes {
+        __typename
         getPetfinderTypes
     }
 `;

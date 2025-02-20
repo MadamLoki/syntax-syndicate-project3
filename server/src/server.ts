@@ -77,6 +77,16 @@ const getUserFromToken = (authHeader: string) => {
 };
 
 const startApolloServer = async () => {
+    // Test Petfinder API connection
+    try {
+        console.log('Testing Petfinder API connection...');
+        const testTypes = await petfinderAPI.getTypes();
+        console.log('Petfinder API test successful:', testTypes);
+    } catch (error) {
+        console.error('Failed to initialize Petfinder API:', error);
+        throw new Error('Petfinder API initialization failed');
+    }
+
     const server = new ApolloServer({ 
         typeDefs, 
         resolvers: mergedResolvers,
