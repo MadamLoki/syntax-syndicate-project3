@@ -74,9 +74,9 @@ const petfinderSchema = `
     }
 
     extend type Query {
+        getPetfinderTypes: [String!]!
+        getPetfinderBreeds(type: String!): [String!]!
         searchPetfinderPets(input: PetfinderSearchInput): PetfinderResponse
-        getPetfinderTypes: [String]
-        getPetfinderBreeds(type: String!): [String]
     }
 `;
 

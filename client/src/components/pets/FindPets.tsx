@@ -36,28 +36,16 @@ const FindPets = () => {
     const [searchErrorState, setSearchErrorState] = useState<Error | null>(null);
 
     // Queries with error handling
-    const {
-        data: typesData,
-        error: typesError,
-        refetch: refetchTypes
-    } = useQuery(GET_PETFINDER_TYPES, {
+    const { data: typesData, error: typesError, refetch: refetchTypes } = useQuery(GET_PETFINDER_TYPES, {
         onError: (error) => {
             console.error('Error fetching pet types:', error);
-            // Check if it's a network error
             if (error.networkError) {
-                setSearchErrorState(new Error('Network error. Please check your connection.'));
-            } else if (error.graphQLErrors?.length > 0) {
-                // Handle GraphQL errors
-                const firstError = error.graphQLErrors[0];
-                if (firstError.extensions?.code === 'UNAUTHENTICATED') {
-                    setSearchErrorState(new Error('Authentication failed. Please try again.'));
-                } else {
-                    setSearchErrorState(new Error(firstError.message));
-                }
+                console.log('Network error:', error.networkError);
             }
-        },
-        // Add fetchPolicy to ensure we're not using cached data that might be invalid
-        fetchPolicy: 'network-only'
+            if (error.graphQLErrors) {
+                console.log('GraphQL errors:', error.graphQLErrors);
+            }
+        }
     });
 
     const [getBreeds, {

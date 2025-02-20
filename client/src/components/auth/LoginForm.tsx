@@ -2,17 +2,19 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation } from '@apollo/client';
 import { LOGIN_USER } from '../../utils/mutations';
+import { useAuth } from './AuthContext';
 
 interface FormData {
-    email: string;
+    username: string;
     password: string;
     rememberMe: boolean;
 }
 
 const LoginForm = () => {
     const navigate = useNavigate();
+    const { login: authLogin } = useAuth();
     const [formData, setFormData] = useState<FormData>({
-        email: '',
+        username: '',
         password: '',
         rememberMe: false
     });
@@ -22,26 +24,18 @@ const LoginForm = () => {
     const [login, { loading }] = useMutation(LOGIN_USER, {
         onCompleted: (data) => {
             const token = data.login.token;
-            // Save token to local storage
-            if (formData.rememberMe) {
-                localStorage.setItem('id_token', token);
-            } else {
-                sessionStorage.setItem('id_token', token);
-            }
-            navigate('/') // Redirect after successful login
+            authLogin(token); // Use the auth context login function instead of directly setting localStorage
+            navigate('/');
         },
         onError: (error) => {
-            // Handle error
             setLoginError(error.message);
         }
     });
 
     const validateForm = (): boolean => {
         const errors: Partial<FormData> = {};
-        if (!formData.email) {
-            errors.email = 'Email is required';
-        } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-            errors.email = 'Email is invalid';
+        if (!formData.username) {
+            errors.username = 'Username is required';
         }
         if (!formData.password) {
             errors.password = 'Password is required';
@@ -68,22 +62,18 @@ const LoginForm = () => {
     };
 
     const handleSubmit = async (event: React.FormEvent) => {
-        // Prevent page reload
         event.preventDefault();
-        if (!validateForm()) {
+        if (validateForm()) {
             try {
                 await login({
                     variables: {
-                        email: formData.email,
+                        username: formData.username,
                         password: formData.password
                     }
                 });
-                console.log('Login successful');
-                // Redirect to dashboard or home page
-                navigate('/'); // Redirect after successful login
             } catch (error) {
                 console.error('Login error:', error);
-                setLoginError('Invalid email or password');
+                setLoginError('Invalid username or password');
             }
         }
     };
@@ -100,9 +90,9 @@ const LoginForm = () => {
                             {loginError && ( <div className="mt-4 p-2 bg-red-100 border border-red-400 text-red-700 rounded"> {loginError} </div> )}
                             <form className="mt-6" onSubmit={handleSubmit}>
                                 <div className="mb-4">
-                                    <label className="mb-2 block text-xs font-semibold">Email</label>
-                                    <input type="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="Enter your email" className={`block w-full rounded-md border ${formErrors.email ? 'border-red-500' : 'border-gray-300' } focus:border-blue-700 focus:outline-none focus:ring-1 focus:ring-blue-700 py-2 px-3 text-gray-500`} />
-                                    {formErrors.email && ( <p className="mt-1 text-xs text-red-500">{formErrors.email}</p> )}
+                                    <label className="mb-2 block text-xs font-semibold">Username</label>
+                                    <input type="username" name="username" value={formData.username} onChange={handleInputChange} placeholder="Enter your username" className={`block w-full rounded-md border ${formErrors.username ? 'border-red-500' : 'border-gray-300' } focus:border-blue-700 focus:outline-none focus:ring-1 focus:ring-blue-700 py-2 px-3 text-gray-500`} />
+                                    {formErrors.username && ( <p className="mt-1 text-xs text-red-500">{formErrors.username}</p> )}
                                 </div>
 
                                 <div className="mb-4">

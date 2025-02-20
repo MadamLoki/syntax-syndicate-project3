@@ -1,9 +1,10 @@
 import { Outlet } from 'react-router-dom';
-import { ApolloClient, InMemoryCache, ApolloProvider, createHttpLink } from '@apollo/client';
+import { ApolloClient, InMemoryCache, ApolloProvider, createHttpLink, from } from '@apollo/client';
 import { setContext } from '@apollo/client/link/context';
+import { onError } from '@apollo/client/link/error';
 
 import '../src/index.css';
-
+import { AuthProvider, useAuth } from './components/auth/AuthContext';
 import NavBar from './components/layout/NavBar';
 import Footer from './components/layout/Footer';
 
@@ -11,8 +12,41 @@ const httpLink = createHttpLink({
     uri: '/graphql'
 });
 
-const authLink = setContext((_, { headers = {} }) => {
-    const token = localStorage.getItem('id_token');
+// Error handling link
+const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) => {
+    if (graphQLErrors) {
+        for (let err of graphQLErrors) {
+            switch (err.extensions?.code) {
+                case 'UNAUTHENTICATED':
+                    const { getToken, logout } = useAuth();
+                    const token = getToken();
+                    if (!token) {
+                        // Token is invalid or expired, logout user
+                        logout();
+                        return;
+                    }
+                    // Retry the failed request
+                    const oldHeaders = operation.getContext().headers;
+                    operation.setContext({
+                        headers: {
+                            ...oldHeaders,
+                            authorization: `Bearer ${token}`
+                        },
+                    });
+                    return forward(operation);
+            }
+        }
+    }
+    if (networkError) {
+        console.log(`[Network error]: ${networkError}`);
+    }
+});
+
+// Auth middleware
+const authLink = setContext((_, { headers }) => {
+    const { getToken } = useAuth();
+    const token = getToken();
+    
     return {
         headers: {
             ...headers,
@@ -22,18 +56,26 @@ const authLink = setContext((_, { headers = {} }) => {
 });
 
 const client = new ApolloClient({
-    link: authLink.concat(httpLink),
+    link: from([errorLink, authLink, httpLink]),
     cache: new InMemoryCache()
 });
 
-export default function App() {
+const AppContent = () => {
     return (
         <div>
-            <ApolloProvider client={client}>
-                <NavBar />
-                <Outlet />
-                <Footer />
-            </ApolloProvider>
+            <NavBar />
+            <Outlet />
+            <Footer />
         </div>
+    );
+};
+
+export default function App() {
+    return (
+        <AuthProvider>
+            <ApolloProvider client={client}>
+                <AppContent />
+            </ApolloProvider>
+        </AuthProvider>
     );
 }

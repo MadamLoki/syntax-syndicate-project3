@@ -55,7 +55,7 @@ const typeDefs = `
         createdAt: String!
     }
 
-     input CreateShelterInput {
+    input CreateShelterInput {
         latitude: Float 
         longitude: Float
         contactInfo: String
@@ -86,7 +86,7 @@ const typeDefs = `
 
     type Mutation {
         addProfile(input: ProfileInput!): Auth
-        login(email: String!, password: String!): Auth
+        login(username: String!, password: String!): Auth
         removeProfile: Profile
         createPet(input: CreatePetInput!): Pet!
         updatePet(id: ID!, input: UpdatePetInput!): Pet!

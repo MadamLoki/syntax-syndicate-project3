@@ -1,20 +1,33 @@
 import { IResolvers } from '@graphql-tools/utils';
-import PetfinderAPI from '../routes/api/petFinderApi.js';
+import petfinderAPIInstance from '../routes/api/petFinderApi';
+import { ApolloError } from 'apollo-server-express';
 
 const petfinderResolvers: IResolvers = {
     Query: {
-        getPetfinderTypes: async () => {
+        getPetfinderTypes: async (_, __, context) => {
             try {
-                return await PetfinderAPI.getTypes();
+                // Add logging to debug the request
+                console.log('Fetching pet types...');
+                const types = await context.petfinderAPI.getTypes();
+                console.log('Pet types fetched:', types);
+                return types;
             } catch (error) {
-                console.error('Error fetching pet types:', error);
-                throw error;
+                console.error('Error in getPetfinderTypes:', error);
+                // Add more detailed error information
+                if (error instanceof ApolloError) {
+                    throw error;
+                }
+                throw new ApolloError(
+                    'Failed to fetch pet types',
+                    'PETFINDER_API_ERROR',
+                    { originalError: error }
+                );
             }
         },
 
         getPetfinderBreeds: async (_: any, { type }: { type: string }) => {
             try {
-                return await PetfinderAPI.getBreeds(type.toLowerCase());
+                return await petfinderAPIInstance.getBreeds(type.toLowerCase());
             } catch (error) {
                 console.error('Error fetching breeds:', error);
                 throw error;
@@ -31,7 +44,7 @@ const petfinderResolvers: IResolvers = {
                     return acc;
                 }, {});
 
-                return await PetfinderAPI.searchPets(cleanInput);
+                return await petfinderAPIInstance.searchPets(cleanInput);
             } catch (error) {
                 console.error('Error searching pets:', error);
                 throw error;

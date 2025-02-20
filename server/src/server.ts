@@ -5,6 +5,7 @@ import { ApolloServer } from 'apollo-server-express';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import petfinderAPIInstance from './routes/api/petFinderApi.js';
 
 
 import db from './config/connection.js';
@@ -26,11 +27,17 @@ const getUserFromToken = (authHeader: string) => {
 
         const secret = process.env.JWT_SECRET_KEY;
         if (!secret) {
-            throw new Error('JWT_SECRET_KEY is not defined');
+            console.error('JWT_SECRET_KEY is not defined');
+            return null;
         }
         
         return jwt.verify(token, secret);
     } catch (err) {
+        if (err instanceof jwt.TokenExpiredError) {
+            // Token is expired, return null instead of throwing
+            console.log('Token expired, user will need to login again');
+            return null;
+        }
         console.error('Token verification error:', err);
         return null;
     }
@@ -39,13 +46,17 @@ const getUserFromToken = (authHeader: string) => {
 const startApolloServer = async () => {
     const server = new ApolloServer({ 
         typeDefs, 
-        resolvers: mergedResolvers, 
-        cache: 'bounded',
-        persistedQueries: false,
-        context: async ({ req }: { req: express.Request }) => {
+        resolvers: mergedResolvers,
+        context: async ({ req }) => {
             const token = req.headers.authorization || '';
             const user = getUserFromToken(token);
-            return { user };
+            
+            // Even if user auth fails, we still want to allow access to public queries
+            return { 
+                user,
+                // Add petfinder instance to context
+                petfinderAPI: petfinderAPIInstance 
+            };
         }
     });
 

@@ -47,7 +47,11 @@ class PetfinderAPI {
         if (this.token && Date.now() < this.tokenExpiration) {
             return this.token;
         }
-
+    
+        if (!process.env.PETFINDER_API_KEY || !process.env.PETFINDER_SECRET) {
+            throw new Error('Petfinder API credentials not configured');
+        }
+    
         try {
             const response = await fetch(`${this.baseUrl}/oauth2/token`, {
                 method: 'POST',
@@ -56,20 +60,21 @@ class PetfinderAPI {
                 },
                 body: new URLSearchParams({
                     'grant_type': 'client_credentials',
-                    'client_id': process.env.PETFINDER_API_KEY || '',
-                    'client_secret': process.env.PETFINDER_SECRET || '',
+                    'client_id': process.env.PETFINDER_API_KEY,
+                    'client_secret': process.env.PETFINDER_SECRET,
                 }),
             });
-
+    
             if (!response.ok) {
                 throw new Error(`Failed to get access token: ${response.statusText}`);
             }
-
+    
             const data = await response.json();
             this.token = data.access_token;
             // Set expiration to slightly before the actual expiration to be safe
             this.tokenExpiration = Date.now() + (data.expires_in * 1000) - 60000; // Subtract 1 minute
             return this.token!;
+    
         } catch (error) {
             console.error('Error getting token:', error);
             throw new ApolloError('Failed to authenticate with Petfinder API', (error as Error).message);
@@ -116,4 +121,5 @@ class PetfinderAPI {
     }
 }
 
-export default PetfinderAPI.getInstance();
+const petfinderAPIInstance = PetfinderAPI.getInstance();
+export default petfinderAPIInstance;
