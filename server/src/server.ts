@@ -5,20 +5,33 @@ import { ApolloServer } from 'apollo-server-express';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import petfinderAPIInstance from './routes/api/petFinderApi.js';
+import { createPetfinderAPI } from './routes/api/petFinderApi.js';
 
 
 import db from './config/connection.js';
 import typeDefs from './typeDefs/typeDefs.js';
 import mergedResolvers from './resolvers/index.js';
 
-
- //const __filename = fileURLToPath(import.meta.url);
- //const __dirname = path.dirname(__filename);
 dotenv.config();
 
 const PORT = process.env.PORT || 3001;
 const app = express();
+const petfinderAPI = createPetfinderAPI(
+    process.env.PETFINDER_API_KEY || '',
+    process.env.PETFINDER_SECRET || ''
+);
+console.log('API Key exists:', !!process.env.PETFINDER_API_KEY);
+console.log('API Secret exists:', !!process.env.PETFINDER_SECRET);
+
+app.get('/test-petfinder', async (_req, res) => {
+    try {
+        const types = await petfinderAPI.getTypes();
+        res.json(types);
+    } catch (error) {
+        console.error('Petfinder API test failed:', error);
+        res.status(500).json({ error: (error as any).message });
+    }
+});
 
 const getUserFromToken = (authHeader: string) => {
     try {
@@ -51,12 +64,10 @@ const startApolloServer = async () => {
         context: async ({ req }) => {
             const token = req.headers.authorization || '';
             const user = getUserFromToken(token);
-            
             // Even if user auth fails, we still want to allow access to public queries
             return { 
                 user,
-                // Add petfinder instance to context
-                petfinderAPI: petfinderAPIInstance 
+                petfinderAPI
             };
         }
     });
