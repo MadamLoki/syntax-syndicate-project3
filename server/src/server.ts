@@ -9,7 +9,7 @@ import { createPetfinderAPI } from './routes/api/petFinderApi.js';
 
 
 import db from './config/connection.js';
-import typeDefs from './typeDefs/typeDefs.js';
+import typeDefs from './typeDefs/index.js'; 
 import mergedResolvers from './resolvers/index.js';
 
 dotenv.config();
@@ -54,6 +54,11 @@ app.get('/debug-petfinder', async (_req, res) => {
     }
 });
 
+app.use('/graphql', (req, _res, next) => {
+    console.log('GraphQL Request Body:', req.body);
+    next();
+});
+
 const getUserFromToken = (authHeader: string) => {
     try {
         const token = authHeader.split(' ')[1];
@@ -82,7 +87,7 @@ const startApolloServer = async () => {
     try {
         console.log('Testing Petfinder API connection...');
         const testTypes = await petfinderAPI.getTypes();
-        console.log('Petfinder API test successful:', testTypes);
+        console.log('Petfinder API test successful');
     } catch (error) {
         console.error('Failed to initialize Petfinder API:', error);
         throw new Error('Petfinder API initialization failed');

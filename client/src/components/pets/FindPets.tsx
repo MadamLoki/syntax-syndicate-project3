@@ -42,12 +42,9 @@ const PetSearch = () => {
     const [error, setError] = useState<ApolloError | null>(null);
 
     // Fetch types with error handling and retry logic
-    const { loading: typesLoading, refetch: refetchTypes } = useQuery(GET_PETFINDER_TYPES, {
+    const { data: typesData, loading: typesLoading, refetch: refetchTypes } = useQuery(GET_PETFINDER_TYPES, {
         onError: (error) => {
             console.error('GraphQL error:', error);
-        },
-        onCompleted: (data) => {
-            console.log('Retrieved data:', data);
         }
     });
 
@@ -179,7 +176,7 @@ const PetSearch = () => {
                                 className="border rounded-lg p-2"
                             >
                                 <option value="">Select Type</option>
-                                {petsData?.getPetfinderTypes?.map((type: string) => (
+                                {typesData?.getPetfinderTypes?.map((type: string) => (
                                     <option key={type} value={type}>
                                         {type}
                                     </option>

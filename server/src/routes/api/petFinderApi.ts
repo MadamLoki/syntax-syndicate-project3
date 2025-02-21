@@ -151,28 +151,33 @@ class PetfinderAPI {
 
     public async getTypes(): Promise<string[]> {
         try {
-            console.log('Fetching pet types...');
+            console.log('PetfinderAPI: Fetching pet types...');
             const response = await this.makeRequest<{ types: { name: string }[] }>('types');
-            // console.log('Raw API response:', JSON.stringify(response, null, 2));
+            console.log('PetfinderAPI: Array');
+    
             if (!response) {
-                console.error('API response is null or undefined');
-                return [];
+                console.error('PetfinderAPI: Response is null or undefined');
+                return ['API Error'];
             }
+    
             if (!response.types) {
-                console.error('API response missing types property:', response);
-                return [];
+                console.error('PetfinderAPI: Response missing types property:', response);
+                return ['Data Error'];
             }
+    
             if (!Array.isArray(response.types)) {
-                console.error('API response types is not an array:', response.types);
-                return [];
+                console.error('PetfinderAPI: Types is not an array:', response.types);
+                return ['Format Error'];
             }
+    
             const types = response.types.map((type: {name: string}) => type.name);
-            //console.log('Processed types:', types);
-            return types;
+            console.log('PetfinderAPI: Processed types: [ Types ]');
+            
+            // Never return an empty array
+            return types.length > 0 ? types : ['No Types Found'];
         } catch (error) {
-            console.error('Error in getTypes:', error);
-            // Instead of throwing, return empty array
-            return [];
+            console.error('PetfinderAPI: Error in getTypes:', error);
+            return ['Service Error'];
         }
     }
 

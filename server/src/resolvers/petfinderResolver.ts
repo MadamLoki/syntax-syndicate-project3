@@ -10,30 +10,28 @@ const petfinderResolvers: IResolvers = {
     Query: {
         getPetfinderTypes: async (_, __, { petfinderAPI }) => {
             if (!petfinderAPI) {
-                console.error('PetfinderAPI not initialized in context');
-                return []; // Return empty array instead of null
+                // Return an empty array instead of throwing
+                return [];
             }
 
             try {
-                console.log('Getting pet types...');
                 const response = await petfinderAPI.getTypes();
-                console.log('Types response:', response);
-                
-                // Make sure we're always returning an array of strings
-                const types = response.map((type: any) => type.toString());
-                console.log('Processed types:', types);
-                
-                return types.length > 0 ? types : ['No types available'];
+                // Ensure we always return an array
+                if (!response || !response.types) {
+                    return [];
+                }
+                return response.types;
             } catch (error) {
-                console.error('Error in getPetfinderTypes:', error);
-                // Return a default value instead of throwing
-                return ['Error loading types'];
+                console.error('Error getting types:', error);
+                // Return empty array instead of throwing
+                return [];
             }
         },
 
+        // Keep other resolvers the same...
         getPetfinderBreeds: async (_, { type }, { petfinderAPI }) => {
             if (!petfinderAPI) {
-                return ['API not initialized'];
+                return ['No API Connection'];
             }
 
             try {
@@ -41,7 +39,7 @@ const petfinderResolvers: IResolvers = {
                 return breeds.length > 0 ? breeds : ['No breeds available'];
             } catch (error) {
                 console.error('Error fetching breeds:', error);
-                return ['Error loading breeds'];
+                return ['Error fetching breeds'];
             }
         },
 
@@ -54,9 +52,7 @@ const petfinderResolvers: IResolvers = {
                 return await petfinderAPI.searchPets(input);
             } catch (error) {
                 console.error('Error searching pets:', error);
-                throw new ApolloError('Failed to search pets', 'SEARCH_ERROR', {
-                    originalError: error
-                });
+                throw new ApolloError('Failed to search pets');
             }
         }
     }

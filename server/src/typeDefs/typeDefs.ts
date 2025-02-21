@@ -1,11 +1,22 @@
 const typeDefs = `
+    # Base Types
+    type User {
+        _id: ID!
+        username: String!
+        email: String!
+    }
+
+    type Auth {
+        token: ID!
+        profile: Profile
+    }
+
     type Profile {
-        _id: ID
+        _id: ID!
+        username: String!
+        email: String!
         name: String
-        username: String
-        email: String
-        password: String
-        skills: [String]!
+        savedPets: [Pet]
     }
 
     input ProfileInput {
@@ -15,6 +26,7 @@ const typeDefs = `
         username: String!
     }
 
+    # Pet Types
     type Pet {
         _id: ID!
         name: String!
@@ -41,58 +53,11 @@ const typeDefs = `
         status: String
     }
 
-    type Application {
-        _id: ID!
-        petId: ID!
-        adopterId: ID
-        message: String!
-        status: String!
-        createdAt: String!
-    }
-
-    input CreateApplicationInput {
-        petId: ID!
-        message: String!
-    }
-
-    type Shelter {
-        _id: ID!
-        name: String!
-        latitude: Float!
-        longitude: Float!
-        contactInfo: String!
-    }
-
-    input CreateShelterInput {
-        name: String!
-        latitude: Float!
-        longitude: Float!
-        contactInfo: String!
-    }
-
-    type Auth {
-        token: ID!
-        profile: Profile
-    }
-
-    input PetfinderSearchInput {
-        type: String
-        breed: String
-        size: String
-        gender: String
-        age: String
-        location: String
-        distance: Int
-        name: String
-        page: Int
-        limit: Int
-    }
-
+    # Petfinder Types
     type PetfinderBreed {
         primary: String
         secondary: String
         mixed: Boolean
-        unknown: Boolean
     }
 
     type PetfinderPhoto {
@@ -110,23 +75,25 @@ const typeDefs = `
         shots_current: Boolean
     }
 
-    type PetfinderContact {
-        email: String
-        phone: String
-        address: PetfinderAddress
-    }
-
     type PetfinderAddress {
+        address1: String
+        address2: String
         city: String
         state: String
         postcode: String
         country: String
     }
 
+    type PetfinderContact {
+        email: String
+        phone: String
+        address: PetfinderAddress
+    }
+
     type PetfinderAnimal {
         id: ID!
         name: String!
-        type: String!
+        type: String
         breeds: PetfinderBreed
         age: String
         gender: String
@@ -149,29 +116,129 @@ const typeDefs = `
         pagination: PetfinderPagination
     }
 
+    input PetfinderSearchInput {
+        type: String
+        breed: String
+        size: String
+        gender: String
+        age: String
+        location: String
+        distance: Int
+        name: String
+        page: Int
+        limit: Int
+    }
+
+    # Shelter Types
+    type Shelter {
+        _id: ID!
+        name: String!
+        latitude: Float!
+        longitude: Float!
+        contactInfo: String!
+    }
+
+    input CreateShelterInput {
+        name: String!
+        latitude: Float!
+        longitude: Float!
+        contactInfo: String!
+    }
+
+    # Application Types
+    type Application {
+        _id: ID!
+        petId: ID!
+        adopterId: ID
+        message: String!
+        status: String!
+        createdAt: String!
+    }
+
+    input CreateApplicationInput {
+        petId: ID!
+        message: String!
+    }
+
+    # Forum Types
+    type Thread {
+        id: ID!
+        title: String!
+        content: String!
+        author: User!
+        comments: [Comment]
+        createdAt: String!
+        updatedAt: String!
+    }
+
+    type Comment {
+        id: ID!
+        thread: Thread!
+        content: String!
+        author: User!
+        parentComment: Comment
+        createdAt: String!
+        updatedAt: String!
+    }
+
+    input CreateThreadInput {
+        title: String!
+        content: String!
+    }
+
+    input CreateCommentInput {
+        threadId: ID!
+        content: String!
+        parentCommentId: ID
+    }
+
+    # Queries
     type Query {
+        # User/Profile Queries
         profiles: [Profile]!
         profile(profileId: ID!): Profile
         me: Profile
+
+        # Pet Queries
         pets: [Pet]!
         pet(id: ID!): Pet
-        applications: [Application]!
-        application(id: ID!): Application
-        shelters: [Shelter]!
         getPetfinderTypes: [String!]!
         getPetfinderBreeds(type: String!): [String!]!
         searchPetfinderPets(input: PetfinderSearchInput): PetfinderResponse
+
+        # Application Queries
+        applications: [Application]!
+        application(id: ID!): Application
+
+        # Shelter Queries
+        shelters: [Shelter]!
+
+        # Forum Queries
+        threads: [Thread]
+        thread(id: ID!): Thread
     }
 
+    # Mutations
     type Mutation {
+        # User/Profile Mutations
         addProfile(input: ProfileInput!): Auth
         login(username: String!, password: String!): Auth
         removeProfile: Profile
+
+        # Pet Mutations
         createPet(input: CreatePetInput!): Pet!
         updatePet(id: ID!, input: UpdatePetInput!): Pet!
         deletePet(id: ID!): Boolean!
+
+        # Application Mutations
         createApplication(input: CreateApplicationInput!): Application!
+
+        # Shelter Mutations
         createShelter(input: CreateShelterInput!): Shelter!
+
+        # Forum Mutations
+        createThread(input: CreateThreadInput!): Thread!
+        createComment(input: CreateCommentInput!): Comment!
     }
 `;
 

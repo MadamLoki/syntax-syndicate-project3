@@ -20,7 +20,8 @@
     "mongoose": "^8.0.0",
     "@apollo/server": "^4.10.4",
     "apollo-server-express": "^3.13.0",
-    "graphql": "^16.6.0"
+    "graphql": "^16.6.0",
+    "graphql-tag": "^2.12.6"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
