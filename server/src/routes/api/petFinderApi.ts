@@ -114,19 +114,18 @@ class PetfinderAPI {
         return this.tokenRefreshPromise;
     }
 
-    private async makeRequest<T>(endpoint: string, params: Record<string, any> = {}) {
+    private async makeRequest<T>(endpoint: string, params: Record<string, any> = {}): Promise<T> {
         try {
             const token = await this.getToken();
+            console.log(`Making request to endpoint: ${endpoint}`);
             
-            // Properly encode parameters
             const queryParams = Object.entries(params)
                 .filter(([_, value]) => value != null && value !== '')
                 .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
                 .join('&');
     
             const url = `${this.baseUrl}/${endpoint}${queryParams ? `?${queryParams}` : ''}`;
-            
-            console.log('Making request to:', url); // Add this for debugging
+            console.log('Request URL:', url);
     
             const response = await fetch(url, {
                 headers: {
@@ -137,24 +136,44 @@ class PetfinderAPI {
     
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new ApolloError(
-                    'Petfinder API request failed',
-                    'PETFINDER_API_ERROR',
-                    errorData
-                );
+                console.error('API Error Response:', errorData);
+                throw new Error(`API request failed: ${response.statusText}`);
             }
     
-            return response.json();
+            const data = await response.json();
+            //console.log('API Response Data:', JSON.stringify(data, nSull, 2));
+            return data;
         } catch (error) {
-            console.error('API request error:', error);
+            console.error('makeRequest error:', error);
             throw error;
         }
     }
 
-    // Public methods for GraphQL resolvers
     public async getTypes(): Promise<string[]> {
-        const response = await this.makeRequest<{ types: { name: string }[] }>('types');
-        return response.types.map((type: {name: string}) => type.name);
+        try {
+            console.log('Fetching pet types...');
+            const response = await this.makeRequest<{ types: { name: string }[] }>('types');
+            // console.log('Raw API response:', JSON.stringify(response, null, 2));
+            if (!response) {
+                console.error('API response is null or undefined');
+                return [];
+            }
+            if (!response.types) {
+                console.error('API response missing types property:', response);
+                return [];
+            }
+            if (!Array.isArray(response.types)) {
+                console.error('API response types is not an array:', response.types);
+                return [];
+            }
+            const types = response.types.map((type: {name: string}) => type.name);
+            //console.log('Processed types:', types);
+            return types;
+        } catch (error) {
+            console.error('Error in getTypes:', error);
+            // Instead of throwing, return empty array
+            return [];
+        }
     }
 
     public async getBreeds(type: string): Promise<string[]> {

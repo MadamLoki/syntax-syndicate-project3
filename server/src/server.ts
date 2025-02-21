@@ -33,6 +33,7 @@ app.get('/test-petfinder', async (_req, res) => {
     }
 });
 
+// Add a debug endpoint that shows more information
 app.get('/debug-petfinder', async (_req, res) => {
     try {
         const types = await petfinderAPI.getTypes();
