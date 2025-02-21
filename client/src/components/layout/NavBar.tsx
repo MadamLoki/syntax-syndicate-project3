@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X, Heart, Search, User, LogOut } from 'lucide-react';
+//import ThreadListPage from '../../pages/ThreadList';
 
 const NavBar = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -33,6 +34,9 @@ const NavBar = () => {
                             </Link>
                             <Link to="/shelters" className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-400 hover:text-blue-600">
                                 Shelters
+                            </Link>
+                            <Link to="/ThreadListPage" className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-400 hover:text-blue-600">
+                                Forum
                             </Link>
                             <Link to="/about" className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-400 hover:text-blue-600">
                                 About
@@ -85,6 +89,9 @@ const NavBar = () => {
                         </Link>
                         <Link to="/shelters" className="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50">
                             Shelters
+                        </Link>
+                        <Link to="ThreadListPage" className="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50">
+                            Forum
                         </Link>
                         <Link to="/about" className="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50">
                             About
