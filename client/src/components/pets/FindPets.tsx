@@ -34,7 +34,7 @@ const PetSearch = () => {
         size: '',
         gender: '',
         age: '',
-        location: '',
+        location: '10001',
         distance: '100'
     });
     const [isFilterOpen, setIsFilterOpen] = useState(false);
