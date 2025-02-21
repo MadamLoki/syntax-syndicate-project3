@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ApolloError } from '@apollo/client';
 import { useQuery, useLazyQuery } from '@apollo/client';
 import { Search, Filter } from 'lucide-react';
@@ -28,18 +28,28 @@ interface Pet {
 }
 
 const PetSearch = () => {
-    const [filters, setFilters] = useState({
-        type: '',
-        breed: '',
-        size: '',
-        gender: '',
-        age: '',
-        location: '10001',
-        distance: '100'
+    const [filters, setFilters] = useState<Filters>(() => {
+        const savedFilters = localStorage.getItem('petSearchFilters');
+        return savedFilters ? JSON.parse(savedFilters) : {
+            type: '',
+            breed: '',
+            size: '',
+            gender: '',
+            age: '',
+            location: '',
+            distance: '100'
+        };
     });
+
+    // Save filters to localStorage whenever they change
+    useEffect(() => {
+        localStorage.setItem('petSearchFilters', JSON.stringify(filters));
+    }, [filters]);
+
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [error, setError] = useState<ApolloError | null>(null);
+    const [location, setLocation] = useState<string>('');
 
     // Fetch types with error handling and retry logic
     const { data: typesData, loading: typesLoading, refetch: refetchTypes } = useQuery(GET_PETFINDER_TYPES, {
@@ -122,7 +132,7 @@ const PetSearch = () => {
                     <h2 className="text-red-700 font-semibold mb-2">Error</h2>
                     <p className="text-red-600">{error.message}</p>
                 </div>
-                <button 
+                <button
                     onClick={() => refetchTypes()}
                     className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
                 >
@@ -135,34 +145,26 @@ const PetSearch = () => {
     return (
         <div className="max-w-7xl mx-auto p-4">
             <div className="mb-8">
-                <h1 className="text-3xl font-bold mb-2">Find Your Perfect Pet</h1>
-                <p className="text-gray-600">Search through available pets near you</p>
+                <h1 className="text-3xl font-bold mb-2">Find Your Next Best Friend</h1>
+                <p className="text-gray-600">Search through available pets near you, or around the world.</p>
             </div>
 
             <div className="bg-white rounded-lg shadow p-6 mb-8">
                 <div className="flex gap-4 mb-4">
-                    <div className="flex-1 relative">
-                        <input
-                            type="text"
-                            placeholder="Search pets..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border rounded-lg"
-                        />
-                        <Search className="absolute left-3 top-3 text-gray-400" />
+                    <div className="flex-1 relative flex gap-4">
+                        <div className="relative flex-1">
+                            <input type="text" placeholder="Search pets..." onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 border rounded-lg" />
+                            <Search className="absolute left-3 top-3 text-gray-400" />
+                        </div>
+                        <div className="relative flex-1">
+                            <input type="text" placeholder="Zipcode" value={location} onChange={(e) => setLocation(e.target.value)} className="w-full pl-10 pr-4 py-2 border rounded-lg" />
+                        </div>
                     </div>
-                    <button
-                        onClick={() => setIsFilterOpen(!isFilterOpen)}
-                        className="px-4 py-2 border rounded-lg hover:bg-gray-50"
-                    >
+                    <button onClick={() => setIsFilterOpen(!isFilterOpen)} className="px-4 py-2 border rounded-lg hover:bg-gray-50" >
                         <Filter className="w-5 h-5" />
                         Filters
                     </button>
-                    <button
-                        onClick={handleSearch}
-                        disabled={petsLoading}
-                        className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600"
-                    >
+                    <button onClick={handleSearch} disabled={petsLoading} className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600" >
                         {petsLoading ? 'Searching...' : 'Search'}
                     </button>
                 </div>
@@ -170,11 +172,7 @@ const PetSearch = () => {
                 {isFilterOpen && (
                     <div className="border-t pt-4">
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <select
-                                value={filters.type}
-                                onChange={(e) => handleTypeChange(e.target.value)}
-                                className="border rounded-lg p-2"
-                            >
+                            <select value={filters.type} onChange={(e) => handleTypeChange(e.target.value)} className="border rounded-lg p-2" >
                                 <option value="">Select Type</option>
                                 {typesData?.getPetfinderTypes?.map((type: string) => (
                                     <option key={type} value={type}>
@@ -197,11 +195,7 @@ const PetSearch = () => {
                                 ))}
                             </select>
 
-                            <select
-                                value={filters.age}
-                                onChange={(e) => setFilters(prev => ({ ...prev, age: e.target.value }))}
-                                className="border rounded-lg p-2"
-                            >
+                            <select value={filters.age} onChange={(e) => setFilters(prev => ({ ...prev, age: e.target.value }))} className="border rounded-lg p-2" >
                                 <option value="">Select Age</option>
                                 <option value="baby">Baby</option>
                                 <option value="young">Young</option>
@@ -209,11 +203,7 @@ const PetSearch = () => {
                                 <option value="senior">Senior</option>
                             </select>
 
-                            <select
-                                value={filters.size}
-                                onChange={(e) => setFilters(prev => ({ ...prev, size: e.target.value }))}
-                                className="border rounded-lg p-2"
-                            >
+                            <select value={filters.size} onChange={(e) => setFilters(prev => ({ ...prev, size: e.target.value }))} className="border rounded-lg p-2" >
                                 <option value="">Select Size</option>
                                 <option value="small">Small</option>
                                 <option value="medium">Medium</option>
@@ -225,17 +215,12 @@ const PetSearch = () => {
                 )}
             </div>
 
-            {/* Results Display */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {petsData?.searchPetfinderPets?.animals?.map((pet: Pet) => (
-                    <div key={pet.id} className="bg-white rounded-lg shadow overflow-hidden">
-                        <img
-                            src={pet.photos[0]?.medium || "/api/placeholder/400/300"}
-                            alt={pet.name}
-                            className="w-full h-48 object-cover"
-                        />
-                        <div className="p-4">
-                            <h3 className="font-semibold text-lg">{pet.name}</h3>
+                    <div key={pet.id} className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden transition-transform duration-200 hover:shadow-lg hover:scale-[1.02]" >
+                        <img src={pet.photos[0]?.medium || "https://cdn.midjourney.com/1ddbe082-8d75-46bc-b99e-7400b10a1c75/0_1.png"} alt={pet.name} className="w-full h-48 object-cover object-center" />
+                        <div className="p-4 space-y-2">
+                            <h3 className="font-semibold text-lg text-gray-800">{pet.name}</h3>
                             <p className="text-gray-600">{pet.breeds.primary}</p>
                             <p className="text-gray-600">{pet.age} • {pet.size}</p>
                             <p className="text-gray-600">{pet.contact.address.city}, {pet.contact.address.state}</p>
