@@ -8,10 +8,69 @@ import {
     GET_PETFINDER_BREEDS
 } from '../../utils/petfinderQueries';
 
+interface Pet {
+    id: string;
+    name: string;
+    breeds: {
+        primary: string;
+    };
+    age: string;
+    size: string;
+    contact: {
+        address: {
+            city: string;
+            state: string;
+        };
+    };
+    photos: {
+        medium: string;
+    }[];
+}
+
+interface SearchParams {
+    name?: string;
+    type?: string;
+    breed?: string;
+    size?: string;
+    gender?: string;
+    age?: string;
+    location?: string;
+    distance?: number;
+    limit: number;
+    page: number;
+    sort?: string;
+    status?: string;
+}
+
+interface PetfinderResponse {
+    animals: Pet[];
+    pagination: PaginationData;
+}
+
+interface PaginationData {
+    count_per_page: number;
+    total_count: number;
+    current_page: number;
+    total_pages: number;
+}
+
+interface Filters {
+    type: string;
+    breed: string;
+    size: string;
+    gender: string;
+    age: string;
+    location: string;
+    distance: string;
+    page: number;
+    limit: number;
+}
+
 const PetSearch = () => {
-    const [filters, setFilters] = useState(() => {
+    // Initialize filters from localStorage with zipcode
+    const [filters, setFilters] = useState<Filters>(() => {
         const savedFilters = localStorage.getItem('petSearchFilters');
-        return savedFilters ? JSON.parse(savedFilters) : {
+                    return savedFilters ? JSON.parse(savedFilters) : {
             type: '',
             breed: '',
             size: '',
@@ -24,39 +83,57 @@ const PetSearch = () => {
         };
     });
 
-    const [isFilterOpen, setIsFilterOpen] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [error, setError] = useState(null);
-
-    // Save filters to localStorage
     useEffect(() => {
         localStorage.setItem('petSearchFilters', JSON.stringify(filters));
     }, [filters]);
 
-    const { data: typesData, loading: typesLoading, refetch: refetchTypes } = useQuery(
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [error, setError] = useState<ApolloError | null>(null);
+
+    interface TypesResponse {
+        getPetfinderTypes: string[];
+    }
+
+    interface BreedsResponse {
+        getPetfinderBreeds: string[];
+    }
+
+    // Query for pet types with fetchPolicy to ensure fresh data and debugging
+    const { data: typesData, loading: typesLoading, refetch: refetchTypes } = useQuery<TypesResponse>(
         GET_PETFINDER_TYPES,
         {
             fetchPolicy: 'network-only',
-            onError: (error) => setError(error)
+            notifyOnNetworkStatusChange: true,
+            onError: (error) => {
+                console.error('Types query error:', error);
+                setError(error);
+            }
         }
     );
 
-    const [getBreeds, { data: breedsData, loading: breedsLoading }] = useLazyQuery(
-        GET_PETFINDER_BREEDS,
-        {
-            onError: (error) => setError(error)
+    const [getBreeds, { data: breedsData, loading: breedsLoading }] = useLazyQuery<
+        BreedsResponse,
+        { type: string }
+    >(GET_PETFINDER_BREEDS, {
+        onError: (error) => {
+            console.error('Error fetching breeds:', error);
+            setError(error);
         }
-    );
+    });
 
-    const [searchPets, { data: petsData, loading: petsLoading }] = useLazyQuery(
-        SEARCH_PETFINDER_PETS,
-        {
-            onError: (error) => setError(error),
-            fetchPolicy: 'network-only'
-        }
-    );
+    const [searchPets, { data: petsData, loading: petsLoading }] = useLazyQuery<
+        { searchPetfinderPets: PetfinderResponse },
+        { input: SearchParams }
+    >(SEARCH_PETFINDER_PETS, {
+        onError: (error) => {
+            console.error('Error searching pets:', error);
+            setError(error);
+        },
+        fetchPolicy: 'network-only'
+    });
 
-    const handleTypeChange = async (type) => {
+    const handleTypeChange = async (type: string) => {
         try {
             setFilters(prev => ({ ...prev, type, breed: '' }));
             if (type) {
@@ -65,59 +142,62 @@ const PetSearch = () => {
                 });
             }
         } catch (err) {
-            setError(err);
+            console.error('Error handling type change:', err);
+            setError(err as ApolloError);
         }
     };
 
-    const handleSearch = async () => {
-        try {
-            const searchParams = {
-                limit: filters.limit, // Use the selected limit from filters
-                page: filters.page,   // Include the current page
-                name: searchTerm || undefined,
-                type: filters.type || undefined,
-                breed: filters.breed || undefined,
-                size: filters.size || undefined,
-                gender: filters.gender || undefined,
-                age: filters.age || undefined,
-                location: filters.location || undefined,
-                distance: filters.location ? parseInt(filters.distance) : undefined
-            };
-
-            // Remove undefined values
-            Object.keys(searchParams).forEach(key => 
-                searchParams[key] === undefined && delete searchParams[key]
-            );
-
-            await searchPets({
-                variables: {
-                    input: searchParams
-                }
-            });
-        } catch (err) {
-            setError(err);
-        }
-    };
-
-    // Trigger search when page or limit changes
+    // Add effect to trigger search when page changes
     useEffect(() => {
-        if (petsData) {
+        if (petsData) { // Only search if we have existing results
             handleSearch();
         }
     }, [filters.page, filters.limit]);
 
-    // Reset to first page when other filters change
+    // Add effect to reset page when filters change
     useEffect(() => {
         setFilters(prev => ({
             ...prev,
-            page: 1
+            page: 1 // Reset to first page when filters change
         }));
     }, [filters.type, filters.breed, filters.size, filters.gender, filters.age, filters.location, filters.distance]);
+
+    const handleSearch = async () => {
+        try {
+            const searchParams: SearchParams = {
+                limit: filters.limit || 20,
+                page: filters.page || 1
+            };
+
+            // Add search parameters only if they have non-empty values
+            if (searchTerm?.trim()) searchParams.name = searchTerm.trim();
+            if (filters.type?.trim()) searchParams.type = filters.type.trim();
+            if (filters.breed?.trim()) searchParams.breed = filters.breed.trim();
+            if (filters.size?.trim()) searchParams.size = filters.size.trim();
+            if (filters.gender?.trim()) searchParams.gender = filters.gender.trim();
+            if (filters.age?.trim()) searchParams.age = filters.age.trim();
+            if (filters.location?.trim()) {
+                searchParams.location = filters.location.trim();
+                if (filters.distance) {
+                    searchParams.distance = parseInt(filters.distance);
+                }
+            }
+
+            await searchPets({
+                variables: {
+                    input: searchParams as SearchParams
+                }
+            });
+        } catch (err) {
+            console.error('Error performing search:', err);
+            setError(err as ApolloError);
+        }
+    };
 
     if (typesLoading) {
         return (
             <div className="flex items-center justify-center min-h-screen">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
             </div>
         );
     }
@@ -139,70 +219,33 @@ const PetSearch = () => {
         );
     }
 
-    const totalPages = petsData?.searchPetfinderPets?.pagination?.total_pages || 1;
-    const currentPage = filters.page;
-    const totalResults = petsData?.searchPetfinderPets?.pagination?.total_count || 0;
+    function renderPaginationButtons(): React.ReactNode[] {
+        const totalPages = petsData?.searchPetfinderPets?.pagination.total_pages || 1;
+        const currentPage = filters.page;
+        const buttons = [];
 
-    const renderPaginationButtons = () => {
-        const pages = [];
-        
-        // Always show first page
-        if (currentPage > 3) {
-            pages.push(
-                <button
-                    key={1}
-                    onClick={() => setFilters(prev => ({ ...prev, page: 1 }))}
-                    className="px-3 py-1 rounded border hover:bg-gray-50"
-                >
-                    1
-                </button>
-            );
-            if (currentPage > 4) {
-                pages.push(<span key="ellipsis1">...</span>);
-            }
-        }
-
-        // Show pages around current page
-        for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
-            pages.push(
+        for (let i = 1; i <= totalPages; i++) {
+            buttons.push(
                 <button
                     key={i}
                     onClick={() => setFilters(prev => ({ ...prev, page: i }))}
-                    className={`px-3 py-1 rounded ${i === currentPage ? 'bg-blue-500 text-white' : 'border hover:bg-gray-50'}`}
+                    className={`px-4 py-2 border rounded-lg ${currentPage === i ? 'bg-blue-500 text-white' : 'hover:bg-gray-50'}`}
                 >
                     {i}
                 </button>
             );
         }
 
-        // Always show last page
-        if (currentPage < totalPages - 2) {
-            if (currentPage < totalPages - 3) {
-                pages.push(<span key="ellipsis2">...</span>);
-            }
-            pages.push(
-                <button
-                    key={totalPages}
-                    onClick={() => setFilters(prev => ({ ...prev, page: totalPages }))}
-                    className="px-3 py-1 rounded border hover:bg-gray-50"
-                >
-                    {totalPages}
-                </button>
-            );
-        }
-
-        return pages;
-    };
+        return buttons;
+    }
 
     return (
         <div className="max-w-7xl mx-auto p-4">
-            {/* Search Header */}
             <div className="mb-8">
                 <h1 className="text-3xl font-bold mb-2">Find Your Next Best Friend</h1>
                 <p className="text-gray-600">Search through available pets near you, or around the world.</p>
             </div>
 
-            {/* Search Controls */}
             <div className="bg-white rounded-lg shadow p-6 mb-8">
                 <div className="flex gap-4 mb-4">
                     <div className="flex-1 relative flex gap-4">
@@ -247,7 +290,6 @@ const PetSearch = () => {
                     </button>
                 </div>
 
-                {/* Filter Controls */}
                 {isFilterOpen && (
                     <div className="border-t pt-4">
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -257,7 +299,7 @@ const PetSearch = () => {
                                 className="border rounded-lg p-2"
                             >
                                 <option value="">Select Type</option>
-                                {typesData?.getPetfinderTypes?.map((type) => (
+                                {typesData?.getPetfinderTypes?.map((type: string) => (
                                     <option key={type} value={type}>
                                         {type}
                                     </option>
@@ -271,7 +313,7 @@ const PetSearch = () => {
                                 className="border rounded-lg p-2"
                             >
                                 <option value="">Select Breed</option>
-                                {breedsData?.getPetfinderBreeds?.map((breed) => (
+                                {breedsData?.getPetfinderBreeds?.map((breed: string) => (
                                     <option key={breed} value={breed}>
                                         {breed}
                                     </option>
@@ -320,9 +362,8 @@ const PetSearch = () => {
                 )}
             </div>
 
-            {/* Pet Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {petsData?.searchPetfinderPets?.animals?.map((pet) => (
+                {petsData?.searchPetfinderPets?.animals?.map((pet: Pet) => (
                     <div 
                         key={pet.id} 
                         className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden transition-transform duration-200 hover:shadow-lg hover:scale-[1.02]"
@@ -348,19 +389,44 @@ const PetSearch = () => {
                     <div className="flex items-center gap-4">
                         <button
                             onClick={() => setFilters(prev => ({ ...prev, page: prev.page - 1 }))}
-                            disabled={currentPage <= 1}
+                            disabled={filters.page <= 1}
                             className="px-4 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                         >
                             Previous
                         </button>
                         
                         <div className="flex gap-2">
-                            {renderPaginationButtons()}
+                            {filters.page > 3 && (
+                                <>
+                                    <button
+                                        onClick={() => setFilters(prev => ({ ...prev, page: 1 }))}
+                                        className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                                    >
+                                        1
+                                    </button>
+                                    <span className="px-2">...</span>
+                                </>
+                            )}
+                            {renderPaginationButtons().slice(
+                                Math.max(0, filters.page - 3),
+                                filters.page + 2
+                            )}
+                            {filters.page < petsData?.searchPetfinderPets?.pagination.total_pages - 2 && (
+                                <>
+                                    <span className="px-2">...</span>
+                                    <button
+                                        onClick={() => setFilters(prev => ({ ...prev, page: petsData?.searchPetfinderPets?.pagination.total_pages }))}
+                                        className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                                    >
+                                        {petsData?.searchPetfinderPets?.pagination.total_pages}
+                                    </button>
+                                </>
+                            )}
                         </div>
 
                         <button
                             onClick={() => setFilters(prev => ({ ...prev, page: prev.page + 1 }))}
-                            disabled={currentPage >= totalPages}
+                            disabled={filters.page >= petsData?.searchPetfinderPets?.pagination.total_pages}
                             className="px-4 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                         >
                             Next
@@ -368,32 +434,24 @@ const PetSearch = () => {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-4 bg-white rounded-lg shadow-sm px-4 py-2">
-                            <div className="flex items-center gap-2">
-                                <label htmlFor="limit-select" className="text-sm font-medium text-gray-700">Show:</label>
-                                <select
-                                    id="limit-select"
-                                    value={filters.limit}
-                                    onChange={(e) => setFilters(prev => ({ 
-                                        ...prev,
-                                        limit: parseInt(e.target.value),
-                                        page: 1
-                                    }))}
-                                    className="form-select h-8 min-w-[70px] rounded-md border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500"
-                                >
-                                    <option value={20}>20</option>
-                                    <option value={40}>40</option>
-                                    <option value={60}>60</option>
-                                </select>
-                                <span className="text-sm text-gray-700">per page</span>
-                            </div>
-
-                            <div className="h-6 w-px bg-gray-300"></div>
-
-                            <span className="text-sm font-medium text-gray-700">
-                                {totalResults.toLocaleString()} total results
-                            </span>
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-600">Show:</span>
+                            <select value={filters.limit} onChange={(e) => setFilters(prev => ({ 
+                                    ...prev,
+                                    limit: parseInt(e.target.value),
+                                    page: 1 // Reset to first page when changing limit
+                                }))}
+                                className="border rounded-lg p-2 pr-8" >
+                                <option value={20}>20</option>
+                                <option value={40}>40</option>
+                                <option value={60}>60</option>
+                            </select>
+                            <span className="text-sm text-gray-600">per page</span>
                         </div>
+
+                        <span className="text-sm text-gray-600">
+                            {petsData?.searchPetfinderPets?.pagination.total_count} total results
+                        </span>
                     </div>
                 </div>
             )}
