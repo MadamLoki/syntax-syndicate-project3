@@ -34,6 +34,12 @@ export const SEARCH_PETFINDER_PETS = gql`
                     }
                 }
             }
+            pagination {
+                count_per_page
+                total_count
+                current_page
+                total_pages
+            }
         }
     }
 `;
