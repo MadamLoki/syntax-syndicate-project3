@@ -56,7 +56,7 @@ app.get('/debug-petfinder', async (_req, res) => {
 
 app.use('/graphql', express.json());
 app.use('/graphql', (req, _res, next) => {
-    console.log('GraphQL Request Body:', req.body);
+    // console.log('GraphQL Request Body:', req.body);
     next();
 });
 

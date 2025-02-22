@@ -26,7 +26,7 @@ const petfinderResolvers: IResolvers = {
         
                 // Transform and validate each type
                 const validTypes = types.filter(type => typeof type === 'string' && type.length > 0);
-                console.log('Validated types:', validTypes);
+                //console.log('Validated types:', validTypes);
                 
                 return validTypes;
             } catch (error) {

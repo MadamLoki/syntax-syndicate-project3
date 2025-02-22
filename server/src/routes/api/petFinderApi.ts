@@ -117,7 +117,7 @@ class PetfinderAPI {
     private async makeRequest<T>(endpoint: string, params: Record<string, any> = {}): Promise<T> {
         try {
             const token = await this.getToken();
-            console.log(`Making request to endpoint: ${endpoint}`);
+            //console.log(`Making request to endpoint: ${endpoint}`);
             
             const queryParams = Object.entries(params)
                 .filter(([_, value]) => value != null && value !== '')
@@ -125,7 +125,7 @@ class PetfinderAPI {
                 .join('&');
     
             const url = `${this.baseUrl}/${endpoint}${queryParams ? `?${queryParams}` : ''}`;
-            console.log('Request URL:', url);
+            //console.log('Request URL:', url);
     
             const response = await fetch(url, {
                 headers: {
@@ -153,7 +153,7 @@ class PetfinderAPI {
         try {
             console.log('PetfinderAPI: Fetching pet types...');
             const response = await this.makeRequest<{ types: { name: string }[] }>('types');
-            console.log('Raw API response:', response); // Debug log
+            //console.log('Raw API response:', response); // Debug log
     
             if (!response || !response.types) {
                 console.error('PetfinderAPI: Invalid response structure');
@@ -162,7 +162,7 @@ class PetfinderAPI {
     
             // Ensure we're properly extracting the type names
             const types = response.types.map(type => type.name);
-            console.log('Extracted types:', types); // Debug log
+            //console.log('Extracted types:', types); // Debug log
     
             return types;
         } catch (error) {
