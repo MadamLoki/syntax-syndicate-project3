@@ -105,12 +105,16 @@ const PetSearch = () => {
         {
             fetchPolicy: 'network-only',
             notifyOnNetworkStatusChange: true,
+            onCompleted: (data) => {
+                console.log('Query completed with data:', data);
+            },
             onError: (error) => {
                 console.error('Types query error:', error);
                 setError(error);
             }
         }
     );
+    console.log('Types Data:', typesData); // Debugging line to check data
 
     const [getBreeds, { data: breedsData, loading: breedsLoading }] = useLazyQuery<
         BreedsResponse,
@@ -146,6 +150,14 @@ const PetSearch = () => {
             setError(err as ApolloError);
         }
     };
+
+    // Add effect to log typesData when it changes
+    useEffect(() => {
+        console.log('Current typesData:', typesData);
+        if (typesData?.getPetfinderTypes) {
+            console.log('Types available:', typesData.getPetfinderTypes);
+        }
+    }, [typesData]);
 
     // Add effect to trigger search when page changes
     useEffect(() => {

@@ -10,25 +10,32 @@ const petfinderResolvers: IResolvers = {
     Query: {
         getPetfinderTypes: async (_, __, { petfinderAPI }) => {
             if (!petfinderAPI) {
-                // Return an empty array instead of throwing
+                console.log('No petfinderAPI instance');
                 return [];
             }
-
+        
             try {
-                const response = await petfinderAPI.getTypes();
-                // Ensure we always return an array
-                if (!response || !response.types) {
+                const types = await petfinderAPI.getTypes();
+                console.log('PetFinder API Response:', types);
+        
+                // Ensure we have an array of types
+                if (!types || !Array.isArray(types)) {
+                    console.log('Invalid response format');
                     return [];
                 }
-                return response.types;
+        
+                // Transform and validate each type
+                const validTypes = types.filter(type => typeof type === 'string' && type.length > 0);
+                console.log('Validated types:', validTypes);
+                
+                return validTypes;
             } catch (error) {
                 console.error('Error getting types:', error);
-                // Return empty array instead of throwing
+                // Return empty array instead of throwing to prevent UI breaks
                 return [];
             }
         },
 
-        // Keep other resolvers the same...
         getPetfinderBreeds: async (_, { type }, { petfinderAPI }) => {
             if (!petfinderAPI) {
                 return ['No API Connection'];
