@@ -368,27 +368,32 @@ const PetSearch = () => {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-600">Show:</span>
-                            <select
-                                value={filters.limit}
-                                onChange={(e) => setFilters(prev => ({ 
-                                    ...prev,
-                                    limit: parseInt(e.target.value),
-                                    page: 1 // Reset to first page when changing limit
-                                }))}
-                                className="border rounded-lg p-2"
-                            >
-                                <option value={20}>20</option>
-                                <option value={40}>40</option>
-                                <option value={60}>60</option>
-                            </select>
-                            <span className="text-sm text-gray-600">per page</span>
-                        </div>
+                        <div className="flex items-center gap-4 bg-white rounded-lg shadow-sm px-4 py-2">
+                            <div className="flex items-center gap-2">
+                                <label htmlFor="limit-select" className="text-sm font-medium text-gray-700">Show:</label>
+                                <select
+                                    id="limit-select"
+                                    value={filters.limit}
+                                    onChange={(e) => setFilters(prev => ({ 
+                                        ...prev,
+                                        limit: parseInt(e.target.value),
+                                        page: 1
+                                    }))}
+                                    className="form-select h-8 min-w-[70px] rounded-md border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500"
+                                >
+                                    <option value={20}>20</option>
+                                    <option value={40}>40</option>
+                                    <option value={60}>60</option>
+                                </select>
+                                <span className="text-sm text-gray-700">per page</span>
+                            </div>
 
-                        <span className="text-sm text-gray-600">
-                            {totalResults} total results
-                        </span>
+                            <div className="h-6 w-px bg-gray-300"></div>
+
+                            <span className="text-sm font-medium text-gray-700">
+                                {totalResults.toLocaleString()} total results
+                            </span>
+                        </div>
                     </div>
                 </div>
             )}

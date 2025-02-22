@@ -171,7 +171,7 @@ class PetfinderAPI {
             }
     
             const types = response.types.map((type: {name: string}) => type.name);
-            console.log('PetfinderAPI: Processed types: [ Types ]');
+            console.log('PetfinderAPI: Processed types: ', types);
             
             // Never return an empty array
             return types.length > 0 ? types : ['No Types Found'];
