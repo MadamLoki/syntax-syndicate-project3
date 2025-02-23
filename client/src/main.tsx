@@ -8,6 +8,7 @@ import LoginForm from './components/auth/LoginForm'
 import Error from './pages/Error'
 import SignupForm from './components/auth/SignupForm'
 import PetSearch from './components/pets/FindPets'
+import Shelters from './components/shelters/Shelters'
 
 const router = createBrowserRouter([
     {
@@ -33,6 +34,11 @@ const router = createBrowserRouter([
             {
                 path: '/findpets',
                 element: <PetSearch />,
+                errorElement: <Error />,
+            },
+            {
+                path: '/shelters',
+                element: <Shelters />,
                 errorElement: <Error />,
             }
         ]

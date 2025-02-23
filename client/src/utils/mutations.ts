@@ -25,3 +25,14 @@ export const ADD_PROFILE = gql`
     }
   }
 `;
+
+export const ADD_SHELTER = gql`
+    mutation CreateShelter($createShelterInput2: CreateShelterInput!) {
+      createShelter(input: $createShelterInput2) {
+        _id
+        contactInfo
+        latitude
+        longitude
+      }
+    }
+`;

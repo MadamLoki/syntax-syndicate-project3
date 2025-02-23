@@ -132,14 +132,12 @@ const typeDefs = `
     # Shelter Types
     type Shelter {
         _id: ID!
-        name: String!
         latitude: Float!
         longitude: Float!
         contactInfo: String!
     }
 
     input CreateShelterInput {
-        name: String!
         latitude: Float!
         longitude: Float!
         contactInfo: String!
