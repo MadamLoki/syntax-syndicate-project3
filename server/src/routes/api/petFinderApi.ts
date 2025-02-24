@@ -68,9 +68,9 @@ class PetfinderAPI {
         // Start a new token refresh
         this.tokenRefreshPromise = (async () => {
             try {
-                console.log('Requesting new token...');
-                console.log('API Key length:', this.apiKey.length);
-                console.log('API Secret length:', this.apiSecret.length);
+                // console.log('Requesting new token...');
+                // console.log('API Key length:', this.apiKey.length);
+                // console.log('API Secret length:', this.apiSecret.length);
                 
                 const response = await fetch(`${this.baseUrl}/oauth2/token`, {
                     method: 'POST',
@@ -151,7 +151,7 @@ class PetfinderAPI {
 
     public async getTypes(): Promise<string[]> {
         try {
-            console.log('PetfinderAPI: Fetching pet types...');
+            //console.log('PetfinderAPI: Fetching pet types...');
             const response = await this.makeRequest<{ types: { name: string }[] }>('types');
             //console.log('Raw API response:', response); // Debug log
     

@@ -16,7 +16,7 @@ const petfinderResolvers: IResolvers = {
         
             try {
                 const types = await petfinderAPI.getTypes();
-                console.log('PetFinder API Response:', types);
+                // console.log('PetFinder API Response:', types);
         
                 // Ensure we have an array of types
                 if (!types || !Array.isArray(types)) {

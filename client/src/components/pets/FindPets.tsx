@@ -105,9 +105,9 @@ const PetSearch = () => {
         {
             fetchPolicy: 'network-only',
             notifyOnNetworkStatusChange: true,
-            onCompleted: (data) => {
-                console.log('Query completed with data:', data);
-            },
+            // onCompleted: (data) => {
+            //     console.log('Query completed with data:', data);
+            // },
             onError: (error) => {
                 console.error('Types query error:', error);
                 setError(error);
