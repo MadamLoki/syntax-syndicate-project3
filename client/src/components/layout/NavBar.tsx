@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X, Heart, Search, User, LogOut } from 'lucide-react';
 //import ThreadListPage from '../../pages/ThreadList';
+import About from '../../pages/About';
 
 const NavBar = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -38,7 +39,7 @@ const NavBar = () => {
                             <Link to="/ThreadListPage" className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-400 hover:text-blue-600">
                                 Forum
                             </Link>
-                            <Link to="/about" className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-400 hover:text-blue-600">
+                            <Link to="/about" className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-400 hover:text-blue-600" onClick={() => navigate('/about')}>
                                 About
                             </Link>
                         </div>

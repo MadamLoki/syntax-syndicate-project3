@@ -9,6 +9,7 @@ import Error from './pages/Error'
 import SignupForm from './components/auth/SignupForm'
 import PetSearch from './components/pets/FindPets'
 import Shelters from './components/shelters/Shelters'
+import About from './pages/About'
 
 const router = createBrowserRouter([
     {
@@ -39,6 +40,11 @@ const router = createBrowserRouter([
             {
                 path: '/shelters',
                 element: <Shelters />,
+                errorElement: <Error />,
+            },
+            {
+                path: '/about',
+                element: <About />,
                 errorElement: <Error />,
             }
         ]
