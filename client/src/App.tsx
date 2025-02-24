@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import { ApolloClient, InMemoryCache, ApolloProvider, createHttpLink } from '@apollo/client';
 import { setContext } from '@apollo/client/link/context';
+import { RetryLink } from '@apollo/client/link/retry';
 
 import '../src/index.css';
 import { AuthProvider } from './components/auth/AuthContext';
@@ -11,9 +12,21 @@ const httpLink = createHttpLink({
     uri: '/graphql'
 });
 
-// Auth middleware
+const retryLink = new RetryLink({
+    delay: {
+        initial: 300,
+        max: 3000,
+        jitter: true
+    },
+    attempts: {
+        max: 5,
+        retryIf: (error, _operation) => {
+            return !!error;
+        }
+    }
+});
+
 const authLink = setContext((_, { headers }) => {
-    // get the authentication token from local storage if it exists
     const token = localStorage.getItem('id_token');
     return {
         headers: {
@@ -24,7 +37,7 @@ const authLink = setContext((_, { headers }) => {
 });
 
 const client = new ApolloClient({
-    link: authLink.concat(httpLink),
+    link: retryLink.concat(authLink.concat(httpLink)),
     cache: new InMemoryCache(),
     defaultOptions: {
         watchQuery: {

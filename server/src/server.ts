@@ -9,7 +9,7 @@ import { createPetfinderAPI } from './routes/api/petFinderApi.js';
 
 
 import db from './config/connection.js';
-import typeDefs from './typeDefs/typeDefs.js';
+import typeDefs from './typeDefs/index.js'; 
 import mergedResolvers from './resolvers/index.js';
 
 dotenv.config();
@@ -33,6 +33,7 @@ app.get('/test-petfinder', async (_req, res) => {
     }
 });
 
+// Add a debug endpoint that shows more information
 app.get('/debug-petfinder', async (_req, res) => {
     try {
         const types = await petfinderAPI.getTypes();
@@ -51,6 +52,12 @@ app.get('/debug-petfinder', async (_req, res) => {
             stack: process.env.NODE_ENV === 'development' ? (error as Error).stack : undefined
         });
     }
+});
+
+app.use('/graphql', express.json());
+app.use('/graphql', (req, _res, next) => {
+    // console.log('GraphQL Request Body:', req.body);
+    next();
 });
 
 const getUserFromToken = (authHeader: string) => {
@@ -81,7 +88,7 @@ const startApolloServer = async () => {
     try {
         console.log('Testing Petfinder API connection...');
         const testTypes = await petfinderAPI.getTypes();
-        console.log('Petfinder API test successful:', testTypes);
+        console.log('Petfinder API test successful');
     } catch (error) {
         console.error('Failed to initialize Petfinder API:', error);
         throw new Error('Petfinder API initialization failed');
