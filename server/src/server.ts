@@ -16,12 +16,13 @@ dotenv.config();
 
 const PORT = process.env.PORT || 3001;
 const app = express();
+
 const petfinderAPI = createPetfinderAPI(
-    process.env.PETFINDER_API_KEY || '',
-    process.env.PETFINDER_SECRET || ''
+    process.env.apiKey || '',
+    process.env.apiSecret || ''
 );
-console.log('API Key exists:', !!process.env.PETFINDER_API_KEY);
-console.log('API Secret exists:', !!process.env.PETFINDER_SECRET);
+console.log('API Key exists:', !!process.env.apiKey);
+console.log('API Secret exists:', !!process.env.apiSecret);
 
 app.get('/test-petfinder', async (_req, res) => {
     try {
@@ -98,7 +99,7 @@ const startApolloServer = async () => {
         typeDefs, 
         resolvers: mergedResolvers,
         persistedQueries: false,
-        context: async ({ req }) => {
+        context: async ({ req }: { req: express.Request }) => {
             const token = req.headers.authorization || '';
             const user = getUserFromToken(token);
             // Even if user auth fails, we still want to allow access to public queries

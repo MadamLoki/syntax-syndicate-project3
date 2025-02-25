@@ -1,4 +1,4 @@
-import { useQuery } from "@apollo/client";
+/*import { useQuery } from "@apollo/client";
 import { GET_SHELTERS } from "../../utils/sheltersQueries";
 import Shelter from "./Shelter";
 import AddNewShelter from "./AddNewShelter";
@@ -22,4 +22,4 @@ const Shelters = () => {
   )
 }
 
-export default Shelters
+export default Shelters;*/

@@ -1,4 +1,4 @@
-import { GoogleMap, useJsApiLoader } from '@react-google-maps/api'
+/*import { GoogleMap, useJsApiLoader } from '@react-google-maps/api'
 import React, { memo, useCallback, useState } from "react";
 
 const containerStyle = {
@@ -6,7 +6,12 @@ const containerStyle = {
   height: '500px',
 }
 
-const Shelter = ({lat, lng}) => {
+interface ShelterProps {
+  lat: number;
+  lng: number;
+}
+
+const Shelter: React.FC<ShelterProps> = ({ lat, lng }) => {
 
     const center = {
         lat: lat,
@@ -41,7 +46,7 @@ const Shelter = ({lat, lng}) => {
           onLoad={onLoad}
           onUnmount={onUnmount}
         >
-          {/* Child components, such as markers, info windows, etc. */}
+         
           <></>
         </GoogleMap>
       ) : (
@@ -49,4 +54,4 @@ const Shelter = ({lat, lng}) => {
       )
     }
     
-    export default memo(Shelter)
+    export default memo(Shelter);*/

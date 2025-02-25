@@ -4,7 +4,9 @@ type Thread {
   id: ID!
   title: String!
   content: String!
-  author: User!           
+  threadType: String!
+  petId: ID          # New field: petId for the pet being posted about
+  author: User!
   comments: [Comment]
   createdAt: String!
   updatedAt: String!
@@ -25,6 +27,8 @@ type Comment {
 input CreateThreadInput {
   title: String!
   content: String!
+  threadType: String!    # "ADOPTION" or "SURRENDER"
+  petId: ID              # Provide the pet's ID instead of images
 }
 
 input CreateCommentInput {
