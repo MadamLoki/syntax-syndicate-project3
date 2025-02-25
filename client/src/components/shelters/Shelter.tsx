@@ -54,4 +54,4 @@ const Shelter: React.FC<ShelterProps> = ({ lat, lng }) => {
       )
     }
     
-    export default memo(Shelter);*/
+    export default memo(Shelter);
