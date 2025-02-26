@@ -555,7 +555,7 @@ const ProfilePage = () => {
 
                         {/* Pet list */}
                         <div className="space-y-4">
-                            {profile?.userPets?.length > 0 ? (
+                            {profile && profile.userPets && profile.userPets.length > 0 ? (
                                 profile.userPets.map((pet) => (
                                     <div
                                         key={pet._id}
@@ -563,11 +563,7 @@ const ProfilePage = () => {
                                     >
                                         <div className="h-16 w-16 rounded-md bg-blue-100 flex items-center justify-center text-blue-600 mr-4">
                                             {pet.image ? (
-                                                <img
-                                                    src={pet.image}
-                                                    alt={pet.name}
-                                                    className="h-full w-full object-cover rounded-md"
-                                                />
+                                                <img src={pet.image} alt={pet.name} className="h-full w-full object-cover rounded-md" />
                                             ) : (
                                                 <span className="text-lg">{pet.species.charAt(0)}</span>
                                             )}
@@ -607,19 +603,15 @@ const ProfilePage = () => {
                     <div className="bg-white rounded-lg shadow-md p-6">
                         <h2 className="text-xl font-bold mb-6">Saved Pets</h2>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {profile?.savedPets?.length > 0 ? (
-                                profile.savedPets.map((pet) => (
+                        {profile && profile.userPets && profile.userPets.length > 0 ? (
+                            profile.userPets.map((pet) => (
                                     <div
                                         key={pet._id}
                                         className="border rounded-lg overflow-hidden hover:shadow-md transition-shadow"
                                     >
                                         <div className="h-48 bg-gray-200">
-                                            {pet.images && pet.images.length > 0 ? (
-                                                <img
-                                                    src={pet.images[0]}
-                                                    alt={pet.name}
-                                                    className="h-full w-full object-cover"
-                                                />
+                                            {pet.image ? (
+                                                <img src={pet.image} alt={pet.name} className="h-full w-full object-cover" />
                                             ) : (
                                                 <div className="h-full flex items-center justify-center bg-blue-100 text-blue-600">
                                                     <span className="text-2xl">No Image</span>
