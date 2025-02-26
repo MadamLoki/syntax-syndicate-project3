@@ -1,17 +1,15 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X, Heart, Search, User, LogOut } from 'lucide-react';
-//import ThreadListPage from '../../pages/ThreadList';
-//import About from '../../pages/About';
+import { useAuth } from '../auth/AuthContext';
 
 const NavBar = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const navigate = useNavigate();
-    const [isLoggedIn, setIsLoggedIn] = useState(false); // Replace with actual auth state
+    const { isLoggedIn, logout } = useAuth();
 
     const handleLogout = () => {
-        // Add logout logic here
-        setIsLoggedIn(false);
+        logout(); 
         navigate('/login');
     };
 
@@ -36,10 +34,10 @@ const NavBar = () => {
                             <Link to="/shelters" className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-400 hover:text-blue-600">
                                 Shelters
                             </Link>
-                            <Link to="/ThreadDetails" className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-400 hover:text-blue-600">
+                            <Link to="/forum" className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-400 hover:text-blue-600">
                                 Forum
                             </Link>
-                            <Link to="/about" className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-400 hover:text-blue-600" onClick={() => navigate('/about')}>
+                            <Link to="/about" className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-400 hover:text-blue-600">
                                 About
                             </Link>
                         </div>
@@ -85,13 +83,13 @@ const NavBar = () => {
             {isMobileMenuOpen && (
                 <div className="sm:hidden">
                     <div className="pt-2 pb-3 space-y-1">
-                        <Link to="/search" className="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50">
+                        <Link to="/findpets" className="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50">
                             Find Pets
                         </Link>
                         <Link to="/shelters" className="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50">
                             Shelters
                         </Link>
-                        <Link to="ThreadListPage" className="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50">
+                        <Link to="/forum" className="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50">
                             Forum
                         </Link>
                         <Link to="/about" className="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50">

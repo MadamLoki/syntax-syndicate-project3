@@ -11,6 +11,7 @@ import PetSearch from './components/pets/FindPets'
 //import Shelters from './components/shelters/Shelters'
 import About from './pages/About'
 import ThreadListPage from './pages/ThreadList'
+import ProfilePage from './pages/ProflePage'
 
 
 const router = createBrowserRouter([
@@ -47,6 +48,11 @@ const router = createBrowserRouter([
             {
                 path: '/about',
                 element: <About />,
+                errorElement: <Error />,
+            },
+            {
+                path: '/profile',
+                element: <ProfilePage />, // Add the ProfilePage route
                 errorElement: <Error />,
             }
         ]

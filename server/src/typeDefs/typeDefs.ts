@@ -17,6 +17,17 @@ const typeDefs = `
         email: String!
         name: String
         savedPets: [Pet]
+        userPets: [UserPet]
+    }
+
+    type UserPet {
+        _id: ID!
+        name: String!
+        species: String!
+        breed: String
+        age: Int!
+        description: String
+        image: String
     }
 
     input ProfileInput {
@@ -25,6 +36,11 @@ const typeDefs = `
         password: String!
         username: String!
     }
+
+    input UpdateProfileInput {
+        username: String
+        email: String
+    }   
 
     # Pet Types
     type Pet {
@@ -43,6 +59,15 @@ const typeDefs = `
         age: Int
         images: [String]
         status: String
+    }
+
+    input UserPetInput {
+        name: String!
+        species: String!
+        breed: String
+        age: Int!
+        description: String
+        image: String
     }
 
     input UpdatePetInput {
@@ -218,10 +243,14 @@ const typeDefs = `
 
     # Mutations
     type Mutation {
+
         # User/Profile Mutations
         addProfile(input: ProfileInput!): Auth
         login(username: String!, password: String!): Auth
         removeProfile: Profile
+        updateProfile(input: UpdateProfileInput!): Profile
+        addUserPet(input: UserPetInput!): UserPet
+        removeUserPet(petId: ID!): Boolean
 
         # Pet Mutations
         createPet(input: CreatePetInput!): Pet!
