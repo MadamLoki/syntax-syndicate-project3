@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, Heart, Search, User, LogOut } from 'lucide-react';
+import { Menu, X, Search, User, LogOut } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 
 const NavBar = () => {
@@ -47,13 +47,10 @@ const NavBar = () => {
                     <div className="hidden sm:flex items-center space-x-4">
                         {isLoggedIn ? (
                             <>
-                                <Link to="/favorites" className="text-gray-700 hover:text-blue-600">
-                                    <Heart className="w-6 h-6" />
-                                </Link>
-                                <div className="h-6 w-px bg-gray-200"></div>
                                 <Link to="/profile" className="text-gray-700 hover:text-blue-600">
                                     <User className="w-6 h-6" />
                                 </Link>
+                                <div className="h-6 w-px bg-gray-200"></div>
                                 <button onClick={handleLogout} className="text-gray-700 hover:text-blue-600">
                                     <LogOut className="w-6 h-6" />
                                 </button>
@@ -109,9 +106,6 @@ const NavBar = () => {
                     {isLoggedIn && (
                         <div className="pt-4 pb-3 border-t border-gray-200">
                             <div className="flex items-center px-4 space-x-4">
-                                <Link to="/favorites" className="text-gray-700 hover:text-blue-600">
-                                    <Heart className="w-6 h-6" />
-                                </Link>
                                 <Link to="/profile" className="text-gray-700 hover:text-blue-600">
                                     <User className="w-6 h-6" />
                                 </Link>
