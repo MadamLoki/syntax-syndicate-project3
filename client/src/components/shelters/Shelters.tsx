@@ -1,4 +1,4 @@
-import { useQuery } from "@apollo/client";
+/*import { useQuery } from "@apollo/client";
 import { GET_SHELTERS } from "../../utils/sheltersQueries.js";
 import Shelter from "./Shelter";
 import AddNewShelter from "./AddNewShelter.js";

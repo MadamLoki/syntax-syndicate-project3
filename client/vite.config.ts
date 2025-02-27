@@ -1,16 +1,16 @@
-//import { defineConfig } from 'vite'
+import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from 'tailwindcss'
 import autoprefixer from 'autoprefixer'
 
 // https://vitejs.dev/config/
-export default {
+export default defineConfig({
   plugins: [react()],
   css: {
     postcss: {
       plugins: [
-        tailwindcss(),
-        autoprefixer(),
+        tailwindcss,
+        autoprefixer,
       ],
     },
   },
@@ -30,9 +30,7 @@ export default {
     outDir: 'dist',
     assetsDir: 'assets',
     sourcemap: true,
-    // Ensure clean builds
     emptyOutDir: true,
-    // Optimize chunk size
     rollupOptions: {
       output: {
         manualChunks: {
@@ -42,4 +40,4 @@ export default {
       }
     }
   },
-}
+})

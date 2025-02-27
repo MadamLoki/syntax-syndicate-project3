@@ -18,11 +18,11 @@ const PORT = process.env.PORT || 3001;
 const app = express();
 
 const petfinderAPI = createPetfinderAPI(
-    process.env.apiKey || '',
-    process.env.apiSecret || ''
+    process.env.PETFINDER_API_KEY || '',
+    process.env.PETFINDER_SECRET || ''
 );
-console.log('API Key exists:', !!process.env.apiKey);
-console.log('API Secret exists:', !!process.env.apiSecret);
+console.log('API Key exists:', !!process.env.PETFINDER_API_KEY);
+console.log('API Secret exists:', !!process.env.PETFINDER_SECRET);
 
 app.get('/test-petfinder', async (_req, res) => {
     try {

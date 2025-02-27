@@ -1,4 +1,4 @@
-import { GoogleMap, useJsApiLoader } from '@react-google-maps/api'
+/*import { GoogleMap, useJsApiLoader } from '@react-google-maps/api'
 import { memo, useCallback, useState } from "react";
 
 const containerStyle = {
@@ -54,4 +54,4 @@ const Shelter: React.FC<ShelterProps> = ({ lat, lng }) => {
       )
     }
     
-    export default memo(Shelter);
+    export default memo(Shelter);*/
