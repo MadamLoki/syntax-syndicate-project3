@@ -7,6 +7,7 @@ export interface IProfile extends Document {
     email: string;
     password: string;
     savedPets: mongoose.Types.ObjectId[];
+    userPets: mongoose.Types.ObjectId[]; 
     isCorrectPassword(password: string): Promise<boolean>;
 }
 
@@ -26,11 +27,17 @@ const profileSchema = new Schema({
         type: String,
         required: true,
     },
-    savedPets: [{
-        type: Schema.Types.ObjectId,
-        ref: 'Pet'
-    }]
-}, {
+    savedPets: 
+        [{
+            type: Schema.Types.ObjectId,
+            ref: 'Pet'
+        }],
+        userPets: [{ // Add userPets field to store user's own pets
+            type: Schema.Types.ObjectId,
+            ref: 'UserPet'
+        }]
+    }, 
+    {
     timestamps: true,
     toJSON: { getters: true },
     toObject: { getters: true }
