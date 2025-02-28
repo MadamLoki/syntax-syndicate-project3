@@ -7,6 +7,9 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { createPetfinderAPI } from './routes/api/petFinderApi.js';
 
+// Import middleware and routes
+import authMiddleware from './middleware/authMiddleware.js';
+import uploadRoutes from './routes/api/uploadRoutes.js';
 
 import db from './config/connection.js';
 import typeDefs from './typeDefs/index.js'; 
@@ -17,6 +20,17 @@ dotenv.config();
 const PORT = process.env.PORT || 3001;
 const app = express();
 
+// Apply middleware
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+
+// Apply authentication middleware to all routes
+app.use(authMiddleware);
+
+// Add the upload routes
+app.use('/api', uploadRoutes);
+
+// Existing Petfinder API setup
 const petfinderAPI = createPetfinderAPI(
     process.env.PETFINDER_API_KEY || '',
     process.env.PETFINDER_SECRET || ''

@@ -5,7 +5,7 @@ import { jwtDecode } from 'jwt-decode';
 import { Plus, Trash, Edit, X, Camera } from 'lucide-react';
 import { useAuth } from '../components/auth/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { uploadToCloudinary } from '../utils/CloudinaryService';
+import { uploadImage } from '../utils/CloudinaryService';
 
 // GraphQL queries and mutations
 const GET_USER_PROFILE = gql`
@@ -255,7 +255,8 @@ const ProfilePage = () => {
             // Upload image if there is one
             let imageUrl = '';
             if (imageFile) {
-                imageUrl = await uploadToCloudinary(imageFile);
+                const uploadResult = await uploadImage(imageFile);
+                imageUrl = uploadResult.url;
             }
             
             // Add the pet with image URL

@@ -1,79 +1,180 @@
-// client/src/utils/CloudinaryService.ts
+/**
+ * Uploads an image file via server proxy
+ * @param file The file to upload
+ * @param onProgress Optional callback for upload progress
+ * @returns Promise containing the upload response with the image URL
+ */
+export const uploadImage = async (
+    file: File,
+    onProgress?: (progress: number) => void
+): Promise<{
+    url: string;
+    publicId: string;
+}> => {
+    return new Promise((resolve, reject) => {
+        try {
+            if (!file) {
+                reject(new Error('No file provided for upload'));
+                return;
+            }
+
+            // Validate file type
+            const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (!validTypes.includes(file.type)) {
+                reject(new Error('Invalid file type. Please upload a JPG, PNG, GIF, or WebP image.'));
+                return;
+            }
+
+            // Validate file size (10MB limit)
+            if (file.size > 10 * 1024 * 1024) {
+                reject(new Error('File is too large. Maximum size is 10MB.'));
+                return;
+            }
+
+            // Create form data for upload
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // Create and configure XMLHttpRequest for better control
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/api/upload');
+
+            // Add auth token if available
+            const token = localStorage.getItem('id_token');
+            if (token) {
+                xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+            }
+
+            // Track upload progress
+            if (onProgress) {
+                xhr.upload.onprogress = (event) => {
+                    if (event.lengthComputable) {
+                        const progress = Math.round((event.loaded / event.total) * 100);
+                        onProgress(progress);
+                    }
+                };
+            }
+
+            // Handle completion
+            xhr.onload = () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    const response = JSON.parse(xhr.responseText);
+                    resolve({
+                        url: response.url,
+                        publicId: response.publicId,
+                    });
+                } else {
+                    try {
+                        const errorData = JSON.parse(xhr.responseText);
+                        reject(new Error(errorData.error || `Upload failed with status ${xhr.status}`));
+                    } catch (e) {
+                        reject(new Error(`Upload failed with status ${xhr.status}`));
+                    }
+                }
+            };
+
+            // Handle network errors
+            xhr.onerror = () => {
+                reject(new Error('Network error occurred during upload'));
+            };
+
+            // Handle timeout
+            xhr.ontimeout = () => {
+                reject(new Error('Upload timed out'));
+            };
+
+            // Set timeout to 60 seconds
+            xhr.timeout = 60000;
+
+            // Send the upload request
+            xhr.send(formData);
+        } catch (error) {
+            reject(error);
+        }
+    });
+};
 
 /**
- * Uploads an image file to Cloudinary and returns the secure URL
- * @param file The file to upload
- * @returns Promise containing the secure URL of the uploaded image
+ * Deletes an image from Cloudinary via server proxy
+ * @param publicId The public ID of the image to delete
+ * @returns Promise with deletion result
  */
-export const uploadToCloudinary = async (file: File): Promise<string> => {
+export const deleteImage = async (publicId: string): Promise<{ success: boolean; message: string }> => {
     try {
-        // Check if Cloudinary environment variables are configured
-        const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-
-        if (!cloudName) {
-            throw new Error('VITE_CLOUDINARY_CLOUD_NAME is not configured in environment variables');
+        if (!publicId) {
+            throw new Error('No public ID provided for deletion');
         }
 
-        // Create a FormData object to send the file
-        const formData = new FormData();
-        formData.append('file', file);
+        // Get auth token if available
+        const token = localStorage.getItem('id_token');
+        const headers: HeadersInit = {
+            'Content-Type': 'application/json'
+        };
+        
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
 
-        // You would typically create an upload preset in your Cloudinary dashboard
-        // that defines permissions, transformations, and folder destinations
-        formData.append('upload_preset', 'newleash_uploads');
-
-        // Send directly to Cloudinary API
-        const response = await fetch(
-            `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-            {
-                method: 'POST',
-                body: formData,
-            }
-        );
+        const response = await fetch(`/api/delete/${encodeURIComponent(publicId)}`, {
+            method: 'DELETE',
+            headers
+        });
 
         if (!response.ok) {
             const errorData = await response.json();
-            console.error('Cloudinary error response:', errorData);
-            throw new Error(errorData.error?.message || `Upload failed with status: ${response.status}`);
+            throw new Error(errorData.error || 'Failed to delete image');
         }
 
-        const data = await response.json();
-        return data.secure_url;
+        const result = await response.json();
+        return { success: true, message: result.message };
     } catch (error) {
-        console.error('Error uploading to Cloudinary:', error);
-        throw error;
+        console.error('Error deleting image:', error);
+        return { 
+            success: false, 
+            message: error instanceof Error ? error.message : 'Unknown error during deletion' 
+        };
     }
 };
 
 /**
- * Creates a Cloudinary URL with transformations
- * @param publicId The public ID of the image
+ * Creates a URL with transformations for an image
+ * @param url The original image URL
  * @param options Transformation options
  * @returns The transformed image URL
  */
-export const getCloudinaryUrl = (publicId: string, options: { width?: number; height?: number; crop?: string } = {}) => {
-    if (!publicId) return '';
+export const getTransformedUrl = (url: string, options: {
+    width?: number;
+    height?: number;
+    crop?: string;
+    quality?: number;
+}): string => {
+    if (!url) return '';
 
-    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-    if (!cloudName) {
-        console.error('VITE_CLOUDINARY_CLOUD_NAME is not configured in environment variables');
-        return publicId; // Return the original ID if cloud name is missing
+    // Extract parts of the URL
+    try {
+        const urlObj = new URL(url);
+        const pathParts = urlObj.pathname.split('/');
+        
+        // Find the upload part
+        const uploadIndex = pathParts.findIndex(part => part === 'upload');
+        if (uploadIndex === -1) return url;
+        
+        // Create transformation string
+        const transformations = [];
+        if (options.width) transformations.push(`w_${options.width}`);
+        if (options.height) transformations.push(`h_${options.height}`);
+        if (options.crop) transformations.push(`c_${options.crop}`);
+        if (options.quality) transformations.push(`q_${options.quality}`);
+        
+        if (transformations.length === 0) return url;
+        
+        // Insert transformation string after "upload"
+        pathParts.splice(uploadIndex + 1, 0, transformations.join(','));
+        urlObj.pathname = pathParts.join('/');
+        
+        return urlObj.toString();
+    } catch (error) {
+        console.error('Error creating transformed URL:', error);
+        return url;
     }
-
-    // Extract just the publicId part if it's a full URL
-    const id = publicId.includes('upload')
-        ? publicId.split('upload/').pop()
-        : publicId;
-
-    const transformations = [];
-
-    if (options.width) transformations.push(`w_${options.width}`);
-    if (options.height) transformations.push(`h_${options.height}`);
-    if (options.crop) transformations.push(`c_${options.crop}`);
-
-    const transformationString = transformations.length > 0
-        ? transformations.join(',') + '/'
-        : '';
-
-    return `https://res.cloudinary.com/${cloudName}/image/upload/${transformationString}${id}`;
 };

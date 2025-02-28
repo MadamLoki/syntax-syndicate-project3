@@ -1,8 +1,7 @@
-// server/src/resolvers/profileResolvers.ts
 import { IResolvers } from '@graphql-tools/utils';
 import { Profile, UserPet } from '../models/index.js';
 import { AuthenticationError } from '../utils/auth.js';
-import { uploadImage, deleteImage } from '../config/cloudinary.js';
+import { deleteImage } from '../config/cloudinary.js';
 
 const profileResolvers: IResolvers = {
     Query: {
@@ -53,15 +52,15 @@ const profileResolvers: IResolvers = {
                     owner: context.user._id
                 });
 
-                await newPet.save();
+                const savedPet = await newPet.save();
 
                 // Add pet reference to user's profile
                 await Profile.findByIdAndUpdate(
                     context.user._id,
-                    { $push: { userPets: newPet._id } }
+                    { $push: { userPets: savedPet._id } }
                 );
 
-                return newPet;
+                return savedPet;
             } catch (error) {
                 console.error('Error adding pet:', error);
                 throw new Error('Failed to add pet');
@@ -89,16 +88,12 @@ const profileResolvers: IResolvers = {
                 // If the pet has an image, delete it from Cloudinary
                 if (pet.image) {
                     try {
-                        // Extract the public ID from the URL
-                        const urlParts = pet.image.split('/');
-                        const publicIdWithExtension = urlParts[urlParts.length - 1];
-                        const publicId = publicIdWithExtension.split('.')[0];
-                        
-                        // Delete from Cloudinary
-                        await deleteImage(publicId);
+                        // Use the improved deleteImage function that handles URL parsing
+                        const deleteResult = await deleteImage(pet.image);
+                        console.log('Image deletion result:', deleteResult);
                     } catch (cloudinaryError) {
+                        // Log but don't block the operation if image deletion fails
                         console.error('Error deleting image from Cloudinary:', cloudinaryError);
-                        // Continue with pet deletion even if image deletion fails
                     }
                 }
 
