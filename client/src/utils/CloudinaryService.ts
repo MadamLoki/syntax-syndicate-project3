@@ -1,3 +1,5 @@
+// client/src/utils/CloudinaryService.ts
+
 /**
  * Uploads an image file to Cloudinary and returns the secure URL
  * @param file The file to upload
@@ -5,6 +7,13 @@
  */
 export const uploadToCloudinary = async (file: File): Promise<string> => {
     try {
+        // Check if Cloudinary environment variables are configured
+        const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+
+        if (!cloudName) {
+            throw new Error('VITE_CLOUDINARY_CLOUD_NAME is not configured in environment variables');
+        }
+
         // Create a FormData object to send the file
         const formData = new FormData();
         formData.append('file', file);
@@ -15,7 +24,7 @@ export const uploadToCloudinary = async (file: File): Promise<string> => {
 
         // Send directly to Cloudinary API
         const response = await fetch(
-            `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
+            `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
             {
                 method: 'POST',
                 body: formData,
@@ -24,7 +33,8 @@ export const uploadToCloudinary = async (file: File): Promise<string> => {
 
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error?.message || 'Upload failed');
+            console.error('Cloudinary error response:', errorData);
+            throw new Error(errorData.error?.message || `Upload failed with status: ${response.status}`);
         }
 
         const data = await response.json();
@@ -44,6 +54,12 @@ export const uploadToCloudinary = async (file: File): Promise<string> => {
 export const getCloudinaryUrl = (publicId: string, options: { width?: number; height?: number; crop?: string } = {}) => {
     if (!publicId) return '';
 
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+    if (!cloudName) {
+        console.error('VITE_CLOUDINARY_CLOUD_NAME is not configured in environment variables');
+        return publicId; // Return the original ID if cloud name is missing
+    }
+
     // Extract just the publicId part if it's a full URL
     const id = publicId.includes('upload')
         ? publicId.split('upload/').pop()
@@ -59,5 +75,5 @@ export const getCloudinaryUrl = (publicId: string, options: { width?: number; he
         ? transformations.join(',') + '/'
         : '';
 
-    return `https://res.cloudinary.com/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload/${transformationString}${id}`;
+    return `https://res.cloudinary.com/${cloudName}/image/upload/${transformationString}${id}`;
 };
