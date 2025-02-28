@@ -5,6 +5,7 @@ import { jwtDecode } from 'jwt-decode';
 import { Plus, Trash, Edit, X, Camera } from 'lucide-react';
 import { useAuth } from '../components/auth/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { uploadToCloudinary } from '../utils/CloudinaryService';
 
 // GraphQL queries and mutations
 const GET_USER_PROFILE = gql`
@@ -115,6 +116,9 @@ const ProfilePage = () => {
         age: 0,
         description: '',
     });
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
     const [message, setMessage] = useState({ text: '', type: '' });
 
     // Get user ID from token
@@ -169,6 +173,8 @@ const ProfilePage = () => {
                 age: 0,
                 description: '',
             });
+            setImageFile(null);
+            setImagePreview(null);
             setMessage({ text: 'Pet added successfully!', type: 'success' });
             setTimeout(() => setMessage({ text: '', type: '' }), 3000);
             refetch();
@@ -198,6 +204,34 @@ const ProfilePage = () => {
         }
     }, [isLoggedIn, navigate]);
 
+    // Handle file selection for image upload
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            
+            // Basic validation
+            const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+            if (!validTypes.includes(file.type)) {
+                setMessage({ text: 'Invalid file type. Please upload a JPG, PNG, or GIF.', type: 'error' });
+                return;
+            }
+
+            if (file.size > 10 * 1024 * 1024) { // 10MB
+                setMessage({ text: 'File is too large. Maximum size is 10MB.', type: 'error' });
+                return;
+            }
+
+            setImageFile(file);
+            
+            // Create a preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                setImagePreview(e.target?.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     // Handle form submission for profile update
     const handleUpdateProfile = (e: React.FormEvent) => {
         e.preventDefault();
@@ -212,13 +246,37 @@ const ProfilePage = () => {
     };
 
     // Handle form submission for adding a pet
-    const handleAddPet = (e: React.FormEvent) => {
+    const handleAddPet = async (e: React.FormEvent) => {
         e.preventDefault();
-        addUserPet({
-            variables: {
-                input: newPet,
-            },
-        });
+        
+        try {
+            setIsUploading(true);
+            
+            // Upload image if there is one
+            let imageUrl = '';
+            if (imageFile) {
+                imageUrl = await uploadToCloudinary(imageFile);
+            }
+            
+            // Add the pet with image URL
+            await addUserPet({
+                variables: {
+                    input: {
+                        ...newPet,
+                        image: imageUrl || undefined,
+                    },
+                },
+            });
+            
+        } catch (error) {
+            console.error('Error adding pet:', error);
+            setMessage({ 
+                text: `Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`, 
+                type: 'error' 
+            });
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     // Handle removing a pet
@@ -253,6 +311,8 @@ const ProfilePage = () => {
                 age: 0,
                 description: '',
             });
+            setImageFile(null);
+            setImagePreview(null);
         }
     };
 
@@ -523,6 +583,27 @@ const ProfilePage = () => {
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                             Photo
                                         </label>
+                                        
+                                        {imagePreview && (
+                                            <div className="relative mb-4">
+                                                <img 
+                                                    src={imagePreview} 
+                                                    alt="Preview" 
+                                                    className="h-48 w-full object-cover rounded-md" 
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setImageFile(null);
+                                                        setImagePreview(null);
+                                                    }}
+                                                    className="absolute top-2 right-2 p-1 bg-white rounded-full text-gray-500 hover:text-red-500"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        )}
+                                        
                                         <div className="border-2 border-dashed border-gray-300 rounded-md p-6 flex justify-center">
                                             <div className="space-y-1 text-center">
                                                 <Camera className="mx-auto h-12 w-12 text-gray-400" />
@@ -531,8 +612,16 @@ const ProfilePage = () => {
                                                         htmlFor="file-upload"
                                                         className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500"
                                                     >
-                                                        <span>Upload a file</span>
-                                                        <input id="file-upload" name="file-upload" type="file" className="sr-only" />
+                                                        <span>{isUploading ? 'Uploading...' : 'Upload a file'}</span>
+                                                        <input 
+                                                            id="file-upload" 
+                                                            name="file-upload" 
+                                                            type="file" 
+                                                            className="sr-only" 
+                                                            onChange={handleImageChange}
+                                                            disabled={isUploading}
+                                                            accept="image/jpeg,image/png,image/gif"
+                                                        />
                                                     </label>
                                                     <p className="pl-1">or drag and drop</p>
                                                 </div>
@@ -544,10 +633,10 @@ const ProfilePage = () => {
                                 <div className="mt-6">
                                     <button
                                         type="submit"
-                                        disabled={addPetLoading}
+                                        disabled={addPetLoading || isUploading}
                                         className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-blue-300"
                                     >
-                                        {addPetLoading ? 'Adding Pet...' : 'Add Pet'}
+                                        {addPetLoading || isUploading ? 'Adding Pet...' : 'Add Pet'}
                                     </button>
                                 </div>
                             </form>
@@ -561,7 +650,7 @@ const ProfilePage = () => {
                                         key={pet._id}
                                         className="flex items-start p-4 border rounded-lg hover:bg-gray-50"
                                     >
-                                        <div className="h-16 w-16 rounded-md bg-blue-100 flex items-center justify-center text-blue-600 mr-4">
+                                        <div className="h-16 w-16 rounded-md bg-blue-100 flex items-center justify-center text-blue-600 mr-4 overflow-hidden">
                                             {pet.image ? (
                                                 <img src={pet.image} alt={pet.name} className="h-full w-full object-cover rounded-md" />
                                             ) : (
@@ -603,46 +692,46 @@ const ProfilePage = () => {
                     <div className="bg-white rounded-lg shadow-md p-6">
                         <h2 className="text-xl font-bold mb-6">Saved Pets</h2>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {profile && profile.userPets && profile.userPets.length > 0 ? (
-                            profile.userPets.map((pet) => (
-                                    <div
-                                        key={pet._id}
-                                        className="border rounded-lg overflow-hidden hover:shadow-md transition-shadow"
-                                    >
-                                        <div className="h-48 bg-gray-200">
-                                            {pet.image ? (
-                                                <img src={pet.image} alt={pet.name} className="h-full w-full object-cover" />
-                                            ) : (
-                                                <div className="h-full flex items-center justify-center bg-blue-100 text-blue-600">
-                                                    <span className="text-2xl">No Image</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="p-4">
-                                            <h3 className="font-bold">{pet.name}</h3>
-                                            <p className="text-sm text-gray-600">
-                                                {pet.breed} • {pet.age ? `${pet.age} years old` : 'Age unknown'}
-                                            </p>
-                                            <button
-                                                className="mt-2 text-blue-600 hover:text-blue-800 text-sm"
-                                                onClick={() => navigate(`/pets/${pet._id}`)}
-                                            >
-                                                View Details
-                                            </button>
-                                        </div>
+                        {profile && profile.savedPets && profile.savedPets.length > 0 ? (
+                            profile.savedPets.map((pet) => (
+                                <div
+                                    key={pet._id}
+                                    className="border rounded-lg overflow-hidden hover:shadow-md transition-shadow"
+                                >
+                                    <div className="h-48 bg-gray-200">
+                                        {pet.images && pet.images.length > 0 ? (
+                                            <img src={pet.images[0]} alt={pet.name} className="h-full w-full object-cover" />
+                                        ) : (
+                                            <div className="h-full flex items-center justify-center bg-blue-100 text-blue-600">
+                                                <span className="text-2xl">No Image</span>
+                                            </div>
+                                        )}
                                     </div>
-                                ))
-                            ) : (
-                                <div className="col-span-full text-center py-8">
-                                    <p className="text-gray-500">You haven't saved any pets yet.</p>
-                                    <button
-                                        onClick={() => navigate('/findpets')}
-                                        className="mt-2 text-blue-600 hover:text-blue-800"
-                                    >
-                                        Find pets to save
-                                    </button>
+                                    <div className="p-4">
+                                        <h3 className="font-bold">{pet.name}</h3>
+                                        <p className="text-sm text-gray-600">
+                                            {pet.breed} • {pet.age ? `${pet.age} years old` : 'Age unknown'}
+                                        </p>
+                                        <button
+                                            className="mt-2 text-blue-600 hover:text-blue-800 text-sm"
+                                            onClick={() => navigate(`/pets/${pet._id}`)}
+                                        >
+                                            View Details
+                                        </button>
+                                    </div>
                                 </div>
-                            )}
+                            ))
+                        ) : (
+                            <div className="col-span-full text-center py-8">
+                                <p className="text-gray-500">You haven't saved any pets yet.</p>
+                                <button
+                                    onClick={() => navigate('/findpets')}
+                                    className="mt-2 text-blue-600 hover:text-blue-800"
+                                >
+                                    Find pets to save
+                                </button>
+                            </div>
+                        )}
                         </div>
                     </div>
                 )}

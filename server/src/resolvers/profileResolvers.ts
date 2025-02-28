@@ -2,6 +2,7 @@
 import { IResolvers } from '@graphql-tools/utils';
 import { Profile, UserPet } from '../models/index.js';
 import { AuthenticationError } from '../utils/auth.js';
+import { uploadImage, deleteImage } from '../config/cloudinary.js';
 
 const profileResolvers: IResolvers = {
     Query: {
@@ -46,7 +47,7 @@ const profileResolvers: IResolvers = {
             }
 
             try {
-                // Create new pet document
+                // Create new pet document with image URL (already uploaded from client)
                 const newPet = new UserPet({
                     ...input,
                     owner: context.user._id
@@ -83,6 +84,22 @@ const profileResolvers: IResolvers = {
 
                 if (pet.owner.toString() !== context.user._id.toString()) {
                     throw new AuthenticationError('Not authorized to remove this pet');
+                }
+
+                // If the pet has an image, delete it from Cloudinary
+                if (pet.image) {
+                    try {
+                        // Extract the public ID from the URL
+                        const urlParts = pet.image.split('/');
+                        const publicIdWithExtension = urlParts[urlParts.length - 1];
+                        const publicId = publicIdWithExtension.split('.')[0];
+                        
+                        // Delete from Cloudinary
+                        await deleteImage(publicId);
+                    } catch (cloudinaryError) {
+                        console.error('Error deleting image from Cloudinary:', cloudinaryError);
+                        // Continue with pet deletion even if image deletion fails
+                    }
                 }
 
                 // Remove pet from database
