@@ -5,7 +5,27 @@ import { deleteImage } from '../config/cloudinary.js';
 
 const profileResolvers: IResolvers = {
     Query: {
-        // Existing Query resolvers...
+        // Implement the profile-related queries from the schema
+        profiles: async (): Promise<any[]> => {
+            // Retrieve all profiles
+            return await Profile.find();
+        },
+
+        profile: async (_parent: unknown, { profileId }: { profileId: string }): Promise<any | null> => {
+            // Retrieve a profile by its ID
+            return await Profile.findOne({ _id: profileId });
+        },
+
+        me: async (_parent: unknown, _args: unknown, context: any): Promise<any | null> => {
+            if (context.user) {
+                // If user is authenticated, return their profile with populated userPets
+                return await Profile.findOne({ _id: context.user._id })
+                    .populate('savedPets')
+                    .populate('userPets');
+            }
+            // If not authenticated, throw an authentication error
+            throw new AuthenticationError('Not Authenticated');
+        },
     },
 
     Mutation: {
