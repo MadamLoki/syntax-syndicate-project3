@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-import { useState } from "react"
+/*import { useState } from "react"
 import { ADD_SHELTER } from "../../utils/mutations";
 import { useMutation } from "@apollo/client";
 
@@ -65,4 +65,4 @@ const AddNewShelter = () => {
     )
 }
 
-export default AddNewShelter
+export default AddNewShelter*/

@@ -3,31 +3,35 @@ import { Heart, Github, Leaf, MessageSquare, Coffee } from 'lucide-react';
 
 const About = () => {
     const [teamMembers, setTeamMembers] = useState([
-        {
-            name: 'Sara Ryan',
-            bio: 'Bio Here',
-            github: 'https://github.com/MadamLoki',
-            avatar: 'https://avatars.githubusercontent.com/u/25068030?v=4'
-        },
-        {
-            name: 'Adebanjo Fajemisin',
-            bio: 'Bio Here',
-            github: 'https://github.com/AOF-O5-1',
-            avatar: 'https://avatars.githubusercontent.com/u/180471026?v=4'
-        },
-        {
-            name: 'Shelia Bradford',
-            bio: 'Bio Here',
-            github: 'https://github.com/SBradford4',
-            avatar: 'https://avatars.githubusercontent.com/u/180795418?v=4'
-        },
-        {
-            name: 'Joshua Loller',
-            bio: 'Bio Here',
-            github: 'https://github.com/kiv1515',
-            avatar: 'https://avatars.githubusercontent.com/u/180589699?v=4'
-        }
-    ]);
+            {
+                name: 'Sara Ryan',
+                bio: 'Bio Here',
+                github: 'https://github.com/MadamLoki',
+                avatar: 'https://avatars.githubusercontent.com/u/25068030?v=4',
+                contributions: 0
+            },
+            {
+                name: 'Adebanjo Fajemisin',
+                bio: 'Bio Here',
+                github: 'https://github.com/AOF-O5-1',
+                avatar: 'https://avatars.githubusercontent.com/u/180471026?v=4',
+                contributions: 0
+            },
+            {
+                name: 'Shelia Bradford',
+                bio: 'Bio Here',
+                github: 'https://github.com/SBradford4',
+                avatar: 'https://avatars.githubusercontent.com/u/180795418?v=4',
+                contributions: 0
+            },
+            {
+                name: 'Joshua Loller',
+                bio: 'Bio Here',
+                github: 'https://github.com/kiv1515',
+                avatar: 'https://avatars.githubusercontent.com/u/180589699?v=4',
+                contributions: 0
+            }
+        ]);
     
     // Fetch contributors from GitHub API
     useEffect(() => {
@@ -50,7 +54,7 @@ const About = () => {
                         bio: string;
                         github: string;
                         avatar: string;
-                        contributions?: number;
+                        contributions: number;
                     }
 
                     const updatedMembers: TeamMember[] = contributors.map((contributor: Contributor) => {

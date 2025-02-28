@@ -8,8 +8,11 @@ import LoginForm from './components/auth/LoginForm'
 import Error from './pages/Error'
 import SignupForm from './components/auth/SignupForm'
 import PetSearch from './components/pets/FindPets'
-import Shelters from './components/shelters/Shelters'
+//import Shelters from './components/shelters/Shelters'
 import About from './pages/About'
+import ThreadListPage from './pages/ThreadList'
+import ProfilePage from './pages/ProflePage'
+
 
 const router = createBrowserRouter([
     {
@@ -38,13 +41,18 @@ const router = createBrowserRouter([
                 errorElement: <Error />,
             },
             {
-                path: '/shelters',
-                element: <Shelters />,
+                path: '/forum',
+                element: <ThreadListPage />,
                 errorElement: <Error />,
             },
             {
                 path: '/about',
                 element: <About />,
+                errorElement: <Error />,
+            },
+            {
+                path: '/profile',
+                element: <ProfilePage />, // Add the ProfilePage route
                 errorElement: <Error />,
             }
         ]
