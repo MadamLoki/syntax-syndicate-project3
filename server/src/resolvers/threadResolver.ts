@@ -1,7 +1,8 @@
-// resolvers/threadResolvers.ts
+
 import { IResolvers } from '@graphql-tools/utils';
 import Thread from '../models/Threads';
 import Comment from '../models/comment';
+import { uploadImage } from '../config/cloudinary';  // import your Cloudinary functions
 
 const threadResolvers: IResolvers = {
   Query: {
@@ -18,11 +19,22 @@ const threadResolvers: IResolvers = {
   Mutation: {
     createThread: async (_: any, { input }: { input: any }, context: any) => {
       if (!context.user) throw new Error('You must be logged in to create a thread');
+
+      // Check if pet image is provided and if it starts with 'data:' (base64)
+      let petImageUrl = input.pet.image;
+      if (input.pet.image && input.pet.image.startsWith('data:')) {
+        const uploadResult = await uploadImage(input.pet.image, 'forum-pets');
+        petImageUrl = uploadResult.url;
+      }
+
       const newThread = new Thread({
         title: input.title,
         content: input.content,
         threadType: input.threadType,
-        petId: input.petId, // use the petId provided in the input
+        pet: {
+          ...input.pet,
+          image: petImageUrl,
+        },
         author: context.user.id,
       });
       return await newThread.save();

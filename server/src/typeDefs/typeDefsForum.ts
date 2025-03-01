@@ -1,15 +1,41 @@
 const ForumTypeDefs = `
 
+type UserPet {
+  _id: ID!
+  name: String!
+  species: String!
+  breed: String
+  age: Int!
+  description: String
+  image: String
+}
+
+input UserPetInput {
+  name: String!
+  species: String!
+  breed: String
+  age: Int!
+  description: String
+  image: String
+}
+
 type Thread {
   id: ID!
   title: String!
   content: String!
   threadType: String!
-  petId: ID          # New field: petId for the pet being posted about
+  pet: UserPet!
   author: User!
   comments: [Comment]
   createdAt: String!
   updatedAt: String!
+}
+
+input CreateThreadInput {
+  title: String!
+  content: String!
+  threadType: String!
+  pet: UserPetInput!
 }
 
 type Comment {
@@ -51,3 +77,5 @@ type Mutation {
   createComment(input: CreateCommentInput!): Comment!
 }
 `;
+
+export default ForumTypeDefs;

@@ -11,53 +11,59 @@ import PetSearch from './components/pets/FindPets'
 //import Shelters from './components/shelters/Shelters'
 import About from './pages/About'
 import ThreadListPage from './pages/ThreadList'
+import CreateThreadForm from './pages/CreateThreadForm'
 import ProfilePage from './pages/ProflePage'
 
 
 const router = createBrowserRouter([
     {
-        path: '/',
-        element: <App />,
-        errorElement: <Error />,
-        children: [
-            {
-                index: true,
-                element: <Home />,
-                errorElement: <Error />,
-            },
-            {
-                path: '/login',
-                element: <LoginForm />,
-                errorElement: <Error />,
-            },
-            {
-                path: '/signup',
-                element: <SignupForm />,
-                errorElement: <Error />,
-            },
-            {
-                path: '/findpets',
-                element: <PetSearch />,
-                errorElement: <Error />,
-            },
-            {
-                path: '/forum',
-                element: <ThreadListPage />,
-                errorElement: <Error />,
-            },
-            {
-                path: '/about',
-                element: <About />,
-                errorElement: <Error />,
-            },
-            {
-                path: '/profile',
-                element: <ProfilePage />, // Add the ProfilePage route
-                errorElement: <Error />,
-            }
-        ]
+      path: '/',
+      element: <App />,
+      errorElement: <Error />,
+      children: [
+        {
+          index: true,
+          element: <Home />,
+          errorElement: <Error />,
+        },
+        {
+          path: '/login',
+          element: <LoginForm />,
+          errorElement: <Error />,
+        },
+        {
+          path: '/signup',
+          element: <SignupForm />,
+          errorElement: <Error />,
+        },
+        {
+          path: '/findpets',
+          element: <PetSearch />,
+          errorElement: <Error />,
+        },
+        {
+          path: '/forum',
+          element: <ThreadListPage />,
+          errorElement: <Error />,
+        },
+        {
+          path: '/create-thread',
+          element: <CreateThreadForm />,
+          errorElement: <Error />,
+        },
+        {
+          path: '/about',
+          element: <About />,
+          errorElement: <Error />,
+        },
+        {
+          path: '/profile',
+          element: <ProfilePage />,
+          errorElement: <Error />,
+        }
+      ]
     }
-])
+  ])
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <RouterProvider router={router} />

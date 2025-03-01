@@ -1,29 +1,46 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
-export interface Thread extends Document {
-    title: string;
-    content: string;
-    threadType: 'ADOPTION' | 'SURRENDER';
-    petId?: mongoose.Types.ObjectId; // Reference to a Pet (optional or required as needed)
-    author: mongoose.Types.ObjectId;  // references the User model
-    createdAt: Date;
-    updatedAt: Date;
-  }
-  
+export interface IUserPet {
+  name: string;
+  species: string;
+  breed?: string;
+  age: number;
+  description?: string;
+  image?: string; // This will store the Cloudinary URL for the pet image
+}
 
-  const threadSchema = new Schema<Thread>(
-    {
-      title: { type: String, required: true },
-      content: { type: String, required: true },
-      threadType: { 
-        type: String, 
-        required: true, 
-        enum: ['ADOPTION', 'SURRENDER'] 
-      },
-      petId: { type: Schema.Types.ObjectId, ref: 'Pet' }, // Removed images, added petId
-      author: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+export interface IThread extends Document {
+  title: string;
+  content: string;
+  threadType: 'ADOPTION' | 'SURRENDER';
+  pet: IUserPet;  // Nested pet information
+  author: mongoose.Types.ObjectId;  // Reference to the User model
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const petSchema = new Schema<IUserPet>({
+  name: { type: String, required: true },
+  species: { type: String, required: true },
+  breed: { type: String },
+  age: { type: Number, required: true },
+  description: { type: String },
+  image: { type: String },
+});
+
+const threadSchema = new Schema<IThread>(
+  {
+    title: { type: String, required: true },
+    content: { type: String, required: true },
+    threadType: { 
+      type: String, 
+      required: true, 
+      enum: ['ADOPTION', 'SURRENDER'] 
     },
-    { timestamps: true }
-  );
+    pet: { type: petSchema, required: true },
+    author: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  },
+  { timestamps: true }
+);
 
-  export default mongoose.model<Thread>('Thread', threadSchema);
+export default mongoose.model<IThread>('Thread', threadSchema);

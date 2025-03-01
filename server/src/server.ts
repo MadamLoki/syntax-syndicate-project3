@@ -12,7 +12,11 @@ import authMiddleware from './middleware/authMiddleware.js';
 import uploadRoutes from './routes/api/uploadRoutes.js';
 
 import db from './config/connection.js';
-import typeDefs from './typeDefs/index.js'; 
+import { mergeTypeDefs } from '@graphql-tools/merge';
+import typeDefs from './typeDefs/typeDefs.js';
+import ForumTypeDefs from './typeDefs/typeDefsForum.js';
+
+const mergedTypeDefs = mergeTypeDefs([typeDefs, ForumTypeDefs]);
 import mergedResolvers from './resolvers/index.js';
 
 dotenv.config();
@@ -106,7 +110,6 @@ const startApolloServer = async () => {
         console.log('Petfinder API test successful');
     } catch (error) {
         console.error('Failed to initialize Petfinder API:', error);
-        throw new Error('Petfinder API initialization failed');
     }
 
     const server = new ApolloServer({ 
