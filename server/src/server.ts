@@ -115,7 +115,6 @@ const startApolloServer = async () => {
         context: async ({ req }: { req: express.Request }) => {
             const token = req.headers.authorization || '';
             const user = getUserFromToken(token);
-            // Even if user auth fails, we still want to allow access to public queries
             return { 
                 user,
                 petfinderAPI
@@ -131,8 +130,6 @@ const startApolloServer = async () => {
 
     // Production setup for static files
     if (process.env.NODE_ENV === 'production') {
-        // In production, we reference the client's dist directory from the server's location
-        // This avoids using __dirname which can be problematic with different module systems
         const staticPath = path.resolve('./client/dist');
         console.log('Serving static files from:', staticPath);
         
