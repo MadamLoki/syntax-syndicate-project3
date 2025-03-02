@@ -10,7 +10,7 @@
     "dev:build": "npm run build && concurrently \"cd server && npm run watch\" \"cd client && npm run dev\"",
     "setup": "cd server && npm i && cd ../client && npm i",
     "build": "cd server && npm run build && cd ../client && npm run build",
-    "render-build": "npm install && cd server && npm install && npm run build && cd ../client && npm install && npm install -D tailwindcss postcss autoprefixer @tailwindcss/forms @tailwindcss/typography && npm run build",
+    "render-build": "npm ci && cd server && npm ci && npm run build && cd ../client && npm ci && npm i -D tailwindcss postcss autoprefixer && cp tailwind.config.simple.js tailwind.config.js && npm run build",
     "render-start": "cd server && npm start"
   },
   "author": "",
