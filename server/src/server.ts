@@ -24,16 +24,6 @@ dotenv.config();
 const PORT = process.env.PORT || 3001;
 const app = express();
 
-// Apply middleware
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-
-// Apply authentication middleware to all routes
-app.use(authMiddleware);
-
-// Add the upload routes
-app.use('/api', uploadRoutes);
-
 // Existing Petfinder API setup
 const petfinderAPI = createPetfinderAPI(
     process.env.PETFINDER_API_KEY || '',
