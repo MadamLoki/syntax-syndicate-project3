@@ -1,9 +1,7 @@
 import express from 'express';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { ApolloServer } from 'apollo-server-express';
 import jwt from 'jsonwebtoken';
-import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { createPetfinderAPI } from './routes/api/petFinderApi.js';
 
@@ -21,7 +19,7 @@ import mergedResolvers from './resolvers/index.js';
 
 dotenv.config();
 
-const PORT = process.env.PORT || 3001;
+const PORT = parseInt(process.env.PORT || '3001', 10);
 const app = express();
 
 // Existing Petfinder API setup
@@ -63,11 +61,19 @@ app.get('/debug-petfinder', async (_req, res) => {
     }
 });
 
+// Add request parsing middleware
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+
+// Add GraphQL-specific middleware
 app.use('/graphql', express.json());
 app.use('/graphql', (req, _res, next) => {
     // console.log('GraphQL Request Body:', req.body);
     next();
 });
+
+// Add API routes for uploads
+app.use('/api', uploadRoutes);
 
 const getUserFromToken = (authHeader: string) => {
     try {
@@ -120,16 +126,19 @@ const startApolloServer = async () => {
     await server.start();
     console.log('Apollo Server started');
 
-    app.use(express.urlencoded({ extended: true }));
-    app.use(express.json());
-
     // Apply Apollo Server middleware
     server.applyMiddleware({ app: app as any });
 
+    // Production setup for static files
     if (process.env.NODE_ENV === 'production') {
-        app.use(express.static(path.join(__dirname, '../../client/dist')));
+        // In production, we reference the client's dist directory from the server's location
+        // This avoids using __dirname which can be problematic with different module systems
+        const staticPath = path.resolve('./client/dist');
+        console.log('Serving static files from:', staticPath);
+        
+        app.use(express.static(staticPath));
         app.get('*', (_req, res) => {
-            res.sendFile(path.join(__dirname, '../../client/dist/index.html'));
+            res.sendFile(path.join(staticPath, 'index.html'));
         });
     }
 
@@ -137,12 +146,15 @@ const startApolloServer = async () => {
         await db();
         console.log('MongoDB connection established');
         
-        app.listen(PORT, () => {
+        app.listen(PORT, '0.0.0.0', () => {
             console.log(`🚀 Server ready at http://localhost:${PORT}${server.graphqlPath}`);
         });
     } catch (error) {
         console.error('Server startup error:', error);
+        process.exit(1);
     }
 };
 
-startApolloServer();
+startApolloServer().catch(err => {
+    console.error('Failed to start server:', err);
+});
