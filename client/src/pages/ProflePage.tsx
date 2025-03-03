@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
 import { gql } from '@apollo/client';
 import { jwtDecode } from 'jwt-decode';
-import { Plus, Trash, Edit, X, Camera } from 'lucide-react';
+import { Plus, Trash, Edit, X, Camera, CheckCircle } from 'lucide-react';
 import { useAuth } from '../components/auth/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { useImageUpload  } from '../utils/CloudinaryService';
+import { useImageUpload } from '../utils/CloudinaryService';
+import { compressImage, formatFileSize } from '../utils/imageCompression';
+import { validateImage } from '../utils/imageValidation';
 
 // GraphQL queries and mutations
 const GET_USER_PROFILE = gql`
@@ -121,6 +123,15 @@ const ProfilePage = () => {
     const [isUploading, setIsUploading] = useState(false);
     const [message, setMessage] = useState({ text: '', type: '' });
     const { uploadImage } = useImageUpload();
+    const [compressionProgress, setCompressionProgress] = useState<number>(0);
+    const [isCompressing, setIsCompressing] = useState<boolean>(false);
+    const [imageStats, setImageStats] = useState<{
+        original: string;
+        compressed: string;
+        ratio: number;
+    } | null>(null);
+
+    const [isDragging, setIsDragging] = useState<boolean>(false);
 
     // Get user ID from token
     const getUserIdFromToken = () => {
@@ -206,30 +217,109 @@ const ProfilePage = () => {
     }, [isLoggedIn, navigate]);
 
     // Handle file selection for image upload
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
-            
-            // Basic validation
-            const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
-            if (!validTypes.includes(file.type)) {
-                setMessage({ text: 'Invalid file type. Please upload a JPG, PNG, or GIF.', type: 'error' });
-                return;
-            }
 
-            if (file.size > 10 * 1024 * 1024) { // 10MB
-                setMessage({ text: 'File is too large. Maximum size is 10MB.', type: 'error' });
-                return;
-            }
+            try {
+                // Set a loading state to indicate validation is in progress
+                setMessage({ text: 'Validating image...', type: '' });
 
-            setImageFile(file);
-            
-            // Create a preview
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                setImagePreview(e.target?.result as string);
-            };
-            reader.readAsDataURL(file);
+                // Validate the image with our utility
+                const validationResult = await validateImage(file, {
+                    maxSizeInMB: 10,  // Allow larger uploads since we'll compress them
+                    minSizeInKB: 1,
+                    allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+                    maxWidth: 4000,
+                    maxHeight: 4000,
+                    minWidth: 50,
+                    minHeight: 50
+                });
+
+                // If validation fails, show the error and return
+                if (!validationResult.isValid) {
+                    setMessage({ text: validationResult.message, type: 'error' });
+                    return;
+                }
+
+                // Show original image preview immediately
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    setImagePreview(e.target?.result as string);
+                };
+                reader.readAsDataURL(file);
+
+                // Check if compression is needed (file > 2MB)
+                if (file.size > 2 * 1024 * 1024) {
+                    setIsCompressing(true);
+                    setMessage({ text: 'Optimizing image size...', type: '' });
+
+                    // Compress image with progress updates
+                    const compressionResult = await compressImage(file, {
+                        targetSizeInMB: 2,
+                        maxWidth: 1920,
+                        maxHeight: 1080,
+                        initialQuality: 0.8,
+                        minQuality: 0.6,
+                        preserveTransparency: true,
+                        onProgress: (progress) => {
+                            setCompressionProgress(progress);
+                        }
+                    });
+
+                    // Handle compression result
+                    if (compressionResult.success) {
+                        // Update image file with compressed version
+                        setImageFile(compressionResult.file);
+
+                        // Update preview with compressed version
+                        const compressedReader = new FileReader();
+                        compressedReader.onload = (e) => {
+                            setImagePreview(e.target?.result as string);
+                        };
+                        compressedReader.readAsDataURL(compressionResult.file);
+
+                        // Show compression stats
+                        setImageStats({
+                            original: formatFileSize(compressionResult.originalSize),
+                            compressed: formatFileSize(compressionResult.compressedSize),
+                            ratio: compressionResult.compressionRatio
+                        });
+
+                        setMessage({
+                            text: compressionResult.message,
+                            type: 'success'
+                        });
+                    } else {
+                        // If compression failed, use original file
+                        setImageFile(file);
+                        setMessage({
+                            text: `Compression couldn't reduce file size: ${compressionResult.message}. Using original file.`,
+                            type: 'warning'
+                        });
+                    }
+
+                    setIsCompressing(false);
+                    setCompressionProgress(0);
+                } else {
+                    // No compression needed
+                    setImageFile(file);
+                    setMessage({
+                        text: `Image accepted (${formatFileSize(file.size)})`,
+                        type: 'success'
+                    });
+                    setTimeout(() => setMessage({ text: '', type: '' }), 3000);
+                }
+
+            } catch (error) {
+                console.error('Error processing image:', error);
+                setIsCompressing(false);
+                setCompressionProgress(0);
+                setMessage({
+                    text: `Error processing image: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                    type: 'error'
+                });
+            }
         }
     };
 
@@ -249,17 +339,39 @@ const ProfilePage = () => {
     // Handle form submission for adding a pet
     const handleAddPet = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         try {
             setIsUploading(true);
-            
+
             // Upload image if there is one
             let imageUrl = '';
             if (imageFile) {
-                const uploadResult = await uploadImage(imageFile);
-                imageUrl = uploadResult.url;
+                // Before starting the upload, check the file size one more time
+                if (imageFile.size > 5 * 1024 * 1024) {
+                    setMessage({
+                        text: 'Image is too large. Please select a smaller image or try again.',
+                        type: 'error'
+                    });
+                    setIsUploading(false);
+                    return;
+                }
+
+                try {
+                    setMessage({ text: 'Uploading image...', type: '' });
+                    const uploadResult = await uploadImage(imageFile);
+                    imageUrl = uploadResult.url;
+                    setMessage({ text: 'Image uploaded successfully!', type: 'success' });
+                } catch (error) {
+                    console.error('Error uploading image:', error);
+                    setMessage({
+                        text: `Image upload failed: ${error instanceof Error ? error.message : 'Server error'}. Try a smaller image.`,
+                        type: 'error'
+                    });
+                    setIsUploading(false);
+                    return;
+                }
             }
-            
+
             // Add the pet with image URL
             await addUserPet({
                 variables: {
@@ -269,12 +381,12 @@ const ProfilePage = () => {
                     },
                 },
             });
-            
+
         } catch (error) {
             console.error('Error adding pet:', error);
-            setMessage({ 
-                text: `Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`, 
-                type: 'error' 
+            setMessage({
+                text: `Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`,
+                type: 'error'
             });
         } finally {
             setIsUploading(false);
@@ -365,7 +477,7 @@ const ProfilePage = () => {
                 {message.text && (
                     <div
                         className={`p-4 mb-6 rounded-md ${message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
-                                'bg-red-50 text-red-700 border border-red-200'
+                            'bg-red-50 text-red-700 border border-red-200'
                             }`}
                     >
                         {message.text}
@@ -376,8 +488,8 @@ const ProfilePage = () => {
                 <div className="flex border-b border-gray-200 mb-8">
                     <button
                         className={`py-4 px-6 font-medium ${activeTab === 'profile'
-                                ? 'text-blue-600 border-b-2 border-blue-600'
-                                : 'text-gray-500 hover:text-gray-700'
+                            ? 'text-blue-600 border-b-2 border-blue-600'
+                            : 'text-gray-500 hover:text-gray-700'
                             }`}
                         onClick={() => setActiveTab('profile')}
                     >
@@ -385,8 +497,8 @@ const ProfilePage = () => {
                     </button>
                     <button
                         className={`py-4 px-6 font-medium ${activeTab === 'pets'
-                                ? 'text-blue-600 border-b-2 border-blue-600'
-                                : 'text-gray-500 hover:text-gray-700'
+                            ? 'text-blue-600 border-b-2 border-blue-600'
+                            : 'text-gray-500 hover:text-gray-700'
                             }`}
                         onClick={() => setActiveTab('pets')}
                     >
@@ -394,8 +506,8 @@ const ProfilePage = () => {
                     </button>
                     <button
                         className={`py-4 px-6 font-medium ${activeTab === 'saved'
-                                ? 'text-blue-600 border-b-2 border-blue-600'
-                                : 'text-gray-500 hover:text-gray-700'
+                            ? 'text-blue-600 border-b-2 border-blue-600'
+                            : 'text-gray-500 hover:text-gray-700'
                             }`}
                         onClick={() => setActiveTab('saved')}
                     >
@@ -512,8 +624,126 @@ const ProfilePage = () => {
                             )}
                         </div>
 
-                        {isAddingPet ? (
-                            <form onSubmit={handleAddPet} className="mb-8">
+                        <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Pet Photo
+                            </label>
+
+                            {/* Image preview */}
+                            {imagePreview && (
+                                <div className="relative mb-4 border rounded-lg overflow-hidden shadow-sm">
+                                    <img
+                                        src={imagePreview}
+                                        alt="Preview"
+                                        className="h-48 w-full object-cover"
+                                    />
+                                    <div className="absolute top-0 right-0 p-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setImageFile(null);
+                                                setImagePreview(null);
+                                                setImageStats(null);
+                                            }}
+                                            className="bg-white rounded-full p-1 shadow-md text-gray-600 hover:text-red-500 transition-colors"
+                                            aria-label="Remove image"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Compression progress indicator */}
+                            {isCompressing && (
+                                <div className="w-full bg-blue-50 rounded-lg p-4 mb-4">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-sm font-medium text-blue-700">Compressing image...</span>
+                                        <span className="text-sm text-blue-700">{compressionProgress}%</span>
+                                    </div>
+                                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                        <div
+                                            className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                                            style={{ width: `${compressionProgress}%` }}
+                                        ></div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Compression stats */}
+                            {imageStats && !isCompressing && (
+                                <div className="text-xs bg-green-50 border border-green-100 rounded-lg p-3 mb-4">
+                                    <div className="flex items-center text-green-700 font-medium mb-1">
+                                        <CheckCircle className="w-4 h-4 mr-1" />
+                                        <span>Image optimized</span>
+                                    </div>
+                                    <p>Original: {imageStats.original} → Compressed: {imageStats.compressed}</p>
+                                    <p>Reduced to {Math.round(100 / imageStats.ratio)}% of original size</p>
+                                </div>
+                            )}
+
+                            {/* Upload area */}
+                            {!isCompressing && (
+                                <div
+                                    className={`border-2 border-dashed rounded-lg p-6 transition-colors ${isDragging ? 'border-blue-400 bg-blue-50' : 'border-gray-300 hover:border-blue-400'
+                                        }`}
+                                    onDragOver={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        if (!isDragging) setIsDragging(true);
+                                    }}
+                                    onDragLeave={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setIsDragging(false);
+                                    }}
+                                    onDrop={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setIsDragging(false);
+
+                                        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                                            // Create an input event-like object
+                                            const fileList = e.dataTransfer.files;
+                                            const mockEvent = {
+                                                target: {
+                                                    files: fileList
+                                                }
+                                            } as unknown as React.ChangeEvent<HTMLInputElement>;
+
+                                            handleImageChange(mockEvent);
+                                        }
+                                    }}
+                                >
+                                    <div className="space-y-2 text-center">
+                                        <Camera className="mx-auto h-12 w-12 text-gray-400" />
+                                        <div className="flex flex-col items-center text-sm text-gray-600">
+                                            <label
+                                                htmlFor="file-upload"
+                                                className="relative cursor-pointer rounded-md font-medium text-blue-600 hover:text-blue-500"
+                                            >
+                                                <span>Upload a photo</span>
+                                                <input
+                                                    id="file-upload"
+                                                    name="file-upload"
+                                                    type="file"
+                                                    className="sr-only"
+                                                    onChange={handleImageChange}
+                                                    disabled={isUploading || isCompressing}
+                                                    accept="image/jpeg,image/png,image/gif,image/webp"
+                                                />
+                                            </label>
+                                            <p className="pl-1">or drag and drop</p>
+                                        </div>
+                                        <p className="text-xs text-gray-500">PNG, JPG, GIF, WEBP up to 10MB</p>
+                                        <p className="text-xs text-blue-500">Large images will be automatically compressed</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {isAddingPet && (
+                            <form onSubmit={handleAddPet} className="mt-8 mb-8">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -559,7 +789,7 @@ const ProfilePage = () => {
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Age
+                                            Age (years)
                                         </label>
                                         <input
                                             type="number"
@@ -581,68 +811,18 @@ const ProfilePage = () => {
                                             rows={3}
                                         ></textarea>
                                     </div>
-                                    <div className="md:col-span-2">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Photo
-                                        </label>
-                                        
-                                        {imagePreview && (
-                                            <div className="relative mb-4">
-                                                <img 
-                                                    src={imagePreview} 
-                                                    alt="Preview" 
-                                                    className="h-48 w-full object-cover rounded-md" 
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setImageFile(null);
-                                                        setImagePreview(null);
-                                                    }}
-                                                    className="absolute top-2 right-2 p-1 bg-white rounded-full text-gray-500 hover:text-red-500"
-                                                >
-                                                    <X className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        )}
-                                        
-                                        <div className="border-2 border-dashed border-gray-300 rounded-md p-6 flex justify-center">
-                                            <div className="space-y-1 text-center">
-                                                <Camera className="mx-auto h-12 w-12 text-gray-400" />
-                                                <div className="flex text-sm text-gray-600">
-                                                    <label
-                                                        htmlFor="file-upload"
-                                                        className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500"
-                                                    >
-                                                        <span>{isUploading ? 'Uploading...' : 'Upload a file'}</span>
-                                                        <input 
-                                                            id="file-upload" 
-                                                            name="file-upload" 
-                                                            type="file" 
-                                                            className="sr-only" 
-                                                            onChange={handleImageChange}
-                                                            disabled={isUploading}
-                                                            accept="image/jpeg,image/png,image/gif"
-                                                        />
-                                                    </label>
-                                                    <p className="pl-1">or drag and drop</p>
-                                                </div>
-                                                <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
-                                            </div>
-                                        </div>
-                                    </div>
                                 </div>
                                 <div className="mt-6">
                                     <button
                                         type="submit"
-                                        disabled={addPetLoading || isUploading}
+                                        disabled={addPetLoading || isUploading || isCompressing}
                                         className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-blue-300"
                                     >
                                         {addPetLoading || isUploading ? 'Adding Pet...' : 'Add Pet'}
                                     </button>
                                 </div>
                             </form>
-                        ) : null}
+                        )}
 
                         {/* Pet list */}
                         <div className="space-y-4">
@@ -694,46 +874,46 @@ const ProfilePage = () => {
                     <div className="bg-white rounded-lg shadow-md p-6">
                         <h2 className="text-xl font-bold mb-6">Saved Pets</h2>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {profile && profile.savedPets && profile.savedPets.length > 0 ? (
-                            profile.savedPets.map((pet) => (
-                                <div
-                                    key={pet._id}
-                                    className="border rounded-lg overflow-hidden hover:shadow-md transition-shadow"
-                                >
-                                    <div className="h-48 bg-gray-200">
-                                        {pet.images && pet.images.length > 0 ? (
-                                            <img src={pet.images[0]} alt={pet.name} className="h-full w-full object-cover" />
-                                        ) : (
-                                            <div className="h-full flex items-center justify-center bg-blue-100 text-blue-600">
-                                                <span className="text-2xl">No Image</span>
-                                            </div>
-                                        )}
+                            {profile && profile.savedPets && profile.savedPets.length > 0 ? (
+                                profile.savedPets.map((pet) => (
+                                    <div
+                                        key={pet._id}
+                                        className="border rounded-lg overflow-hidden hover:shadow-md transition-shadow"
+                                    >
+                                        <div className="h-48 bg-gray-200">
+                                            {pet.images && pet.images.length > 0 ? (
+                                                <img src={pet.images[0]} alt={pet.name} className="h-full w-full object-cover" />
+                                            ) : (
+                                                <div className="h-full flex items-center justify-center bg-blue-100 text-blue-600">
+                                                    <span className="text-2xl">No Image</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="p-4">
+                                            <h3 className="font-bold">{pet.name}</h3>
+                                            <p className="text-sm text-gray-600">
+                                                {pet.breed} • {pet.age ? `${pet.age} years old` : 'Age unknown'}
+                                            </p>
+                                            <button
+                                                className="mt-2 text-blue-600 hover:text-blue-800 text-sm"
+                                                onClick={() => navigate(`/pets/${pet._id}`)}
+                                            >
+                                                View Details
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div className="p-4">
-                                        <h3 className="font-bold">{pet.name}</h3>
-                                        <p className="text-sm text-gray-600">
-                                            {pet.breed} • {pet.age ? `${pet.age} years old` : 'Age unknown'}
-                                        </p>
-                                        <button
-                                            className="mt-2 text-blue-600 hover:text-blue-800 text-sm"
-                                            onClick={() => navigate(`/pets/${pet._id}`)}
-                                        >
-                                            View Details
-                                        </button>
-                                    </div>
+                                ))
+                            ) : (
+                                <div className="col-span-full text-center py-8">
+                                    <p className="text-gray-500">You haven't saved any pets yet.</p>
+                                    <button
+                                        onClick={() => navigate('/findpets')}
+                                        className="mt-2 text-blue-600 hover:text-blue-800"
+                                    >
+                                        Find pets to save
+                                    </button>
                                 </div>
-                            ))
-                        ) : (
-                            <div className="col-span-full text-center py-8">
-                                <p className="text-gray-500">You haven't saved any pets yet.</p>
-                                <button
-                                    onClick={() => navigate('/findpets')}
-                                    className="mt-2 text-blue-600 hover:text-blue-800"
-                                >
-                                    Find pets to save
-                                </button>
-                            </div>
-                        )}
+                            )}
                         </div>
                     </div>
                 )}

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, gql } from '@apollo/client';
 import ThreadDetails from './ThreadDetails';

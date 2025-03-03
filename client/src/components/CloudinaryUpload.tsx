@@ -1,4 +1,3 @@
-// client/src/components/CloudinaryUpload.tsx
 import React, { useState, useCallback, useRef } from 'react';
 import { Camera, X, Upload } from 'lucide-react';
 import { uploadImage } from '../utils/CloudinaryService';
