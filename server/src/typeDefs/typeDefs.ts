@@ -40,7 +40,12 @@ const typeDefs = `
     input UpdateProfileInput {
         username: String
         email: String
-    }   
+    }
+
+    type ImageUploadResponse {
+        url: String!
+        publicId: String!
+    }
 
     # Pet Types
     type Pet {
@@ -251,6 +256,7 @@ const typeDefs = `
         updateProfile(input: UpdateProfileInput!): Profile
         addUserPet(input: UserPetInput!): UserPet
         removeUserPet(petId: ID!): Boolean
+        uploadImage(file: String!): ImageUploadResponse!
 
         # Pet Mutations
         createPet(input: CreatePetInput!): Pet!

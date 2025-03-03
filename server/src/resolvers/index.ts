@@ -6,6 +6,7 @@ import shelterResolvers from './shelterResolver';
 import petfinderResolvers from './petfinderResolver';
 import profileResolvers from './profileResolvers';
 import threadResolvers from './threadResolver';
+import imageUploadResolver from './imageResolver';
 
 const mergedResolvers = mergeResolvers([
     resolvers, 
@@ -14,7 +15,8 @@ const mergedResolvers = mergeResolvers([
     shelterResolvers, 
     petfinderResolvers,
     profileResolvers,
-    threadResolvers
+    threadResolvers,
+    imageUploadResolver
 ]);
 
 export default mergedResolvers;
