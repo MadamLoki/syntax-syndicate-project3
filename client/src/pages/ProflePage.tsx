@@ -5,7 +5,7 @@ import { jwtDecode } from 'jwt-decode';
 import { Plus, Trash, Edit, X, Camera } from 'lucide-react';
 import { useAuth } from '../components/auth/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { uploadImage } from '../utils/CloudinaryService';
+import { useImageUpload  } from '../utils/CloudinaryService';
 
 // GraphQL queries and mutations
 const GET_USER_PROFILE = gql`
@@ -120,6 +120,7 @@ const ProfilePage = () => {
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [message, setMessage] = useState({ text: '', type: '' });
+    const { uploadImage } = useImageUpload();
 
     // Get user ID from token
     const getUserIdFromToken = () => {
