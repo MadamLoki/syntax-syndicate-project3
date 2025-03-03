@@ -10,7 +10,7 @@
     "dev:build": "npm run build && concurrently \"cd server && npm run watch\" \"cd client && npm run dev\"",
     "setup": "cd server && npm i && cd ../client && npm i",
     "build": "cd server && npm i && npm run build && cd ../client && npm i && npm run build",
-    "render-build": "npm install && cd server && npm install && cd .. && npm run build",
+    "render-build": "npm install && cd server && npm install && cd ../client && npm install && cd .. && npm run build",
     "render-start": "cd server && npm start"
   },
   "author": "",
@@ -44,6 +44,9 @@
     "multer": "^1.4.5-lts.1",
     "multer-storage-cloudinary": "^4.0.0",
     "react": "^19.0.0",
-    "react-router-dom": "^7.1.5"
+    "react-router-dom": "^7.1.5",
+    "tailwindcss": "^3.4.17",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.5.3"
   }
 }
