@@ -77,6 +77,10 @@ app.use('/api', uploadRoutes);
 
 const getUserFromToken = (authHeader: string) => {
     try {
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return null;
+        }
+        
         const token = authHeader.split(' ')[1];
         if (!token) return null;
 
@@ -86,7 +90,21 @@ const getUserFromToken = (authHeader: string) => {
             return null;
         }
         
-        return jwt.verify(token, secret);
+        // Verify the token and extract the payload
+        const decoded = jwt.verify(token, secret) as any;
+        
+        // For user data that may be nested inside a 'data' property
+        const userData = decoded.data || decoded;
+        
+        // Log the user data for debugging
+        // console.log('Token decoded user data:', userData);
+        
+        // Ensure the basic user fields are available
+        if (!userData._id) {
+            // console.warn('Decoded token lacks _id field:', userData);
+        }
+        
+        return userData;
     } catch (err) {
         if (err instanceof jwt.TokenExpiredError) {
             // Token is expired, return null instead of throwing

@@ -66,12 +66,19 @@ const profileResolvers: IResolvers = {
             }
 
             try {
-                // Create new pet document with image URL (already uploaded from client)
+                // Make sure we have the user ID
+                if (!context.user._id) {
+                    throw new Error('User ID is missing from context');
+                }
+
+                // Create new pet document with owner information
                 const newPet = new UserPet({
                     ...input,
-                    owner: context.user._id
+                    owner: context.user._id // Explicitly set the owner field
                 });
 
+                console.log('Creating new pet with owner:', context.user._id);
+                
                 const savedPet = await newPet.save();
 
                 // Add pet reference to user's profile
@@ -83,7 +90,7 @@ const profileResolvers: IResolvers = {
                 return savedPet;
             } catch (error) {
                 console.error('Error adding pet:', error);
-                throw new Error('Failed to add pet');
+                throw new Error(`Failed to add pet: ${error instanceof Error ? error.message : 'Unknown error'}`);
             }
         },
 
