@@ -36,3 +36,25 @@ export const ADD_SHELTER = gql`
       }
     }
 `;
+
+export const SAVE_PET = gql`
+  mutation SavePet($petId: ID!) {
+    savePet(petId: $petId) {
+      _id
+      savedPets {
+        _id
+      }
+    }
+  }
+`;
+
+export const REMOVE_SAVED_PET = gql`
+  mutation RemoveSavedPet($petId: ID!) {
+    removeSavedPet(petId: $petId) {
+      _id
+      savedPets {
+        _id
+      }
+    }
+  }
+`;
