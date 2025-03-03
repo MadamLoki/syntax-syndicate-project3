@@ -9,6 +9,7 @@ import { useImageUpload } from '../utils/CloudinaryService';
 import { compressImage, formatFileSize } from '../utils/imageCompression';
 import { validateImage } from '../utils/imageValidation';
 
+
 // GraphQL queries and mutations
 const GET_USER_PROFILE = gql`
     query GetUserProfile {
@@ -104,13 +105,22 @@ interface TokenData {
 const ProfilePage = () => {
     const { isLoggedIn, getToken } = useAuth();
     const navigate = useNavigate();
+    
+    // Tab state
     const [activeTab, setActiveTab] = useState<'profile' | 'pets' | 'saved'>('profile');
+    
+    // UI state
     const [isEditing, setIsEditing] = useState(false);
     const [isAddingPet, setIsAddingPet] = useState(false);
+    const [message, setMessage] = useState({ text: '', type: '' });
+    
+    // Profile data
     const [editableProfile, setEditableProfile] = useState({
         username: '',
         email: '',
     });
+    
+    // Pet data
     const [newPet, setNewPet] = useState<UserPet>({
         name: '',
         species: 'Dog',
@@ -118,20 +128,21 @@ const ProfilePage = () => {
         age: 0,
         description: '',
     });
+    
+    // Image upload state
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
-    const [message, setMessage] = useState({ text: '', type: '' });
-    const { uploadImage } = useImageUpload();
-    const [compressionProgress, setCompressionProgress] = useState<number>(0);
     const [isCompressing, setIsCompressing] = useState<boolean>(false);
+    const [compressionProgress, setCompressionProgress] = useState<number>(0);
     const [imageStats, setImageStats] = useState<{
         original: string;
         compressed: string;
         ratio: number;
     } | null>(null);
-
     const [isDragging, setIsDragging] = useState<boolean>(false);
+    
+    const { uploadImage } = useImageUpload();
 
     // Get user ID from token
     const getUserIdFromToken = () => {
@@ -178,15 +189,7 @@ const ProfilePage = () => {
     const [addUserPet, { loading: addPetLoading }] = useMutation(ADD_USER_PET, {
         onCompleted: () => {
             setIsAddingPet(false);
-            setNewPet({
-                name: '',
-                species: 'Dog',
-                breed: '',
-                age: 0,
-                description: '',
-            });
-            setImageFile(null);
-            setImagePreview(null);
+            resetPetForm();
             setMessage({ text: 'Pet added successfully!', type: 'success' });
             setTimeout(() => setMessage({ text: '', type: '' }), 3000);
             refetch();
@@ -208,6 +211,20 @@ const ProfilePage = () => {
             setTimeout(() => setMessage({ text: '', type: '' }), 3000);
         },
     });
+
+    // Reset pet form
+    const resetPetForm = () => {
+        setNewPet({
+            name: '',
+            species: 'Dog',
+            breed: '',
+            age: 0,
+            description: '',
+        });
+        setImageFile(null);
+        setImagePreview(null);
+        setImageStats(null);
+    };
 
     // Redirect if not logged in
     useEffect(() => {
@@ -418,18 +435,31 @@ const ProfilePage = () => {
         }
         if (isAddingPet) {
             setIsAddingPet(false);
-            setNewPet({
-                name: '',
-                species: 'Dog',
-                breed: '',
-                age: 0,
-                description: '',
-            });
-            setImageFile(null);
-            setImagePreview(null);
+            resetPetForm();
         }
     };
 
+    // Handle file drop
+    const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            const file = e.dataTransfer.files[0];
+            
+            // Create a synthetic change event to reuse our existing handler
+            const mockEvent = {
+                target: {
+                    files: e.dataTransfer.files
+                }
+            } as unknown as React.ChangeEvent<HTMLInputElement>;
+            
+            handleImageChange(mockEvent);
+        }
+    };
+
+    // Loading state
     if (loading) {
         return (
             <div className="flex justify-center items-center min-h-screen">
@@ -438,6 +468,7 @@ const ProfilePage = () => {
         );
     }
 
+    // Error state
     if (error) {
         return (
             <div className="flex flex-col items-center justify-center min-h-screen p-4">
@@ -477,7 +508,9 @@ const ProfilePage = () => {
                 {message.text && (
                     <div
                         className={`p-4 mb-6 rounded-md ${message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
-                            'bg-red-50 text-red-700 border border-red-200'
+                            message.type === 'warning' ? 'bg-yellow-50 text-yellow-700 border border-yellow-200' :
+                            message.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
+                            'bg-blue-50 text-blue-700 border border-blue-200'
                             }`}
                     >
                         {message.text}
@@ -529,15 +562,13 @@ const ProfilePage = () => {
                                     Edit
                                 </button>
                             ) : (
-                                <div className="flex space-x-2">
-                                    <button
-                                        onClick={handleCancel}
-                                        className="flex items-center text-red-600 hover:text-red-800"
-                                    >
-                                        <X className="w-4 h-4 mr-1" />
-                                        Cancel
-                                    </button>
-                                </div>
+                                <button
+                                    onClick={handleCancel}
+                                    className="flex items-center text-red-600 hover:text-red-800"
+                                >
+                                    <X className="w-4 h-4 mr-1" />
+                                    Cancel
+                                </button>
                             )}
                         </div>
 
@@ -612,138 +643,18 @@ const ProfilePage = () => {
                                     Add Pet
                                 </button>
                             ) : (
-                                <div className="flex space-x-2">
-                                    <button
-                                        onClick={handleCancel}
-                                        className="flex items-center text-red-600 hover:text-red-800"
-                                    >
-                                        <X className="w-4 h-4 mr-1" />
-                                        Cancel
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Pet Photo
-                            </label>
-
-                            {/* Image preview */}
-                            {imagePreview && (
-                                <div className="relative mb-4 border rounded-lg overflow-hidden shadow-sm">
-                                    <img
-                                        src={imagePreview}
-                                        alt="Preview"
-                                        className="h-48 w-full object-cover"
-                                    />
-                                    <div className="absolute top-0 right-0 p-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setImageFile(null);
-                                                setImagePreview(null);
-                                                setImageStats(null);
-                                            }}
-                                            className="bg-white rounded-full p-1 shadow-md text-gray-600 hover:text-red-500 transition-colors"
-                                            aria-label="Remove image"
-                                        >
-                                            <X className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Compression progress indicator */}
-                            {isCompressing && (
-                                <div className="w-full bg-blue-50 rounded-lg p-4 mb-4">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-sm font-medium text-blue-700">Compressing image...</span>
-                                        <span className="text-sm text-blue-700">{compressionProgress}%</span>
-                                    </div>
-                                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                                        <div
-                                            className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
-                                            style={{ width: `${compressionProgress}%` }}
-                                        ></div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Compression stats */}
-                            {imageStats && !isCompressing && (
-                                <div className="text-xs bg-green-50 border border-green-100 rounded-lg p-3 mb-4">
-                                    <div className="flex items-center text-green-700 font-medium mb-1">
-                                        <CheckCircle className="w-4 h-4 mr-1" />
-                                        <span>Image optimized</span>
-                                    </div>
-                                    <p>Original: {imageStats.original} → Compressed: {imageStats.compressed}</p>
-                                    <p>Reduced to {Math.round(100 / imageStats.ratio)}% of original size</p>
-                                </div>
-                            )}
-
-                            {/* Upload area */}
-                            {!isCompressing && (
-                                <div
-                                    className={`border-2 border-dashed rounded-lg p-6 transition-colors ${isDragging ? 'border-blue-400 bg-blue-50' : 'border-gray-300 hover:border-blue-400'
-                                        }`}
-                                    onDragOver={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        if (!isDragging) setIsDragging(true);
-                                    }}
-                                    onDragLeave={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        setIsDragging(false);
-                                    }}
-                                    onDrop={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        setIsDragging(false);
-
-                                        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                                            // Create an input event-like object
-                                            const fileList = e.dataTransfer.files;
-                                            const mockEvent = {
-                                                target: {
-                                                    files: fileList
-                                                }
-                                            } as unknown as React.ChangeEvent<HTMLInputElement>;
-
-                                            handleImageChange(mockEvent);
-                                        }
-                                    }}
+                                <button
+                                    onClick={handleCancel}
+                                    className="flex items-center text-red-600 hover:text-red-800"
                                 >
-                                    <div className="space-y-2 text-center">
-                                        <Camera className="mx-auto h-12 w-12 text-gray-400" />
-                                        <div className="flex flex-col items-center text-sm text-gray-600">
-                                            <label
-                                                htmlFor="file-upload"
-                                                className="relative cursor-pointer rounded-md font-medium text-blue-600 hover:text-blue-500"
-                                            >
-                                                <span>Upload a photo</span>
-                                                <input
-                                                    id="file-upload"
-                                                    name="file-upload"
-                                                    type="file"
-                                                    className="sr-only"
-                                                    onChange={handleImageChange}
-                                                    disabled={isUploading || isCompressing}
-                                                    accept="image/jpeg,image/png,image/gif,image/webp"
-                                                />
-                                            </label>
-                                            <p className="pl-1">or drag and drop</p>
-                                        </div>
-                                        <p className="text-xs text-gray-500">PNG, JPG, GIF, WEBP up to 10MB</p>
-                                        <p className="text-xs text-blue-500">Large images will be automatically compressed</p>
-                                    </div>
-                                </div>
+                                    <X className="w-4 h-4 mr-1" />
+                                    Cancel
+                                </button>
                             )}
                         </div>
 
                         {isAddingPet && (
-                            <form onSubmit={handleAddPet} className="mt-8 mb-8">
+                            <form onSubmit={handleAddPet} className="mb-8">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -811,6 +722,107 @@ const ProfilePage = () => {
                                             rows={3}
                                         ></textarea>
                                     </div>
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Pet Photo
+                                        </label>
+
+                                        {/* Image preview */}
+                                        {imagePreview && (
+                                            <div className="relative mb-4 border rounded-lg overflow-hidden shadow-sm">
+                                                <img
+                                                    src={imagePreview}
+                                                    alt="Preview"
+                                                    className="h-48 w-full object-cover"
+                                                />
+                                                <div className="absolute top-0 right-0 p-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setImageFile(null);
+                                                            setImagePreview(null);
+                                                            setImageStats(null);
+                                                        }}
+                                                        className="bg-white rounded-full p-1 shadow-md text-gray-600 hover:text-red-500 transition-colors"
+                                                        aria-label="Remove image"
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Compression progress indicator */}
+                                        {isCompressing && (
+                                            <div className="w-full bg-blue-50 rounded-lg p-4 mb-4">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="text-sm font-medium text-blue-700">Compressing image...</span>
+                                                    <span className="text-sm text-blue-700">{compressionProgress}%</span>
+                                                </div>
+                                                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                                    <div
+                                                        className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                                                        style={{ width: `${compressionProgress}%` }}
+                                                    ></div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Compression stats */}
+                                        {imageStats && !isCompressing && (
+                                            <div className="text-xs bg-green-50 border border-green-100 rounded-lg p-3 mb-4">
+                                                <div className="flex items-center text-green-700 font-medium mb-1">
+                                                    <CheckCircle className="w-4 h-4 mr-1" />
+                                                    <span>Image optimized</span>
+                                                </div>
+                                                <p>Original: {imageStats.original} → Compressed: {imageStats.compressed}</p>
+                                                <p>Reduced to {Math.round(100 / imageStats.ratio)}% of original size</p>
+                                            </div>
+                                        )}
+
+                                        {/* Upload area */}
+                                        {!isCompressing && (
+                                            <div
+                                                className={`border-2 border-dashed rounded-lg p-6 transition-colors ${isDragging ? 'border-blue-400 bg-blue-50' : 'border-gray-300 hover:border-blue-400'
+                                                    }`}
+                                                onDragOver={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    if (!isDragging) setIsDragging(true);
+                                                }}
+                                                onDragLeave={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setIsDragging(false);
+                                                }}
+                                                onDrop={handleDrop}
+                                            >
+                                                <div className="space-y-2 text-center">
+                                                    <Camera className="mx-auto h-12 w-12 text-gray-400" />
+                                                    <div className="flex flex-col items-center text-sm text-gray-600">
+                                                        <label
+                                                            htmlFor="file-upload"
+                                                            className="relative cursor-pointer rounded-md font-medium text-blue-600 hover:text-blue-500"
+                                                        >
+                                                            <span>Upload a photo</span>
+                                                            <input
+                                                                id="file-upload"
+                                                                name="file-upload"
+                                                                type="file"
+                                                                className="sr-only"
+                                                                onChange={handleImageChange}
+                                                                disabled={isUploading || isCompressing}
+                                                                accept="image/jpeg,image/png,image/gif,image/webp"
+                                                            />
+                                                        </label>
+                                                        <p className="pl-1">or drag and drop</p>
+                                                    </div>
+                                                    <p className="text-xs text-gray-500">PNG, JPG, GIF, WEBP up to 10MB</p>
+                                                    <p className="text-xs text-blue-500">Large images will be automatically compressed</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                                 <div className="mt-6">
                                     <button
@@ -834,7 +846,7 @@ const ProfilePage = () => {
                                     >
                                         <div className="h-16 w-16 rounded-md bg-blue-100 flex items-center justify-center text-blue-600 mr-4 overflow-hidden">
                                             {pet.image ? (
-                                                <img src={pet.image} alt={pet.name} className="h-full w-full object-cover rounded-md" />
+                                                <img src={pet.image} alt={pet.name} className="h-full w-full object-cover" />
                                             ) : (
                                                 <span className="text-lg">{pet.species.charAt(0)}</span>
                                             )}
@@ -849,6 +861,7 @@ const ProfilePage = () => {
                                         <button
                                             onClick={() => pet._id && handleRemovePet(pet._id)}
                                             className="text-red-500 hover:text-red-700"
+                                            aria-label="Remove pet"
                                         >
                                             <Trash className="w-5 h-5" />
                                         </button>
