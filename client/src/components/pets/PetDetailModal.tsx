@@ -71,12 +71,29 @@ const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
         }
 
         try {
+            // Create a simplified pet object from Petfinder data
+            const petData = {
+                externalId: pet.id,
+                name: pet.name,
+                type: pet.type,
+                breed: pet.breeds.primary,
+                age: pet.age,
+                status: pet.status,
+                images: pet.photos.map(photo => photo.medium),
+                shelterId: "petfinder"
+            };
+    
+            // Use the savePetfinder mutation instead
             await savePet({
-                variables: { petId: pet.id },
+                variables: { 
+                    input: petData 
+                }
             });
+            
             alert('Pet saved to your profile!');
         } catch (err) {
             console.error('Error saving pet:', err);
+            alert('Could not save pet. Please try again later.');
         }
     };
 

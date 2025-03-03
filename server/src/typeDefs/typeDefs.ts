@@ -159,6 +159,17 @@ const typeDefs = `
         limit: Int
     }
 
+    input PetfinderSaveInput {
+        externalId: String!
+        name: String!
+        type: String
+        breed: String
+        age: String
+        status: String
+        images: [String]
+        shelterId: String
+    }
+
     # Shelter Types
     type Shelter {
         _id: ID!
@@ -257,6 +268,7 @@ const typeDefs = `
         addUserPet(input: UserPetInput!): UserPet
         removeUserPet(petId: ID!): Boolean
         uploadImage(file: String!): ImageUploadResponse!
+        savePetfinderPet(input: PetfinderSaveInput!): Profile!
 
         # Pet Mutations
         createPet(input: CreatePetInput!): Pet!

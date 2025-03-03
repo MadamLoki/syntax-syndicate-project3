@@ -7,6 +7,7 @@ import petfinderResolvers from './petfinderResolver';
 import profileResolvers from './profileResolvers';
 import threadResolvers from './threadResolver';
 import imageUploadResolver from './imageResolver';
+import petSaveResolver from './petSaveResolver';
 
 const mergedResolvers = mergeResolvers([
     resolvers, 
@@ -16,7 +17,8 @@ const mergedResolvers = mergeResolvers([
     petfinderResolvers,
     profileResolvers,
     threadResolvers,
-    imageUploadResolver
+    imageUploadResolver,
+    petSaveResolver
 ]);
 
 export default mergedResolvers;

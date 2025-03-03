@@ -493,9 +493,9 @@ const PetSearch = () => {
                 </div>
             )}
 
-            {petsData?.searchPetfinderPets?.animals?.length > 0 && (
+            {petsData?.searchPetfinderPets?.animals && petsData.searchPetfinderPets.animals.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                    {petsData.searchPetfinderPets.animals.map((pet: Pet) => (
+                    {petsData?.searchPetfinderPets?.animals?.map((pet: Pet) => (
                         <div 
                             key={pet.id} 
                             className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden transition-transform duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
