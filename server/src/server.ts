@@ -131,7 +131,7 @@ const startApolloServer = async () => {
     // Production setup for static files
     if (process.env.NODE_ENV === 'production') {
         const staticPath = path.resolve('./client/dist');
-        console.log('Serving static files from:', staticPath);
+        //console.log('Serving static files from:', staticPath);
         
         app.use(express.static(staticPath));
         app.get('*', (_req, res) => {
