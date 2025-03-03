@@ -269,6 +269,8 @@ const typeDefs = `
         removeUserPet(petId: ID!): Boolean
         uploadImage(file: String!): ImageUploadResponse!
         savePetfinderPet(input: PetfinderSaveInput!): Profile!
+        savePet(petId: ID!): Profile!  
+        removeSavedPet(petId: ID!): Profile!  
 
         # Pet Mutations
         createPet(input: CreatePetInput!): Pet!
