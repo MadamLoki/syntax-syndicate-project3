@@ -1,26 +1,26 @@
 import {Schema, model, Document } from 'mongoose';
 
 export interface IPet extends Document {
-  externalId?: string; // For Petfinder API IDs
+  externalId?: string;
   name: string;
   breed?: string;
-  age?: number | string; // Allow both number and string for age
+  age?: number | string;
   images?: string[];
   status?: string;
   shelterId: string;
-  type?: string; // Add type field
-  gender?: string; // Add gender field
-  size?: string; // Add size field
-  description?: string; // Add description field
-  source?: string; // Add source (e.g., "petfinder", "user")
+  type?: string;
+  gender?: string;
+  size?: string;
+  description?: string;
+  source?: string;
 }
 
 const petSchema = new Schema<IPet>(
   {
-    externalId: { type: String }, // External API ID
+    externalId: { type: String },
     name: { type: String, required: true },
     breed: { type: String },
-    age: { type: Schema.Types.Mixed }, // Allow both string/number
+    age: { type: Schema.Types.Mixed },
     type: { type: String },
     gender: { type: String },
     size: { type: String },
@@ -32,5 +32,7 @@ const petSchema = new Schema<IPet>(
   },
   { timestamps: true }
 );
+
+petSchema.index({ externalId: 1 });
 
 export default model<IPet>('Pet', petSchema);

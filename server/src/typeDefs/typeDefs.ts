@@ -51,12 +51,18 @@ type ImageUploadResponse {
 # Pet Types
 type Pet {
   _id: ID!
+  externalId: String
   name: String!
+  type: String
   breed: String
-  age: Int
+  age: String
+  gender: String
+  size: String
+  description: String
   images: [String]
   status: String
   shelterId: ID!
+  source: String
 }
 
 input CreatePetInput {
@@ -163,11 +169,14 @@ input PetfinderSearchInput {
 input PetfinderSaveInput {
   externalId: String!
   name: String!
-  type: String
+  type: String!
   breed: String
   age: String
+  gender: String
+  size: String
   status: String
   images: [String]
+  description: String
   shelterId: String
 }
 

@@ -76,26 +76,27 @@ const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
         }
     
         try {
-            // Create an input object that exactly matches PetfinderSaveInput
-            const input = {
+            const images = pet.photos && pet.photos.length > 0 
+                ? pet.photos.map(photo => photo.medium).filter(Boolean)
+                : [];
+            
+            const petInput = {
                 externalId: pet.id,
                 name: pet.name,
                 type: pet.type,
                 breed: pet.breeds.primary,
                 age: pet.age,
+                gender: pet.gender,
+                size: pet.size,
                 status: pet.status || "Available",
-                images: pet.photos && pet.photos.length > 0 
-                    ? pet.photos.map(photo => photo.medium) 
-                    : [],
+                images: images,
+                description: pet.description || "",
                 shelterId: "petfinder"
             };
 
-            // Log the exact input for debugging
-            console.log("Saving pet with exact data format:", input);
-
-            // Call the mutation with the exact input
+            // Call the mutation with properly structured input
             await savePet({
-                variables: { input }
+                variables: { input: petInput }
             });
             
             setIsSaved(true);

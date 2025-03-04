@@ -48,6 +48,7 @@ export const SAVE_PET = gql`
         name
         type
         breed
+        age
         images
       }
     }

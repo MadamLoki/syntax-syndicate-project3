@@ -1,4 +1,3 @@
-// server/src/resolvers/petSaveResolver.ts
 import { IResolvers } from '@graphql-tools/utils';
 import Profile from '../models/Profile.js';
 import Pet from '../models/Pet.js';
@@ -6,16 +5,12 @@ import { AuthenticationError } from '../utils/auth.js';
 
 const petSaveResolver: IResolvers = {
     Mutation: {
-        // Keep the existing savePet mutation
         savePet: async (_parent: unknown, { petId }: { petId: string }, context: any) => {
-            // Check if user is authenticated
             if (!context.user) {
                 throw new AuthenticationError('You need to be logged in!');
             }
 
             try {
-                // Add pet reference to user's savedPets array
-                // Use addToSet to avoid duplicates
                 const updatedProfile = await Profile.findByIdAndUpdate(
                     context.user._id,
                     { $addToSet: { savedPets: petId } },
@@ -33,7 +28,6 @@ const petSaveResolver: IResolvers = {
             }
         },
 
-        // Add the new savePetfinderPet mutation
         savePetfinderPet: async (_parent: unknown, { input }: { input: any }, context: any) => {
             // Check authentication
             if (!context.user) {
@@ -41,7 +35,13 @@ const petSaveResolver: IResolvers = {
             }
 
             try {
-                console.log('Saving Petfinder pet:', input);
+                // Log input for debugging
+                console.log('Saving Petfinder pet with input:', JSON.stringify(input, null, 2));
+                
+                // Validate required fields
+                if (!input.externalId || !input.name || !input.type) {
+                    throw new Error('Missing required field(s): externalId, name, or type');
+                }
                 
                 // Check if pet with this external ID already exists
                 let pet = await Pet.findOne({ externalId: input.externalId });
@@ -57,7 +57,7 @@ const petSaveResolver: IResolvers = {
                         gender: input.gender,
                         size: input.size,
                         status: input.status || 'Available',
-                        images: input.images || [],
+                        images: Array.isArray(input.images) ? input.images : [],
                         description: input.description,
                         shelterId: input.shelterId || 'petfinder',
                         source: 'petfinder'
@@ -66,6 +66,20 @@ const petSaveResolver: IResolvers = {
                     console.log('Created new pet:', pet._id);
                 } else {
                     console.log('Found existing pet:', pet._id);
+                    
+                    await Pet.findByIdAndUpdate(pet._id, {
+                        $set: {
+                            name: input.name,
+                            type: input.type,
+                            breed: input.breed,
+                            age: input.age,
+                            gender: input.gender,
+                            size: input.size,
+                            status: input.status || 'Available',
+                            images: Array.isArray(input.images) ? input.images : pet.images,
+                            description: input.description || pet.description
+                        }
+                    });
                 }
 
                 // Add to user's saved pets if not already saved
@@ -90,7 +104,6 @@ const petSaveResolver: IResolvers = {
             }
         },
 
-        // Keep the existing removeSavedPet mutation
         removeSavedPet: async (_parent: unknown, { petId }: { petId: string }, context: any) => {
             // Check if user is authenticated
             if (!context.user) {
