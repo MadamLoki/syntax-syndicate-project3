@@ -1,8 +1,3 @@
-// client/src/utils/imageValidation.ts
-
-/**
- * Options for image validation
- */
 export interface ImageValidationOptions {
     maxSizeInMB?: number;
     minSizeInKB?: number;
@@ -14,9 +9,6 @@ export interface ImageValidationOptions {
     aspectRatio?: number; // width/height
 }
 
-/**
- * Result of image validation
- */
 export interface ImageValidationResult {
     isValid: boolean;
     message: string;
@@ -41,9 +33,6 @@ export interface ImageValidationResult {
     };
 }
 
-/**
- * Default validation options
- */
 const defaultOptions: ImageValidationOptions = {
     maxSizeInMB: 5,
     minSizeInKB: 1,
@@ -54,18 +43,12 @@ const defaultOptions: ImageValidationOptions = {
     minHeight: 50
 };
 
-/**
- * Formats a file size in bytes to a human-readable string
- */
 export const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return bytes + ' bytes';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
 };
 
-/**
- * Gets image dimensions from a File object
- */
 export const getImageDimensions = (file: File): Promise<{ width: number; height: number }> => {
     return new Promise((resolve, reject) => {
         const img = new Image();
@@ -81,12 +64,6 @@ export const getImageDimensions = (file: File): Promise<{ width: number; height:
     });
 };
 
-/**
- * Validates an image file based on provided options
- * @param file The image file to validate
- * @param options Validation options
- * @returns A validation result object
- */
 export const validateImage = async (
     file: File,
     options: ImageValidationOptions = {}
@@ -195,13 +172,6 @@ export const validateImage = async (
     return result;
 };
 
-/**
- * Compress an image to a specified maximum size while maintaining quality
- * @param file The image file to compress
- * @param maxSizeInMB Maximum file size in MB
- * @param startQuality Initial quality (0-1)
- * @returns A compressed image file or the original if compression failed
- */
 export const compressImage = async (
     file: File,
     maxSizeInMB: number = 1,

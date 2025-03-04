@@ -26,6 +26,28 @@ export const ADD_PROFILE = gql`
   }
 `;
 
+export const UPDATE_PROFILE_IMAGE = gql`
+  mutation UpdateProfileImage($imageUrl: String!) {
+    updateProfileImage(imageUrl: $imageUrl) {
+      _id
+      username
+      email
+      profileImageUrl
+    }
+  }
+`;
+
+export const UPDATE_PROFILE = gql`
+  mutation UpdateProfile($input: UpdateProfileInput!) {
+    updateProfile(input: $input) {
+      _id
+      username
+      email
+      profileImageUrl
+    }
+  }
+`;
+
 export const ADD_SHELTER = gql`
     mutation CreateShelter($createShelterInput2: CreateShelterInput!) {
       createShelter(input: $createShelterInput2) {

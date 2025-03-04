@@ -16,9 +16,9 @@ type Profile {
   username: String!
   email: String!
   name: String
+  profileImageUrl: String
   savedPets: [Pet]
   userPets: [UserPet]
-  
 }
 
 type UserPet {
@@ -41,6 +41,7 @@ input ProfileInput {
 input UpdateProfileInput {
   username: String
   email: String
+  profileImageUrl: String
 }
 
 type ImageUploadResponse {
@@ -273,11 +274,13 @@ type Query {
 
 # Mutations
 type Mutation {
+
   # User/Profile Mutations
   addProfile(input: ProfileInput!): Auth
   login(username: String!, password: String!): Auth
   removeProfile: Profile
   updateProfile(input: UpdateProfileInput!): Profile
+  updateProfileImage(imageUrl: String!): Profile!
   addUserPet(input: UserPetInput!): UserPet
   removeUserPet(petId: ID!): Boolean
   uploadImage(file: String!): ImageUploadResponse!

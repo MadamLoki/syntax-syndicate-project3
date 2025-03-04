@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useImageUpload } from '../utils/CloudinaryService';
 import { compressImage, formatFileSize } from '../utils/imageCompression';
 import { validateImage } from '../utils/imageValidation';
+import ProfilePicture from '../components/ProfilePicture';
 
 
 // GraphQL queries and mutations
@@ -17,6 +18,7 @@ const GET_USER_PROFILE = gql`
         _id
         username
         email
+        profileImageUrl
         savedPets {
             _id
             name
@@ -37,12 +39,13 @@ const GET_USER_PROFILE = gql`
     }
 `;
 
-const UPDATE_PROFILE = gql`
+export const UPDATE_PROFILE = gql`
     mutation UpdateProfile($input: UpdateProfileInput!) {
         updateProfile(input: $input) {
-        _id
-        username
-        email
+            _id
+            username
+            email
+            profileImageUrl
         }
     }
 `;
@@ -90,6 +93,7 @@ interface UserProfile {
     _id: string;
     username: string;
     email: string;
+    profileImageUrl?: string;
     savedPets: SavedPet[];
     userPets: UserPet[];
 }
@@ -105,21 +109,21 @@ interface TokenData {
 const ProfilePage = () => {
     const { isLoggedIn, getToken } = useAuth();
     const navigate = useNavigate();
-    
+
     // Tab state
     const [activeTab, setActiveTab] = useState<'profile' | 'pets' | 'saved'>('profile');
-    
+
     // UI state
     const [isEditing, setIsEditing] = useState(false);
     const [isAddingPet, setIsAddingPet] = useState(false);
     const [message, setMessage] = useState({ text: '', type: '' });
-    
+
     // Profile data
     const [editableProfile, setEditableProfile] = useState({
         username: '',
         email: '',
     });
-    
+
     // Pet data
     const [newPet, setNewPet] = useState<UserPet>({
         name: '',
@@ -128,7 +132,7 @@ const ProfilePage = () => {
         age: 0,
         description: '',
     });
-    
+
     // Image upload state
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -141,7 +145,7 @@ const ProfilePage = () => {
         ratio: number;
     } | null>(null);
     const [isDragging, setIsDragging] = useState<boolean>(false);
-    
+
     const { uploadImage } = useImageUpload();
 
     // Get user ID from token
@@ -447,14 +451,14 @@ const ProfilePage = () => {
 
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
             const file = e.dataTransfer.files[0];
-            
+
             // Create a synthetic change event to reuse our existing handler
             const mockEvent = {
                 target: {
                     files: e.dataTransfer.files
                 }
             } as unknown as React.ChangeEvent<HTMLInputElement>;
-            
+
             handleImageChange(mockEvent);
         }
     };
@@ -493,11 +497,18 @@ const ProfilePage = () => {
             <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Profile Header */}
                 <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-                    <div className="flex items-center space-x-4">
-                        <div className="h-20 w-20 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-2xl font-bold">
-                            {profile?.username.charAt(0).toUpperCase()}
-                        </div>
+                    <div className="flex flex-col md:flex-row items-center gap-6">
+                        {/* Profile Picture */}
                         <div>
+                            <ProfilePicture
+                                currentImageUrl={profile?.profileImageUrl}
+                                username={profile?.username || ''}
+                                onImageUpdated={(newImageUrl) => {
+                                    refetch();
+                                }}
+                            />
+                        </div>
+                        <div className="text-center md:text-left">
                             <h1 className="text-2xl font-bold">{profile?.username}</h1>
                             <p className="text-gray-600">{profile?.email}</p>
                         </div>
@@ -509,8 +520,8 @@ const ProfilePage = () => {
                     <div
                         className={`p-4 mb-6 rounded-md ${message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
                             message.type === 'warning' ? 'bg-yellow-50 text-yellow-700 border border-yellow-200' :
-                            message.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
-                            'bg-blue-50 text-blue-700 border border-blue-200'
+                                message.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
+                                    'bg-blue-50 text-blue-700 border border-blue-200'
                             }`}
                     >
                         {message.text}

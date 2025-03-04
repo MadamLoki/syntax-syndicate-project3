@@ -78,7 +78,7 @@ const profileResolvers: IResolvers = {
                 });
 
                 console.log('Creating new pet with owner:', context.user._id);
-                
+
                 const savedPet = await newPet.save();
 
                 // Add pet reference to user's profile
@@ -138,7 +138,31 @@ const profileResolvers: IResolvers = {
                 console.error('Error removing pet:', error);
                 throw new Error('Failed to remove pet');
             }
-        }
+        },
+        updateProfileImage: async (_parent: unknown, { imageUrl }: { imageUrl: string }, context: any) => {
+            // Check if user is authenticated
+            if (!context.user) {
+                throw new AuthenticationError('You need to be logged in!');
+            }
+
+            try {
+                // Update the user's profile with the new image URL
+                const updatedProfile = await Profile.findByIdAndUpdate(
+                    context.user._id,
+                    { $set: { profileImageUrl: imageUrl } },
+                    { new: true }
+                );
+
+                if (!updatedProfile) {
+                    throw new Error('Profile not found');
+                }
+
+                return updatedProfile;
+            } catch (error) {
+                console.error('Error updating profile image:', error);
+                throw new Error('Failed to update profile image');
+            }
+        },
     }
 };
 

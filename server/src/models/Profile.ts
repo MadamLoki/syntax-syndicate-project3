@@ -6,6 +6,7 @@ export interface IProfile extends Document {
     username: string;
     email: string;
     password: string;
+    profileImageUrl?: string;
     savedPets: mongoose.Types.ObjectId[];
     userPets: mongoose.Types.ObjectId[]; 
     isCorrectPassword(password: string): Promise<boolean>;
@@ -26,6 +27,9 @@ const profileSchema = new Schema({
     password: {
         type: String,
         required: true,
+    },
+    profileImageUrl: {
+        type: String,
     },
     savedPets: 
         [{
