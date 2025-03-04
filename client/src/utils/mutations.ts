@@ -8,6 +8,7 @@ export const LOGIN_USER = gql`
         _id
         username
         email
+        profileImage
       }
     }
   }
@@ -21,7 +22,19 @@ export const ADD_PROFILE = gql`
         _id
         name
         email
+        profileImage
       }
+    }
+  }
+`;
+
+export const UPDATE_PROFILE = gql`
+  mutation UpdateProfile($input: UpdateProfileInput!) {
+    updateProfile(input: $input) {
+      _id
+      username
+      email
+      profileImage
     }
   }
 `;
@@ -35,4 +48,33 @@ export const ADD_SHELTER = gql`
         longitude
       }
     }
+`;
+
+export const SAVE_PET = gql`
+  mutation SavePetfinderPet($input: PetfinderSaveInput!) {
+    savePetfinderPet(input: $input) {
+      _id
+      username
+      email
+      savedPets {
+        _id
+        name
+        type
+        breed
+        age
+        images
+      }
+    }
+  }
+`;
+
+export const REMOVE_SAVED_PET = gql`
+  mutation RemoveSavedPet($petId: ID!) {
+    removeSavedPet(petId: $petId) {
+      _id
+      savedPets {
+        _id
+      }
+    }
+  }
 `;

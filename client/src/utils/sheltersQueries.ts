@@ -1,12 +1,18 @@
-import { gql } from '@apollo/client';
+import { gql } from "@apollo/client";
 
 export const GET_SHELTERS = gql`
-    query Shelters {
-      shelters {
-        _id
-        latitude
-        longitude
-        contactInfo
-      }
+    query GetShelters($location: String) {
+        shelters(location: $location) {
+            shelters {
+                id
+                name
+                address {
+                    address1
+                    address2
+                    city
+                    state
+                }
+            }
+        }
     }
 `;

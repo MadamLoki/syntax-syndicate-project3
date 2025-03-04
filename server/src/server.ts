@@ -1,22 +1,28 @@
 import express from 'express';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { ApolloServer } from 'apollo-server-express';
 import jwt from 'jsonwebtoken';
-import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { createPetfinderAPI } from './routes/api/petFinderApi.js';
 
+// Import middleware and routes
+import authMiddleware from './middleware/authMiddleware.js';
+import uploadRoutes from './routes/api/uploadRoutes.js';
 
 import db from './config/connection.js';
-import typeDefs from './typeDefs/index.js'; 
+
+import typeDefs from './typeDefs/typeDefs.js';
+
+
+
 import mergedResolvers from './resolvers/index.js';
 
 dotenv.config();
 
-const PORT = process.env.PORT || 3001;
+const PORT = parseInt(process.env.PORT || '3001', 10);
 const app = express();
 
+// Existing Petfinder API setup
 const petfinderAPI = createPetfinderAPI(
     process.env.PETFINDER_API_KEY || '',
     process.env.PETFINDER_SECRET || ''
@@ -55,14 +61,26 @@ app.get('/debug-petfinder', async (_req, res) => {
     }
 });
 
-app.use('/graphql', express.json());
+// Add request parsing middleware
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '50mb' }));
+
+// Add GraphQL-specific middleware
+app.use('/graphql', express.json({ limit: '50mb' }));
 app.use('/graphql', (req, _res, next) => {
     // console.log('GraphQL Request Body:', req.body);
     next();
 });
 
+// Add API routes for uploads
+app.use('/api', uploadRoutes);
+
 const getUserFromToken = (authHeader: string) => {
     try {
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return null;
+        }
+        
         const token = authHeader.split(' ')[1];
         if (!token) return null;
 
@@ -72,7 +90,21 @@ const getUserFromToken = (authHeader: string) => {
             return null;
         }
         
-        return jwt.verify(token, secret);
+        // Verify the token and extract the payload
+        const decoded = jwt.verify(token, secret) as any;
+        
+        // For user data that may be nested inside a 'data' property
+        const userData = decoded.data || decoded;
+        
+        // Log the user data for debugging
+        // console.log('Token decoded user data:', userData);
+        
+        // Ensure the basic user fields are available
+        if (!userData._id) {
+            // console.warn('Decoded token lacks _id field:', userData);
+        }
+        
+        return userData;
     } catch (err) {
         if (err instanceof jwt.TokenExpiredError) {
             // Token is expired, return null instead of throwing
@@ -92,7 +124,6 @@ const startApolloServer = async () => {
         console.log('Petfinder API test successful');
     } catch (error) {
         console.error('Failed to initialize Petfinder API:', error);
-        throw new Error('Petfinder API initialization failed');
     }
 
     const server = new ApolloServer({ 
@@ -102,7 +133,6 @@ const startApolloServer = async () => {
         context: async ({ req }: { req: express.Request }) => {
             const token = req.headers.authorization || '';
             const user = getUserFromToken(token);
-            // Even if user auth fails, we still want to allow access to public queries
             return { 
                 user,
                 petfinderAPI
@@ -113,16 +143,17 @@ const startApolloServer = async () => {
     await server.start();
     console.log('Apollo Server started');
 
-    app.use(express.urlencoded({ extended: true }));
-    app.use(express.json());
-
     // Apply Apollo Server middleware
     server.applyMiddleware({ app: app as any });
 
+    // Production setup for static files
     if (process.env.NODE_ENV === 'production') {
-        app.use(express.static(path.join(__dirname, '../../client/dist')));
+        const staticPath = path.resolve('../client/dist');
+        //console.log('Serving static files from:', staticPath);
+        
+        app.use(express.static(staticPath));
         app.get('*', (_req, res) => {
-            res.sendFile(path.join(__dirname, '../../client/dist/index.html'));
+            res.sendFile(path.join(staticPath, 'index.html'));
         });
     }
 
@@ -130,12 +161,15 @@ const startApolloServer = async () => {
         await db();
         console.log('MongoDB connection established');
         
-        app.listen(PORT, () => {
+        app.listen(PORT, '0.0.0.0', () => {
             console.log(`🚀 Server ready at http://localhost:${PORT}${server.graphqlPath}`);
         });
     } catch (error) {
         console.error('Server startup error:', error);
+        process.exit(1);
     }
 };
 
-startApolloServer();
+startApolloServer().catch(err => {
+    console.error('Failed to start server:', err);
+});

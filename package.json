@@ -5,12 +5,13 @@
   "main": "server.js",
   "scripts": {
     "test": "test",
+    "seed": "cd server && npm run seed",
     "start": "cd server && npm run build && node dist/server.js",
     "dev": "concurrently \"cd server && npm run watch\" \"cd client && npm run dev\"",
     "dev:build": "npm run build && concurrently \"cd server && npm run watch\" \"cd client && npm run dev\"",
     "setup": "cd server && npm i && cd ../client && npm i",
-   "build": "cd server && npm run build && cd ../client && npm run build",
-    "render-build": "npm install && npm run build",
+    "build": "cd server && npm i && npm run build && cd ../client && npm i && npm run build",
+    "render-build": "npm install && cd server && npm install && cd ../client && npm install && cd .. && npm run build",
     "render-start": "cd server && npm start"
   },
   "author": "",
@@ -21,6 +22,9 @@
     "@types/node": "^22.13.1",
     "@types/react-dom": "^19.0.3",
     "@types/react-router-dom": "^5.3.3",
+    "@types/mongoose": "^5.11.97",
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/bcrypt": "^5.0.2",
     "concurrently": "^8.2.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3"
@@ -29,11 +33,12 @@
     "@apollo/client": "^3.12.11",
     "@fullcalendar/daygrid": "^6.1.15",
     "@fullcalendar/react": "^6.1.15",
+    "@cloudinary/react": "^1.14.1",
+    "@cloudinary/url-gen": "^1.21.0",
     "@react-google-maps/api": "^2.20.6",
     "@types/express": "^5.0.0",
     "@vitejs/plugin-react": "^4.3.4",
     "apollo-server-express": "^3.13.0",
-    "autoprefixer": "^10.4.20",
     "cloudinary": "^1.41.3",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
@@ -44,8 +49,8 @@
     "multer-storage-cloudinary": "^4.0.0",
     "react": "^19.0.0",
     "react-router-dom": "^7.1.5",
-    
-    "tailwindcss": "^4.0.9",
-    "vite": "^6.2.0"
+    "tailwindcss": "^3.4.17",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.5.3"
   }
 }

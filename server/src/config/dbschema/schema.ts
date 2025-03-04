@@ -30,7 +30,8 @@ const initializeSchema = async () => {
           PetModel.collection.createIndexes([
             { key: { shelterId: 1 } },
             { key: { status: 1 } },
-            { key: { breed: 1 } }
+            { key: { breed: 1 } },
+            { key: { externalId: 1 } }
           ]),
 
           // Application indexes
@@ -92,7 +93,6 @@ const initializeSchema = async () => {
             validationLevel: "moderate"
           }),
 
-          // Pet validator
           db.command({
             collMod: "pets",
             validator: {
@@ -105,22 +105,36 @@ const initializeSchema = async () => {
                     minLength: 1,
                     maxLength: 100
                   },
+                  externalId: {
+                    bsonType: ["string", "null"]
+                  },
                   breed: {
-                    bsonType: "string",
-                    maxLength: 100
+                    bsonType: ["string", "null"]
                   },
                   age: {
-                    bsonType: "int",
-                    minimum: 0,
-                    maximum: 100
+                    oneOf: [
+                      { bsonType: "int" },
+                      { bsonType: "string" },
+                      { bsonType: "null" }
+                    ]
+                  },
+                  type: {
+                    bsonType: ["string", "null"]
                   },
                   status: {
                     bsonType: "string",
-                    enum: ["Available", "Pending", "Adopted"]
+                    enum: ["Available", "Pending", "Adopted", "available", "pending", "adopted"]
+                  },
+                  shelterId: {
+                    bsonType: "string"
+                  },
+                  source: {
+                    bsonType: ["string", "null"]
                   }
                 }
               }
-            }
+            },
+            validationLevel: "moderate"
           }),
 
           // Application validator

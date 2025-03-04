@@ -6,6 +6,7 @@ export interface IProfile extends Document {
     username: string;
     email: string;
     password: string;
+    profileImage?: string;
     savedPets: mongoose.Types.ObjectId[];
     userPets: mongoose.Types.ObjectId[]; 
     isCorrectPassword(password: string): Promise<boolean>;
@@ -27,12 +28,16 @@ const profileSchema = new Schema({
         type: String,
         required: true,
     },
+    profileImage: {
+        type: String,
+        default: ''
+    },
     savedPets: 
         [{
             type: Schema.Types.ObjectId,
             ref: 'Pet'
         }],
-        userPets: [{ // Add userPets field to store user's own pets
+        userPets: [{ 
             type: Schema.Types.ObjectId,
             ref: 'UserPet'
         }]
@@ -44,7 +49,7 @@ const profileSchema = new Schema({
 });
 
 // set up pre-save middleware to create password
-profileSchema.pre('save', async function(this: IProfile, next: mongoose.CallbackWithoutResultAndOptionalError) {
+profileSchema.pre('save', async function(this: mongoose.Document & IProfile, next: mongoose.CallbackWithoutResultAndOptionalError) {
     if (this.isNew || this.isModified('password')) {
         const saltRounds = 10;
         this.password = await bcrypt.hash(this.password, saltRounds);
