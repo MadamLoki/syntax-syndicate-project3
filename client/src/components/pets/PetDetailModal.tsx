@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Heart, X, MapPin, Calendar, Tag, Mail, Phone } from 'lucide-react';
 import { gql, useMutation } from '@apollo/client';
 import { useAuth } from '../auth/AuthContext';
-import { SAVE_PET, REMOVE_SAVED_PET } from '../../utils/mutations';
+import { SAVE_PET } from '../../utils/mutations';
 
 interface PetfinderAddress {
     address1?: string;
@@ -62,34 +62,43 @@ interface PetDetailProps {
 
 const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
     const { isLoggedIn } = useAuth();
-    const [savePet, { loading, error }] = useMutation(SAVE_PET);
+    const [isSaved, setIsSaved] = useState<boolean>(false);
+    const [savePet, { loading, error }] = useMutation(SAVE_PET, {
+        onCompleted: () => {
+            setIsSaved(true);
+        }
+    });
 
     const handleSavePet = async () => {
         if (!isLoggedIn) {
             alert('Please log in to save pets');
             return;
         }
-
+    
         try {
-            // Create a simplified pet object from Petfinder data
-            const petData = {
+            // Create an input object that exactly matches PetfinderSaveInput
+            const input = {
                 externalId: pet.id,
                 name: pet.name,
                 type: pet.type,
                 breed: pet.breeds.primary,
                 age: pet.age,
-                status: pet.status,
-                images: pet.photos.map(photo => photo.medium),
+                status: pet.status || "Available",
+                images: pet.photos && pet.photos.length > 0 
+                    ? pet.photos.map(photo => photo.medium) 
+                    : [],
                 shelterId: "petfinder"
             };
-    
-            // Use the savePetfinder mutation instead
+
+            // Log the exact input for debugging
+            console.log("Saving pet with exact data format:", input);
+
+            // Call the mutation with the exact input
             await savePet({
-                variables: { 
-                    input: petData 
-                }
+                variables: { input }
             });
             
+            setIsSaved(true);
             alert('Pet saved to your profile!');
         } catch (err) {
             console.error('Error saving pet:', err);
@@ -179,11 +188,11 @@ const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
                         {isLoggedIn && (
                             <button
                                 onClick={handleSavePet}
-                                disabled={loading}
-                                className="text-pink-500 hover:text-pink-700"
+                                disabled={loading || isSaved}
+                                className={`${isSaved ? 'text-pink-600' : 'text-pink-500 hover:text-pink-700'}`}
                                 aria-label="Save pet"
                             >
-                                <Heart className="w-6 h-6" />
+                                <Heart className="w-6 h-6" fill={isSaved ? "currentColor" : "none"} />
                             </button>
                         )}
                         <button
@@ -289,12 +298,12 @@ const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
                                 </button>
                                 {isLoggedIn ? (
                                     <button
-                                        className="border border-pink-500 text-pink-500 py-2 px-4 rounded-lg hover:bg-pink-50 transition-colors flex items-center justify-center"
+                                        className={`border border-pink-500 text-pink-500 py-2 px-4 rounded-lg hover:bg-pink-50 transition-colors flex items-center justify-center ${isSaved ? 'bg-pink-50' : ''}`}
                                         onClick={handleSavePet}
-                                        disabled={loading}
+                                        disabled={loading || isSaved}
                                     >
-                                        <Heart className="w-4 h-4 mr-2" />
-                                        {loading ? 'Saving...' : 'Save'}
+                                        <Heart className="w-4 h-4 mr-2" fill={isSaved ? "currentColor" : "none"} />
+                                        {loading ? 'Saving...' : isSaved ? 'Saved' : 'Save'}
                                     </button>
                                 ) : (
                                     <button

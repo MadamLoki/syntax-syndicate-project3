@@ -93,7 +93,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUser(userData);
             setIsLoggedIn(true);
             
-            console.log('User successfully logged in:', userData);
+            //console.log('User successfully logged in:', userData);
         } catch (error) {
             console.error('Invalid token format:', error);
             alert('Login failed. Please try again.');

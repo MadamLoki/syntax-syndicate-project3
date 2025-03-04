@@ -13,7 +13,6 @@
     "build": "cd server && npm i && npm run build && cd ../client && npm i && npm run build",
     "render-build": "npm install && cd server && npm install && cd ../client && npm install && cd .. && npm run build",
     "render-start": "cd server && npm start"
- 
   },
   "author": "",
   "license": "ISC",

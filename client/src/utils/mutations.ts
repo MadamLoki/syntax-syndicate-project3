@@ -38,10 +38,11 @@ export const ADD_SHELTER = gql`
 `;
 
 export const SAVE_PET = gql`
-  mutation SavePet($input: PetfinderSaveInput!) {
+  mutation SavePetfinderPet($input: PetfinderSaveInput!) {
     savePetfinderPet(input: $input) {
       _id
       username
+      email
       savedPets {
         _id
         name
