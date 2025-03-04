@@ -67,40 +67,40 @@ const checkAuth = (req: Request, res: Response, next: NextFunction): void => {
 // Upload route
 router.post('/upload', checkAuth, (req: Request, res: Response, next: NextFunction) => {
     // Use multer middleware
-    upload.single('file')(req, res, (err) => {
-        if (err) {
-            return handleMulterError(err, req, res, next);
-        }
+    // upload.single('file')(req, res, (err) => {
+    //     if (err) {
+    //         return handleMulterError(err, req, res, next);
+    //     }
 
-        // Get the uploaded file from request
-        const file = req.file;
+    //     // Get the uploaded file from request
+    //     const file = req.file;
 
-        if (!file) {
-            return res.status(400).json({ error: 'No file uploaded' });
-        } else if (!file.mimetype.startsWith('image/')) {
-            return res.status(400).json({ error: 'Only image files are allowed' });
-        } else {
-            try {
-                // Extract the public ID from the path
-                // The format is usually: https://res.cloudinary.com/cloud_name/image/upload/v1234567890/folder/filename
-                const url = file.path || '';
-                const parts = url.split('/');
-                const filename = parts[parts.length - 1];
-                const folder = parts[parts.length - 2];
-                const publicId = `${folder}/${filename.split('.')[0]}`;
+    //     if (!file) {
+    //         return res.status(400).json({ error: 'No file uploaded' });
+    //     } else if (!file.mimetype.startsWith('image/')) {
+    //         return res.status(400).json({ error: 'Only image files are allowed' });
+    //     } else {
+    //         try {
+    //             // Extract the public ID from the path
+    //             // The format is usually: https://res.cloudinary.com/cloud_name/image/upload/v1234567890/folder/filename
+    //             const url = file.path || '';
+    //             const parts = url.split('/');
+    //             const filename = parts[parts.length - 1];
+    //             const folder = parts[parts.length - 2];
+    //             const publicId = `${folder}/${filename.split('.')[0]}`;
 
-                // Return the Cloudinary response with available properties
-                return res.status(200).json({
-                    url: file.path, // Cloudinary URL
-                    publicId: publicId,
-                    format: file.mimetype ? file.mimetype.split('/')[1] : 'unknown'
-                });
-            } catch (error) {
-                console.error('Error processing upload result:', error);
-                return res.status(500).json({ error: 'Error processing upload' });
-            }
-        }
-    });
+    //             // Return the Cloudinary response with available properties
+    //             return res.status(200).json({
+    //                 url: file.path, // Cloudinary URL
+    //                 publicId: publicId,
+    //                 format: file.mimetype ? file.mimetype.split('/')[1] : 'unknown'
+    //             });
+    //         } catch (error) {
+    //             console.error('Error processing upload result:', error);
+    //             return res.status(500).json({ error: 'Error processing upload' });
+    //         }
+    //     }
+    // });
 });
 
 // Deletion endpoint
