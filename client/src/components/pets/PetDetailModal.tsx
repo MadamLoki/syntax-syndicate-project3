@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Heart, X, MapPin, Calendar, Tag, Mail, Phone } from 'lucide-react';
-import { gql, useMutation } from '@apollo/client';
+import { useMutation } from '@apollo/client';
 import { useAuth } from '../auth/AuthContext';
 import { SAVE_PET } from '../../utils/mutations';
 
@@ -63,9 +63,15 @@ interface PetDetailProps {
 const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
     const { isLoggedIn } = useAuth();
     const [isSaved, setIsSaved] = useState<boolean>(false);
-    const [savePet, { loading, error }] = useMutation(SAVE_PET, {
+    const [saveError, setSaveError] = useState<string | null>(null);
+    const [savePet, { loading }] = useMutation(SAVE_PET, {
         onCompleted: () => {
             setIsSaved(true);
+            setSaveError(null);
+        },
+        onError: (error) => {
+            console.error('Error saving pet:', error);
+            setSaveError(error.message);
         }
     });
 
@@ -76,10 +82,12 @@ const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
         }
     
         try {
+            // Pre-process images to get just the URLs
             const images = pet.photos && pet.photos.length > 0 
-                ? pet.photos.map(photo => photo.medium).filter(Boolean)
+                ? pet.photos.map(photo => photo.medium || photo.small || photo.large).filter(Boolean)
                 : [];
             
+            // Simplified input structure based on what our backend expects
             const petInput = {
                 externalId: pet.id,
                 name: pet.name,
@@ -94,16 +102,20 @@ const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
                 shelterId: "petfinder"
             };
 
-            // Call the mutation with properly structured input
+            // Call the mutation
             await savePet({
                 variables: { input: petInput }
             });
             
             setIsSaved(true);
-            alert('Pet saved to your profile!');
+            setSaveError(null);
         } catch (err) {
-            console.error('Error saving pet:', err);
-            alert('Could not save pet. Please try again later.');
+            console.error('Error in handler for saving pet:', err);
+            let errorMessage = 'Failed to save pet. Please try again.';
+            if (err instanceof Error) {
+                errorMessage = err.message;
+            }
+            setSaveError(errorMessage);
         }
     };
 
@@ -282,9 +294,16 @@ const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
                             {renderContactInfo()}
 
                             {/* Error Message */}
-                            {error && (
+                            {saveError && (
                                 <div className="mt-4 bg-red-100 text-red-700 p-3 rounded-lg">
-                                    Error: {error.message}
+                                    Error: {saveError}
+                                </div>
+                            )}
+
+                            {/* Success Message */}
+                            {isSaved && (
+                                <div className="mt-4 bg-green-100 text-green-700 p-3 rounded-lg">
+                                    {pet.name} has been saved to your favorites!
                                 </div>
                             )}
 

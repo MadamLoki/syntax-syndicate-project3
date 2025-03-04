@@ -43,43 +43,55 @@ const petSaveResolver: IResolvers = {
                     throw new Error('Missing required field(s): externalId, name, or type');
                 }
                 
+                let petAge: number | string = input.age;
+                if (typeof input.age === 'string' && !isNaN(Number(input.age))) {
+                    petAge = Number(input.age);
+                }
+
+                const petData = {
+                    externalId: input.externalId,
+                    name: input.name,
+                    type: input.type || 'Unknown',
+                    breed: input.breed || 'Unknown',
+                    age: petAge,
+                    gender: input.gender,
+                    size: input.size,
+                    status: input.status || 'Available',
+                    images: Array.isArray(input.images) ? input.images : [],
+                    description: input.description || '',
+                    shelterId: input.shelterId || 'petfinder',
+                    source: 'petfinder'
+                };
+                
                 // Check if pet with this external ID already exists
                 let pet = await Pet.findOne({ externalId: input.externalId });
                 
                 if (!pet) {
                     // Create a new pet entry
-                    pet = await Pet.create({
-                        externalId: input.externalId,
-                        name: input.name,
-                        type: input.type || 'Unknown',
-                        breed: input.breed || 'Unknown',
-                        age: input.age || 'Unknown',
-                        gender: input.gender,
-                        size: input.size,
-                        status: input.status || 'Available',
-                        images: Array.isArray(input.images) ? input.images : [],
-                        description: input.description,
-                        shelterId: input.shelterId || 'petfinder',
-                        source: 'petfinder'
-                    });
-                    
-                    console.log('Created new pet:', pet._id);
+                    try {
+                        pet = await Pet.create(petData);
+                        console.log('Created new pet:', pet._id);
+                    } catch (err) {
+                        console.error('Error creating pet document:', err);
+                        // Try a simplified version as fallback if validation failed
+                        const simplifiedPet = {
+                            externalId: input.externalId,
+                            name: input.name,
+                            type: input.type || 'Unknown',
+                            shelterId: 'petfinder',
+                        };
+                        pet = await Pet.create(simplifiedPet);
+                        console.log('Created simplified pet due to validation issues:', pet._id);
+                    }
                 } else {
                     console.log('Found existing pet:', pet._id);
-                    
-                    await Pet.findByIdAndUpdate(pet._id, {
-                        $set: {
-                            name: input.name,
-                            type: input.type,
-                            breed: input.breed,
-                            age: input.age,
-                            gender: input.gender,
-                            size: input.size,
-                            status: input.status || 'Available',
-                            images: Array.isArray(input.images) ? input.images : pet.images,
-                            description: input.description || pet.description
-                        }
-                    });
+                    try {
+                        await Pet.findByIdAndUpdate(pet._id, {
+                            $set: petData
+                        });
+                    } catch (updateErr) {
+                        console.error('Error updating pet document:', updateErr);
+                    }
                 }
 
                 // Add to user's saved pets if not already saved
