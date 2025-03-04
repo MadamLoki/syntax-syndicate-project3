@@ -127,7 +127,7 @@ const startApolloServer = async () => {
     }
 
     const server = new ApolloServer({ 
-        typeDefs, 
+        typeDefs: mergedTypeDefs, 
         resolvers: mergedResolvers,
         persistedQueries: false,
         context: async ({ req }: { req: express.Request }) => {
