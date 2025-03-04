@@ -77,7 +77,9 @@ const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
         }
     });
 
-    const handleSavePet = async () => {
+    const handleSavePet = async (e: React.MouseEvent) => {
+        e.stopPropagation(); // Prevent the modal from closing
+        
         if (!isLoggedIn) {
             alert('Please log in to save pets');
             return;
@@ -121,6 +123,11 @@ const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
         }
     };
 
+    const handleViewFullDetails = () => {
+        onClose(); // Close the modal
+        navigate(`/pets/${pet.id}`); // Navigate to the full details page
+    };
+
     const formatDate = (dateString?: string) => {
         if (!dateString) return 'Unknown';
         const date = new Date(dateString);
@@ -130,40 +137,6 @@ const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
             day: 'numeric',
         }).format(date);
     };
-
-    const renderContactInfo = () => (
-        <div className="mt-6 bg-blue-50 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold mb-3">Contact Information</h3>
-            <div className="space-y-2">
-                {pet.contact.email && (
-                    <div className="flex items-center">
-                        <Mail className="w-4 h-4 mr-2 text-blue-500" />
-                        <a href={`mailto:${pet.contact.email}`} className="text-blue-600 hover:underline">
-                            {pet.contact.email}
-                        </a>
-                    </div>
-                )}
-                {pet.contact.phone && (
-                    <div className="flex items-center">
-                        <Phone className="w-4 h-4 mr-2 text-blue-500" />
-                        <a href={`tel:${pet.contact.phone}`} className="text-blue-600 hover:underline">
-                            {pet.contact.phone}
-                        </a>
-                    </div>
-                )}
-                <div className="flex items-start">
-                    <MapPin className="w-4 h-4 mr-2 text-blue-500 mt-1" />
-                    <div>
-                        {pet.contact.address.address1 && <div>{pet.contact.address.address1}</div>}
-                        {pet.contact.address.address2 && <div>{pet.contact.address.address2}</div>}
-                        <div>
-                            {pet.contact.address.city}, {pet.contact.address.state} {pet.contact.address.postcode}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
 
     const renderAttributes = () => {
         if (!pet.attributes) return null;
@@ -283,17 +256,39 @@ const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
 
                             {renderAttributes()}
 
-                            {/* Description */}
+                            {/* Description Preview - Show just the first 150 characters */}
                             {pet.description && (
                                 <div className="mt-4">
                                     <h3 className="text-lg font-semibold mb-2">About {pet.name}</h3>
-                                    <p className="text-gray-700 whitespace-pre-line">
-                                        {pet.description}
+                                    <p className="text-gray-700">
+                                        {pet.description.length > 150 
+                                            ? `${pet.description.substring(0, 150)}...` 
+                                            : pet.description}
                                     </p>
+                                    {pet.description.length > 150 && (
+                                        <span className="text-blue-600 text-sm cursor-pointer hover:underline" onClick={handleViewFullDetails}>
+                                            Read more
+                                        </span>
+                                    )}
                                 </div>
                             )}
 
-                            {renderContactInfo()}
+                            {/* Contact Preview */}
+                            <div className="mt-4 bg-blue-50 p-3 rounded-lg">
+                                <h3 className="text-md font-semibold mb-2">Contact Information</h3>
+                                <p className="text-gray-700 flex items-center mb-1">
+                                    <MapPin className="w-4 h-4 mr-1 text-blue-500" />
+                                    {pet.contact.address.city}, {pet.contact.address.state}
+                                </p>
+                                {pet.contact.email && (
+                                    <p className="text-gray-700 flex items-center">
+                                        <Mail className="w-4 h-4 mr-1 text-blue-500" />
+                                        {pet.contact.email.length > 25
+                                            ? `${pet.contact.email.substring(0, 25)}...`
+                                            : pet.contact.email}
+                                    </p>
+                                )}
+                            </div>
 
                             {/* Error Message */}
                             {saveError && (
@@ -310,40 +305,20 @@ const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
                             )}
 
                             {/* Action Buttons */}
-                            <div className="mt-6 flex gap-3">
+                            <div className="mt-6 grid grid-cols-2 gap-3">
                                 <button
-                                    className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex-1"
-                                    onClick={() => window.open(`mailto:${pet.contact.email}?subject=Regarding ${pet.name}`)}
-                                    disabled={!pet.contact.email}
+                                    className={`border border-pink-500 text-pink-500 py-2 px-4 rounded-lg hover:bg-pink-50 transition-colors flex items-center justify-center ${isSaved ? 'bg-pink-50' : ''}`}
+                                    onClick={handleSavePet}
+                                    disabled={loading || isSaved}
                                 >
-                                    Contact About {pet.name}
+                                    <Heart className="w-4 h-4 mr-2" fill={isSaved ? "currentColor" : "none"} />
+                                    {loading ? 'Saving...' : isSaved ? 'Saved' : 'Save'}
                                 </button>
-                                {isLoggedIn ? (
-                                    <button
-                                        className={`border border-pink-500 text-pink-500 py-2 px-4 rounded-lg hover:bg-pink-50 transition-colors flex items-center justify-center ${isSaved ? 'bg-pink-50' : ''}`}
-                                        onClick={handleSavePet}
-                                        disabled={loading || isSaved}
-                                    >
-                                        <Heart className="w-4 h-4 mr-2" fill={isSaved ? "currentColor" : "none"} />
-                                        {loading ? 'Saving...' : isSaved ? 'Saved' : 'Save'}
-                                    </button>
-                                ) : (
-                                    <button
-                                        className="border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center"
-                                        onClick={() => alert('Please log in to save pets')}
-                                    >
-                                        <Heart className="w-4 h-4 mr-2" />
-                                        Login to Save
-                                    </button>
-                                )}
                                 <button
                                     className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
-                                    onClick={() => {
-                                        onClose(); 
-                                        navigate(`/pets/${pet.id}`);
-                                    }}
+                                    onClick={handleViewFullDetails}
                                 >
-                                    View Details
+                                    View Full Details
                                 </button>
                             </div>
                         </div>

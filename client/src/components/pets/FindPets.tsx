@@ -246,6 +246,17 @@ const PetSearch = () => {
         }
     }, []);
 
+    // Handle opening the pet detail modal
+    const handlePetClick = (pet: Pet) => {
+        setSelectedPet(pet);
+    };
+
+    // Handle saving a pet directly from the card
+    const handleSavePetClick = (e: React.MouseEvent, pet: Pet) => {
+        e.stopPropagation(); // Prevent the card click event
+        setSelectedPet(pet); // Open the modal with this pet
+    };
+
     if (typesLoading) {
         return (
             <div className="flex items-center justify-center min-h-screen">
@@ -499,9 +510,9 @@ const PetSearch = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                     {petsData?.searchPetfinderPets?.animals?.map((pet: Pet) => (
                         <div 
-                        key={pet.id} 
+                            key={pet.id} 
                             className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden transition-transform duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
-                            onClick={() => navigate(`/pets/${pet.id}`)}
+                            onClick={() => handlePetClick(pet)}
                             aria-label={`View details for ${pet.name}`}
                         >
                             <div className="relative h-48">
@@ -513,11 +524,7 @@ const PetSearch = () => {
                                 {isLoggedIn && (
                                     <button 
                                         className="absolute top-2 right-2 p-1.5 bg-white rounded-full text-gray-500 hover:text-pink-500 transition-colors"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            // Logic for saving pet will be handled in the modal
-                                            setSelectedPet(pet);
-                                        }}
+                                        onClick={(e) => handleSavePetClick(e, pet)}
                                         aria-label={`Save ${pet.name} to favorites`}
                                     >
                                         <Heart className="w-5 h-5" />
