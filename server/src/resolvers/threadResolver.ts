@@ -2,15 +2,15 @@
 import { IResolvers } from '@graphql-tools/utils';
 import Thread from '../models/Threads';
 import Comment from '../models/comment';
-import { uploadImage } from '../config/cloudinary';  // import your Cloudinary functions
+import { uploadImage } from '../config/cloudinary';  // Cloudinary upload function
 
 const threadResolvers: IResolvers = {
   Query: {
-    // Fetches all threads, populating the author field
+    // Retrieve all threads and populate the author field
     threads: async () => {
       return await Thread.find().populate('author');
     },
-    // Fetches a single thread by ID and its associated comments
+    // Retrieve a single thread by ID and its associated comments
     thread: async (_: any, { id }: { id: string }) => {
       const thread = await Thread.findById(id).populate('author');
       if (!thread) throw new Error('Thread not found');
@@ -19,18 +19,17 @@ const threadResolvers: IResolvers = {
     },
   },
   Mutation: {
-    // Creates a new thread, including nested pet information
+    // Create a new thread with nested pet details
     createThread: async (_: any, { input }: { input: any }, context: any) => {
       if (!context.user) throw new Error('You must be logged in to create a thread');
 
-      // If a pet image is provided and is a base64 string, upload it to Cloudinary.
+      // Check if pet image is provided and is a base64 string
       let petImageUrl = input.pet.image;
       if (input.pet.image && input.pet.image.startsWith('data:')) {
         const uploadResult = await uploadImage(input.pet.image, 'forum-pets');
         petImageUrl = uploadResult.url;
       }
 
-      // Create the new thread document using the nested pet object (with the updated image URL)
       const newThread = new Thread({
         title: input.title,
         content: input.content,
@@ -39,11 +38,11 @@ const threadResolvers: IResolvers = {
           ...input.pet,
           image: petImageUrl,
         },
-        author: context.user.id,
+        author: context.user._id,
       });
       return await newThread.save();
     },
-    // Creates a comment for a thread
+    // Create a comment on a thread
     createComment: async (_: any, { input }: { input: any }, context: any) => {
       if (!context.user) throw new Error('You must be logged in to comment');
       const thread = await Thread.findById(input.threadId);
@@ -51,7 +50,7 @@ const threadResolvers: IResolvers = {
       const newComment = new Comment({
         thread: input.threadId,
         content: input.content,
-        author: context.user.id,
+        author: context.user._id,
         parentComment: input.parentCommentId || undefined,
       });
       return await newComment.save();

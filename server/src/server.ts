@@ -11,10 +11,10 @@ import uploadRoutes from './routes/api/uploadRoutes.js';
 
 import db from './config/connection.js';
 import { mergeTypeDefs } from '@graphql-tools/merge';
-import typeDefs from './typeDefs/typeDefs.js';
+import baseTypeDefs from './typeDefs/typeDefs.js';
 import ForumTypeDefs from './typeDefs/typeDefsForum.js';
 
-const mergedTypeDefs = mergeTypeDefs([typeDefs, ForumTypeDefs]);
+const mergedTypeDefs = mergeTypeDefs([baseTypeDefs, ForumTypeDefs]);
 import mergedResolvers from './resolvers/index.js';
 
 dotenv.config();
