@@ -10,11 +10,11 @@ import authMiddleware from './middleware/authMiddleware.js';
 import uploadRoutes from './routes/api/uploadRoutes.js';
 
 import db from './config/connection.js';
-import { mergeTypeDefs } from '@graphql-tools/merge';
-import baseTypeDefs from './typeDefs/typeDefs.js';
-import ForumTypeDefs from './typeDefs/typeDefsForum.js';
 
-const mergedTypeDefs = mergeTypeDefs([baseTypeDefs, ForumTypeDefs]);
+import typeDefs from './typeDefs/typeDefs.js';
+
+
+
 import mergedResolvers from './resolvers/index.js';
 
 dotenv.config();
@@ -127,7 +127,7 @@ const startApolloServer = async () => {
     }
 
     const server = new ApolloServer({ 
-        typeDefs: mergedTypeDefs, 
+        typeDefs, 
         resolvers: mergedResolvers,
         persistedQueries: false,
         context: async ({ req }: { req: express.Request }) => {

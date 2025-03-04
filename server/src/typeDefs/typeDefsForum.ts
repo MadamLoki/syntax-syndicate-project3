@@ -1,4 +1,4 @@
-const ForumTypeDefs = `
+/*const ForumTypeDefs = `
 
 type UserPet {
   _id: ID!
@@ -67,3 +67,4 @@ type Mutation {
 `;
 
 export default ForumTypeDefs;
+*/

@@ -1,5 +1,4 @@
 const typeDefs = `
-
 # Base User/Profile Types
 type User {
   _id: ID!
@@ -19,6 +18,7 @@ type Profile {
   name: String
   savedPets: [Pet]
   userPets: [UserPet]
+  
 }
 
 type UserPet {
@@ -84,7 +84,7 @@ input UpdatePetInput {
   status: String
 }
 
-# Petfinder Types (unchanged)
+# Petfinder Types
 type PetfinderBreed {
   primary: String
   secondary: String
