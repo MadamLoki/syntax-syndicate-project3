@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
 import { gql } from '@apollo/client';
 import { jwtDecode } from 'jwt-decode';
-import { Plus, Trash, Edit, X, Camera, CheckCircle } from 'lucide-react';
+import { Plus, Trash, Edit, X, Camera, CheckCircle, UserCircle, Heart } from 'lucide-react';
 import { useAuth } from '../components/auth/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useImageUpload } from '../utils/CloudinaryService';
@@ -15,26 +15,27 @@ import ProfilePicture from '../components/ProfilePicture';
 const GET_USER_PROFILE = gql`
     query GetUserProfile {
         me {
-        _id
-        username
-        email
-        profileImage
-        savedPets {
-            _id
-            name
-            breed
-            age
-            images
-        }
-        userPets {
-            _id
-            name
-            species
-            breed
-            age
-            description
-            image
-        }
+          _id
+          username
+          email
+          profileImage
+          savedPets {
+              _id
+              name
+              breed
+              age
+              images
+              type
+          }
+          userPets {
+              _id
+              name
+              species
+              breed
+              age
+              description
+              image
+          }
         }
     }
 `;
@@ -45,7 +46,7 @@ export const UPDATE_PROFILE = gql`
             _id
             username
             email
-            profileImageUrl
+            profileImage
         }
     }
 `;
@@ -53,13 +54,13 @@ export const UPDATE_PROFILE = gql`
 const ADD_USER_PET = gql`
     mutation AddUserPet($input: UserPetInput!) {
         addUserPet(input: $input) {
-        _id
-        name
-        species
-        breed
-        age
-        description
-        image
+          _id
+          name
+          species
+          breed
+          age
+          description
+          image
         }
     }
 `;
@@ -67,6 +68,17 @@ const ADD_USER_PET = gql`
 const REMOVE_USER_PET = gql`
     mutation RemoveUserPet($petId: ID!) {
         removeUserPet(petId: $petId)
+    }
+`;
+
+const REMOVE_SAVED_PET = gql`
+    mutation RemoveSavedPet($petId: ID!) {
+        removeSavedPet(petId: $petId) {
+            _id
+            savedPets {
+                _id
+            }
+        }
     }
 `;
 
@@ -85,8 +97,9 @@ interface SavedPet {
     _id: string;
     name: string;
     breed?: string;
-    age?: number;
+    age?: number | string;
     images?: string[];
+    type?: string;
 }
 
 interface UserProfile {
@@ -106,25 +119,32 @@ interface TokenData {
     };
 }
 
+interface MessageState {
+    text: string;
+    type: 'success' | 'warning' | 'error' | 'info' | '';
+}
+
+// Tab options for typesafety
+type TabOption = 'profile' | 'pets' | 'saved';
+
 const ProfilePage = () => {
     const { isLoggedIn, getToken } = useAuth();
     const navigate = useNavigate();
 
     // Tab state
-    const [activeTab, setActiveTab] = useState<'profile' | 'pets' | 'saved'>('profile');
+    const [activeTab, setActiveTab] = useState<TabOption>('profile');
 
     // UI state
     const [isEditing, setIsEditing] = useState(false);
     const [isAddingPet, setIsAddingPet] = useState(false);
-    const [message, setMessage] = useState({ text: '', type: '' });
+    const [message, setMessage] = useState<MessageState>({ text: '', type: '' });
 
     // Profile data
     const [editableProfile, setEditableProfile] = useState({
         username: '',
         email: '',
     });
-    const [profileImage, setProfileImage] = useState<string | undefined>(undefined);
-
+    
     // Pet data
     const [newPet, setNewPet] = useState<UserPet>({
         name: '',
@@ -173,8 +193,6 @@ const ProfilePage = () => {
                     username: data.me.username,
                     email: data.me.email,
                 });
-                // Use the correct field name
-                setProfileImage(data.me.profileImage || undefined);
             }
         },
         fetchPolicy: 'network-only',
@@ -183,13 +201,11 @@ const ProfilePage = () => {
     const [updateProfile, { loading: updateLoading }] = useMutation(UPDATE_PROFILE, {
         onCompleted: () => {
             setIsEditing(false);
-            setMessage({ text: 'Profile updated successfully!', type: 'success' });
-            setTimeout(() => setMessage({ text: '', type: '' }), 3000);
+            showMessage('Profile updated successfully!', 'success');
             refetch();
         },
         onError: (error) => {
-            setMessage({ text: `Error: ${error.message}`, type: 'error' });
-            setTimeout(() => setMessage({ text: '', type: '' }), 3000);
+            showMessage(`Error: ${error.message}`, 'error');
         },
     });
 
@@ -197,26 +213,32 @@ const ProfilePage = () => {
         onCompleted: () => {
             setIsAddingPet(false);
             resetPetForm();
-            setMessage({ text: 'Pet added successfully!', type: 'success' });
-            setTimeout(() => setMessage({ text: '', type: '' }), 3000);
+            showMessage('Pet added successfully!', 'success');
             refetch();
         },
         onError: (error) => {
-            setMessage({ text: `Error: ${error.message}`, type: 'error' });
-            setTimeout(() => setMessage({ text: '', type: '' }), 3000);
+            showMessage(`Error: ${error.message}`, 'error');
         },
     });
 
-    const [removeUserPet] = useMutation(REMOVE_USER_PET, {
+    const [removeUserPet, { loading: removePetLoading }] = useMutation(REMOVE_USER_PET, {
         onCompleted: () => {
-            setMessage({ text: 'Pet removed successfully!', type: 'success' });
-            setTimeout(() => setMessage({ text: '', type: '' }), 3000);
+            showMessage('Pet removed successfully!', 'success');
             refetch();
         },
         onError: (error) => {
-            setMessage({ text: `Error: ${error.message}`, type: 'error' });
-            setTimeout(() => setMessage({ text: '', type: '' }), 3000);
+            showMessage(`Error: ${error.message}`, 'error');
         },
+    });
+    
+    const [removeSavedPet, { loading: removeSavedLoading }] = useMutation(REMOVE_SAVED_PET, {
+        onCompleted: () => {
+            showMessage('Pet removed from favorites!', 'success');
+            refetch();
+        },
+        onError: (error) => {
+            showMessage(`Error: ${error.message}`, 'error');
+        }
     });
 
     // Reset pet form
@@ -233,6 +255,14 @@ const ProfilePage = () => {
         setImageStats(null);
     };
 
+    // Show message with auto-dismiss
+    const showMessage = (text: string, type: MessageState['type'], duration: number = 3000) => {
+        setMessage({ text, type });
+        if (duration > 0) {
+            setTimeout(() => setMessage({ text: '', type: '' }), duration);
+        }
+    };
+
     // Redirect if not logged in
     useEffect(() => {
         if (!isLoggedIn) {
@@ -247,7 +277,7 @@ const ProfilePage = () => {
 
             try {
                 // Set a loading state to indicate validation is in progress
-                setMessage({ text: 'Validating image...', type: '' });
+                showMessage('Validating image...', 'info', 0);
 
                 // Validate the image with our utility
                 const validationResult = await validateImage(file, {
@@ -262,7 +292,7 @@ const ProfilePage = () => {
 
                 // If validation fails, show the error and return
                 if (!validationResult.isValid) {
-                    setMessage({ text: validationResult.message, type: 'error' });
+                    showMessage(validationResult.message, 'error');
                     return;
                 }
 
@@ -276,7 +306,7 @@ const ProfilePage = () => {
                 // Check if compression is needed (file > 2MB)
                 if (file.size > 2 * 1024 * 1024) {
                     setIsCompressing(true);
-                    setMessage({ text: 'Optimizing image size...', type: '' });
+                    showMessage('Optimizing image size...', 'info', 0);
 
                     // Compress image with progress updates
                     const compressionResult = await compressImage(file, {
@@ -310,17 +340,14 @@ const ProfilePage = () => {
                             ratio: compressionResult.compressionRatio
                         });
 
-                        setMessage({
-                            text: compressionResult.message,
-                            type: 'success'
-                        });
+                        showMessage(compressionResult.message, 'success');
                     } else {
                         // If compression failed, use original file
                         setImageFile(file);
-                        setMessage({
-                            text: `Compression couldn't reduce file size: ${compressionResult.message}. Using original file.`,
-                            type: 'warning'
-                        });
+                        showMessage(
+                            `Compression couldn't reduce file size: ${compressionResult.message}. Using original file.`,
+                            'warning'
+                        );
                     }
 
                     setIsCompressing(false);
@@ -328,21 +355,17 @@ const ProfilePage = () => {
                 } else {
                     // No compression needed
                     setImageFile(file);
-                    setMessage({
-                        text: `Image accepted (${formatFileSize(file.size)})`,
-                        type: 'success'
-                    });
-                    setTimeout(() => setMessage({ text: '', type: '' }), 3000);
+                    showMessage(`Image accepted (${formatFileSize(file.size)})`, 'success');
                 }
 
             } catch (error) {
                 console.error('Error processing image:', error);
                 setIsCompressing(false);
                 setCompressionProgress(0);
-                setMessage({
-                    text: `Error processing image: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                    type: 'error'
-                });
+                showMessage(
+                    `Error processing image: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                    'error'
+                );
             }
         }
     };
@@ -361,8 +384,6 @@ const ProfilePage = () => {
     };
 
     const handleProfileImageUploaded = (url: string) => {
-        setProfileImage(url);
-
         // Immediately update the profile with the new image
         updateProfile({
             variables: {
@@ -385,25 +406,22 @@ const ProfilePage = () => {
             if (imageFile) {
                 // Before starting the upload, check the file size one more time
                 if (imageFile.size > 5 * 1024 * 1024) {
-                    setMessage({
-                        text: 'Image is too large. Please select a smaller image or try again.',
-                        type: 'error'
-                    });
+                    showMessage('Image is too large. Please select a smaller image or try again.', 'error');
                     setIsUploading(false);
                     return;
                 }
 
                 try {
-                    setMessage({ text: 'Uploading image...', type: '' });
+                    showMessage('Uploading image...', 'info', 0);
                     const uploadResult = await uploadImage(imageFile);
                     imageUrl = uploadResult.url;
-                    setMessage({ text: 'Image uploaded successfully!', type: 'success' });
+                    showMessage('Image uploaded successfully!', 'success');
                 } catch (error) {
                     console.error('Error uploading image:', error);
-                    setMessage({
-                        text: `Image upload failed: ${error instanceof Error ? error.message : 'Server error'}. Try a smaller image.`,
-                        type: 'error'
-                    });
+                    showMessage(
+                        `Image upload failed: ${error instanceof Error ? error.message : 'Server error'}. Try a smaller image.`,
+                        'error'
+                    );
                     setIsUploading(false);
                     return;
                 }
@@ -421,10 +439,10 @@ const ProfilePage = () => {
 
         } catch (error) {
             console.error('Error adding pet:', error);
-            setMessage({
-                text: `Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`,
-                type: 'error'
-            });
+            showMessage(
+                `Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`,
+                'error'
+            );
         } finally {
             setIsUploading(false);
         }
@@ -434,6 +452,17 @@ const ProfilePage = () => {
     const handleRemovePet = (petId: string) => {
         if (window.confirm('Are you sure you want to remove this pet?')) {
             removeUserPet({
+                variables: {
+                    petId,
+                },
+            });
+        }
+    };
+    
+    // Handle removing a saved pet
+    const handleRemoveSavedPet = (petId: string) => {
+        if (window.confirm('Are you sure you want to remove this pet from your saved pets?')) {
+            removeSavedPet({
                 variables: {
                     petId,
                 },
@@ -508,6 +537,24 @@ const ProfilePage = () => {
 
     const profile: UserProfile | null = data?.me || null;
 
+    // If profile is null for some reason (shouldn't happen due to our useEffect redirect)
+    if (!profile) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen p-4">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4 max-w-lg w-full">
+                    <h2 className="text-yellow-700 font-semibold mb-2">Profile Not Found</h2>
+                    <p className="text-yellow-600">Unable to load your profile information. You may need to log in again.</p>
+                </div>
+                <button
+                    onClick={() => navigate('/login')}
+                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                >
+                    Go to Login
+                </button>
+            </div>
+        );
+    }
+
     return (
         <div className="bg-gray-50 min-h-screen py-12">
             <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -517,15 +564,26 @@ const ProfilePage = () => {
                         {/* Profile Picture */}
                         <div>
                             <ProfilePicture
-                                initialImage={profileImage}
-                                username={profile?.username}
+                                initialImage={profile.profileImage}
+                                username={profile.username}
                                 onImageUploaded={handleProfileImageUploaded}
                                 editable={true}
                             />
                         </div>
-                        <div className="text-center md:text-left">
-                            <h1 className="text-2xl font-bold">{profile?.username}</h1>
-                            <p className="text-gray-600">{profile?.email}</p>
+                        <div className="text-center md:text-left flex-1">
+                            <h1 className="text-2xl font-bold">{profile.username}</h1>
+                            <p className="text-gray-600">{profile.email}</p>
+                            
+                            <div className="mt-4 flex flex-wrap justify-center md:justify-start gap-4">
+                                <div className="flex items-center bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm">
+                                    <UserCircle className="w-4 h-4 mr-1" />
+                                    <span>{profile.userPets.length} Pets</span>
+                                </div>
+                                <div className="flex items-center bg-pink-50 text-pink-700 px-3 py-1 rounded-full text-sm">
+                                    <Heart className="w-4 h-4 mr-1" />
+                                    <span>{profile.savedPets.length} Saved</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -533,11 +591,12 @@ const ProfilePage = () => {
                 {/* Message Banner */}
                 {message.text && (
                     <div
-                        className={`p-4 mb-6 rounded-md ${message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
+                        className={`p-4 mb-6 rounded-md ${
+                            message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
                             message.type === 'warning' ? 'bg-yellow-50 text-yellow-700 border border-yellow-200' :
-                                message.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
-                                    'bg-blue-50 text-blue-700 border border-blue-200'
-                            }`}
+                            message.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
+                            'bg-blue-50 text-blue-700 border border-blue-200'
+                        }`}
                     >
                         {message.text}
                     </div>
@@ -546,31 +605,39 @@ const ProfilePage = () => {
                 {/* Tab Navigation */}
                 <div className="flex border-b border-gray-200 mb-8">
                     <button
-                        className={`py-4 px-6 font-medium ${activeTab === 'profile'
+                        className={`py-4 px-6 font-medium ${
+                            activeTab === 'profile'
                             ? 'text-blue-600 border-b-2 border-blue-600'
                             : 'text-gray-500 hover:text-gray-700'
-                            }`}
+                        }`}
                         onClick={() => setActiveTab('profile')}
                     >
                         Profile Information
                     </button>
                     <button
-                        className={`py-4 px-6 font-medium ${activeTab === 'pets'
+                        className={`py-4 px-6 font-medium ${
+                            activeTab === 'pets'
                             ? 'text-blue-600 border-b-2 border-blue-600'
                             : 'text-gray-500 hover:text-gray-700'
-                            }`}
+                        }`}
                         onClick={() => setActiveTab('pets')}
                     >
                         My Pets
                     </button>
                     <button
-                        className={`py-4 px-6 font-medium ${activeTab === 'saved'
+                        className={`py-4 px-6 font-medium ${
+                            activeTab === 'saved'
                             ? 'text-blue-600 border-b-2 border-blue-600'
                             : 'text-gray-500 hover:text-gray-700'
-                            }`}
+                        } relative`}
                         onClick={() => setActiveTab('saved')}
                     >
                         Saved Pets
+                        {profile.savedPets.length > 0 && (
+                            <span className="absolute top-2 right-2 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                                {profile.savedPets.length}
+                            </span>
+                        )}
                     </button>
                 </div>
 
@@ -599,16 +666,6 @@ const ProfilePage = () => {
                         </div>
 
                         <div className="flex flex-col md:flex-row gap-6">
-                            {/* Profile Picture */}
-                            <div className="flex flex-col items-center">
-                                <ProfilePicture
-                                    initialImage={profileImage || (profile?.profileImage || '')}
-                                    username={profile?.username}
-                                    onImageUploaded={handleProfileImageUploaded}
-                                    editable={true} // Set to true to allow editing
-                                />
-                            </div>
-
                             {/* Profile Details */}
                             <div className="flex-1">
                                 {isEditing ? (
@@ -654,14 +711,27 @@ const ProfilePage = () => {
                                         </div>
                                     </form>
                                 ) : (
-                                    <div className="space-y-4">
-                                        <div>
-                                            <h3 className="text-sm font-medium text-gray-500">Username</h3>
-                                            <p>{profile?.username}</p>
+                                    <div className="space-y-6">
+                                        <div className="border-b pb-4">
+                                            <h3 className="text-sm font-medium text-gray-500 mb-1">Username</h3>
+                                            <p className="text-lg">{profile.username}</p>
+                                        </div>
+                                        <div className="border-b pb-4">
+                                            <h3 className="text-sm font-medium text-gray-500 mb-1">Email</h3>
+                                            <p className="text-lg">{profile.email}</p>
                                         </div>
                                         <div>
-                                            <h3 className="text-sm font-medium text-gray-500">Email</h3>
-                                            <p>{profile?.email}</p>
+                                            <h3 className="text-sm font-medium text-gray-500 mb-1">Account Summary</h3>
+                                            <div className="mt-2 flex flex-wrap gap-4">
+                                                <div className="bg-blue-50 text-blue-800 px-4 py-2 rounded-lg">
+                                                    <span className="block text-xl font-bold">{profile.userPets.length}</span>
+                                                    <span className="text-sm">Your Pets</span>
+                                                </div>
+                                                <div className="bg-pink-50 text-pink-800 px-4 py-2 rounded-lg">
+                                                    <span className="block text-xl font-bold">{profile.savedPets.length}</span>
+                                                    <span className="text-sm">Saved Pets</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
@@ -695,7 +765,8 @@ const ProfilePage = () => {
                         </div>
 
                         {isAddingPet && (
-                            <form onSubmit={handleAddPet} className="mb-8">
+                            <form onSubmit={handleAddPet} className="mb-8 bg-gray-50 p-6 rounded-lg border border-gray-200">
+                                <h3 className="text-lg font-medium mb-4">Add a New Pet</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -865,7 +936,14 @@ const ProfilePage = () => {
                                         )}
                                     </div>
                                 </div>
-                                <div className="mt-6">
+                                <div className="mt-6 flex justify-end space-x-4">
+                                    <button
+                                        type="button"
+                                        onClick={handleCancel}
+                                        className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                                    >
+                                        Cancel
+                                    </button>
                                     <button
                                         type="submit"
                                         disabled={addPetLoading || isUploading || isCompressing}
@@ -878,14 +956,14 @@ const ProfilePage = () => {
                         )}
 
                         {/* Pet list */}
-                        <div className="space-y-4">
-                            {profile && profile.userPets && profile.userPets.length > 0 ? (
-                                profile.userPets.map((pet) => (
+                        {profile.userPets.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {profile.userPets.map((pet) => (
                                     <div
                                         key={pet._id}
-                                        className="flex items-start p-4 border rounded-lg hover:bg-gray-50"
+                                        className="flex items-start p-4 border rounded-lg hover:bg-gray-50 transition-colors"
                                     >
-                                        <div className="h-16 w-16 rounded-md bg-blue-100 flex items-center justify-center text-blue-600 mr-4 overflow-hidden">
+                                        <div className="h-20 w-20 rounded-md bg-blue-100 flex items-center justify-center text-blue-600 mr-4 overflow-hidden">
                                             {pet.image ? (
                                                 <img src={pet.image} alt={pet.name} className="h-full w-full object-cover" />
                                             ) : (
@@ -893,33 +971,54 @@ const ProfilePage = () => {
                                             )}
                                         </div>
                                         <div className="flex-1">
-                                            <h3 className="font-medium">{pet.name}</h3>
+                                            <div className="flex justify-between">
+                                                <h3 className="font-semibold text-lg">{pet.name}</h3>
+                                                <button
+                                                    onClick={() => pet._id && handleRemovePet(pet._id)}
+                                                    className="text-red-500 hover:text-red-700"
+                                                    aria-label="Remove pet"
+                                                    disabled={removePetLoading}
+                                                >
+                                                    <Trash className="w-5 h-5" />
+                                                </button>
+                                            </div>
                                             <p className="text-sm text-gray-500">
-                                                {pet.species} • {pet.breed} • {pet.age} years old
+                                                <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full mr-2">
+                                                    {pet.species}
+                                                </span>
+                                                {pet.breed && (
+                                                    <span className="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full mr-2">
+                                                        {pet.breed}
+                                                    </span>
+                                                )}
+                                                <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                                                    {pet.age} {pet.age === 1 ? 'year' : 'years'} old
+                                                </span>
                                             </p>
-                                            <p className="text-sm mt-1">{pet.description}</p>
+                                            {pet.description && (
+                                                <p className="text-sm mt-2 text-gray-700">{pet.description}</p>
+                                            )}
                                         </div>
-                                        <button
-                                            onClick={() => pet._id && handleRemovePet(pet._id)}
-                                            className="text-red-500 hover:text-red-700"
-                                            aria-label="Remove pet"
-                                        >
-                                            <Trash className="w-5 h-5" />
-                                        </button>
                                     </div>
-                                ))
-                            ) : (
-                                <div className="text-center py-8">
-                                    <p className="text-gray-500">You haven't added any pets yet.</p>
-                                    <button
-                                        onClick={() => setIsAddingPet(true)}
-                                        className="mt-2 text-blue-600 hover:text-blue-800"
-                                    >
-                                        Add your first pet
-                                    </button>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-10 bg-gray-50 rounded-lg">
+                                <div className="flex justify-center mb-4">
+                                    <div className="bg-blue-100 h-16 w-16 rounded-full flex items-center justify-center">
+                                        <UserCircle className="h-8 w-8 text-blue-600" />
+                                    </div>
                                 </div>
-                            )}
-                        </div>
+                                <h3 className="text-lg font-semibold mb-2">No Pets Added Yet</h3>
+                                <p className="text-gray-600 mb-4">Add your pets to keep track of their information.</p>
+                                <button
+                                    onClick={() => setIsAddingPet(true)}
+                                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+                                >
+                                    Add Your First Pet
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -927,48 +1026,83 @@ const ProfilePage = () => {
                 {activeTab === 'saved' && (
                     <div className="bg-white rounded-lg shadow-md p-6">
                         <h2 className="text-xl font-bold mb-6">Saved Pets</h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {profile && profile.savedPets && profile.savedPets.length > 0 ? (
-                                profile.savedPets.map((pet) => (
+                        
+                        {profile.savedPets.length > 0 ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {profile.savedPets.map((pet) => (
                                     <div
                                         key={pet._id}
                                         className="border rounded-lg overflow-hidden hover:shadow-md transition-shadow"
                                     >
-                                        <div className="h-48 bg-gray-200">
+                                        <div className="h-48 bg-gray-200 relative">
                                             {pet.images && pet.images.length > 0 ? (
-                                                <img src={pet.images[0]} alt={pet.name} className="h-full w-full object-cover" />
+                                                <img 
+                                                    src={pet.images[0]} 
+                                                    alt={pet.name} 
+                                                    className="h-full w-full object-cover" 
+                                                />
                                             ) : (
                                                 <div className="h-full flex items-center justify-center bg-blue-100 text-blue-600">
-                                                    <span className="text-2xl">No Image</span>
+                                                    <span className="text-2xl">{pet.name.charAt(0)}</span>
                                                 </div>
                                             )}
-                                        </div>
-                                        <div className="p-4">
-                                            <h3 className="font-bold">{pet.name}</h3>
-                                            <p className="text-sm text-gray-600">
-                                                {pet.breed} • {pet.age ? `${pet.age} years old` : 'Age unknown'}
-                                            </p>
-                                            <button
-                                                className="mt-2 text-blue-600 hover:text-blue-800 text-sm"
-                                                onClick={() => navigate(`/pets/${pet._id}`)}
+                                            <button 
+                                                onClick={() => handleRemoveSavedPet(pet._id)}
+                                                className="absolute top-2 right-2 bg-white p-1.5 rounded-full shadow-md text-gray-500 hover:text-red-500"
+                                                aria-label="Remove from saved"
+                                                disabled={removeSavedLoading}
                                             >
-                                                View Details
+                                                <Trash className="w-4 h-4" />
                                             </button>
                                         </div>
+                                        <div className="p-4">
+                                            <h3 className="font-bold text-lg">{pet.name}</h3>
+                                            <div className="mt-2 space-y-2">
+                                                <div className="flex flex-wrap gap-2">
+                                                    {pet.type && (
+                                                        <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                                                            {pet.type}
+                                                        </span>
+                                                    )}
+                                                    {pet.breed && (
+                                                        <span className="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">
+                                                            {pet.breed}
+                                                        </span>
+                                                    )}
+                                                    {pet.age && (
+                                                        <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                                                            {pet.age} {typeof pet.age === 'number' && pet.age === 1 ? 'year' : 'years'} old
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <button
+                                                    className="w-full mt-4 text-blue-600 hover:text-blue-800 border border-blue-600 hover:border-blue-800 px-3 py-1.5 rounded-md text-sm transition-colors"
+                                                    onClick={() => navigate(`/pets/${pet._id}`)}
+                                                >
+                                                    View Details
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
-                                ))
-                            ) : (
-                                <div className="col-span-full text-center py-8">
-                                    <p className="text-gray-500">You haven't saved any pets yet.</p>
-                                    <button
-                                        onClick={() => navigate('/findpets')}
-                                        className="mt-2 text-blue-600 hover:text-blue-800"
-                                    >
-                                        Find pets to save
-                                    </button>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-10 bg-gray-50 rounded-lg">
+                                <div className="flex justify-center mb-4">
+                                    <div className="bg-pink-100 h-16 w-16 rounded-full flex items-center justify-center">
+                                        <Heart className="h-8 w-8 text-pink-600" />
+                                    </div>
                                 </div>
-                            )}
-                        </div>
+                                <h3 className="text-lg font-semibold mb-2">No Saved Pets Yet</h3>
+                                <p className="text-gray-600 mb-4">Browse and save pets you're interested in adopting.</p>
+                                <button
+                                    onClick={() => navigate('/findpets')}
+                                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+                                >
+                                    Find Pets
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

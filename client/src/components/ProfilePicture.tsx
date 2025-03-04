@@ -29,24 +29,22 @@ const ProfilePicture: React.FC<ProfilePictureProps> = ({
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-
+    
         try {
             setIsUploading(true);
-
-            // Upload the image using our CloudinaryService
             const result = await uploadImage(file);
-
+    
             // Update state with the new image URL
             setImage(result.url);
-
+    
             // Call parent's callback with new URL
             onImageUploaded(result.url);
-
+    
             // Close the edit mode
             setIsEditing(false);
         } catch (error) {
             console.error('Error uploading profile picture:', error);
-            // You could add error handling here (e.g., show an error message)
+            // Add error handling here
         } finally {
             setIsUploading(false);
         }

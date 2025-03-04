@@ -34,8 +34,11 @@ const profileResolvers: IResolvers = {
             if (!context.user) {
                 throw new AuthenticationError('You need to be logged in!');
             }
-
+        
             try {
+                // Log the input for debugging
+                console.log('Update profile input:', input);
+                
                 // Find and update profile
                 const updatedProfile = await Profile.findByIdAndUpdate(
                     context.user._id,
@@ -48,11 +51,11 @@ const profileResolvers: IResolvers = {
                     },
                     { new: true, runValidators: true }
                 );
-
+        
                 if (!updatedProfile) {
                     throw new Error('Profile not found');
                 }
-
+        
                 return updatedProfile;
             } catch (error) {
                 console.error('Error updating profile:', error);
