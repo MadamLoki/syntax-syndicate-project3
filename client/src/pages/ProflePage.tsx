@@ -144,7 +144,7 @@ const ProfilePage = () => {
         username: '',
         email: '',
     });
-    
+
     // Pet data
     const [newPet, setNewPet] = useState<UserPet>({
         name: '',
@@ -230,7 +230,7 @@ const ProfilePage = () => {
             showMessage(`Error: ${error.message}`, 'error');
         },
     });
-    
+
     const [removeSavedPet, { loading: removeSavedLoading }] = useMutation(REMOVE_SAVED_PET, {
         onCompleted: () => {
             showMessage('Pet removed from favorites!', 'success');
@@ -458,7 +458,7 @@ const ProfilePage = () => {
             });
         }
     };
-    
+
     // Handle removing a saved pet
     const handleRemoveSavedPet = (petId: string) => {
         if (window.confirm('Are you sure you want to remove this pet from your saved pets?')) {
@@ -573,7 +573,7 @@ const ProfilePage = () => {
                         <div className="text-center md:text-left flex-1">
                             <h1 className="text-2xl font-bold">{profile.username}</h1>
                             <p className="text-gray-600">{profile.email}</p>
-                            
+
                             <div className="mt-4 flex flex-wrap justify-center md:justify-start gap-4">
                                 <div className="flex items-center bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm">
                                     <UserCircle className="w-4 h-4 mr-1" />
@@ -591,12 +591,11 @@ const ProfilePage = () => {
                 {/* Message Banner */}
                 {message.text && (
                     <div
-                        className={`p-4 mb-6 rounded-md ${
-                            message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
-                            message.type === 'warning' ? 'bg-yellow-50 text-yellow-700 border border-yellow-200' :
-                            message.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
-                            'bg-blue-50 text-blue-700 border border-blue-200'
-                        }`}
+                        className={`p-4 mb-6 rounded-md ${message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
+                                message.type === 'warning' ? 'bg-yellow-50 text-yellow-700 border border-yellow-200' :
+                                    message.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
+                                        'bg-blue-50 text-blue-700 border border-blue-200'
+                            }`}
                     >
                         {message.text}
                     </div>
@@ -605,31 +604,28 @@ const ProfilePage = () => {
                 {/* Tab Navigation */}
                 <div className="flex border-b border-gray-200 mb-8">
                     <button
-                        className={`py-4 px-6 font-medium ${
-                            activeTab === 'profile'
-                            ? 'text-blue-600 border-b-2 border-blue-600'
-                            : 'text-gray-500 hover:text-gray-700'
-                        }`}
+                        className={`py-4 px-6 font-medium ${activeTab === 'profile'
+                                ? 'text-blue-600 border-b-2 border-blue-600'
+                                : 'text-gray-500 hover:text-gray-700'
+                            }`}
                         onClick={() => setActiveTab('profile')}
                     >
                         Profile Information
                     </button>
                     <button
-                        className={`py-4 px-6 font-medium ${
-                            activeTab === 'pets'
-                            ? 'text-blue-600 border-b-2 border-blue-600'
-                            : 'text-gray-500 hover:text-gray-700'
-                        }`}
+                        className={`py-4 px-6 font-medium ${activeTab === 'pets'
+                                ? 'text-blue-600 border-b-2 border-blue-600'
+                                : 'text-gray-500 hover:text-gray-700'
+                            }`}
                         onClick={() => setActiveTab('pets')}
                     >
                         My Pets
                     </button>
                     <button
-                        className={`py-4 px-6 font-medium ${
-                            activeTab === 'saved'
-                            ? 'text-blue-600 border-b-2 border-blue-600'
-                            : 'text-gray-500 hover:text-gray-700'
-                        } relative`}
+                        className={`py-4 px-6 font-medium ${activeTab === 'saved'
+                                ? 'text-blue-600 border-b-2 border-blue-600'
+                                : 'text-gray-500 hover:text-gray-700'
+                            } relative`}
                         onClick={() => setActiveTab('saved')}
                     >
                         Saved Pets
@@ -1026,7 +1022,7 @@ const ProfilePage = () => {
                 {activeTab === 'saved' && (
                     <div className="bg-white rounded-lg shadow-md p-6">
                         <h2 className="text-xl font-bold mb-6">Saved Pets</h2>
-                        
+
                         {profile.savedPets.length > 0 ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {profile.savedPets.map((pet) => (
@@ -1036,17 +1032,17 @@ const ProfilePage = () => {
                                     >
                                         <div className="h-48 bg-gray-200 relative">
                                             {pet.images && pet.images.length > 0 ? (
-                                                <img 
-                                                    src={pet.images[0]} 
-                                                    alt={pet.name} 
-                                                    className="h-full w-full object-cover" 
+                                                <img
+                                                    src={pet.images[0]}
+                                                    alt={pet.name}
+                                                    className="h-full w-full object-cover"
                                                 />
                                             ) : (
                                                 <div className="h-full flex items-center justify-center bg-blue-100 text-blue-600">
                                                     <span className="text-2xl">{pet.name.charAt(0)}</span>
                                                 </div>
                                             )}
-                                            <button 
+                                            <button
                                                 onClick={() => handleRemoveSavedPet(pet._id)}
                                                 className="absolute top-2 right-2 bg-white p-1.5 rounded-full shadow-md text-gray-500 hover:text-red-500"
                                                 aria-label="Remove from saved"
@@ -1079,34 +1075,34 @@ const ProfilePage = () => {
                                                     className="w-full mt-4 text-blue-600 hover:text-blue-800 border border-blue-600 hover:border-blue-800 px-3 py-1.5 rounded-md text-sm transition-colors"
                                                     onClick={() => navigate(`/pets/${pet._id}`)}
                                                 >
-                                                    View Details
-                                                </button>
-                                            </div>
+                                                View Details
+                                            </button>
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="text-center py-10 bg-gray-50 rounded-lg">
-                                <div className="flex justify-center mb-4">
-                                    <div className="bg-pink-100 h-16 w-16 rounded-full flex items-center justify-center">
-                                        <Heart className="h-8 w-8 text-pink-600" />
                                     </div>
-                                </div>
-                                <h3 className="text-lg font-semibold mb-2">No Saved Pets Yet</h3>
-                                <p className="text-gray-600 mb-4">Browse and save pets you're interested in adopting.</p>
-                                <button
-                                    onClick={() => navigate('/findpets')}
-                                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-                                >
-                                    Find Pets
-                                </button>
-                            </div>
-                        )}
+                        ))}
                     </div>
-                )}
+                ) : (
+                <div className="text-center py-10 bg-gray-50 rounded-lg">
+                    <div className="flex justify-center mb-4">
+                        <div className="bg-pink-100 h-16 w-16 rounded-full flex items-center justify-center">
+                            <Heart className="h-8 w-8 text-pink-600" />
+                        </div>
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">No Saved Pets Yet</h3>
+                    <p className="text-gray-600 mb-4">Browse and save pets you're interested in adopting.</p>
+                    <button
+                        onClick={() => navigate('/findpets')}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+                    >
+                        Find Pets
+                    </button>
+                </div>
+                        )}
             </div>
+                )}
         </div>
+        </div >
     );
 };
 

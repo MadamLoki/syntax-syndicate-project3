@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Heart, X, MapPin, Calendar, Tag, Mail, Phone } from 'lucide-react';
 import { useMutation } from '@apollo/client';
 import { useAuth } from '../auth/AuthContext';
@@ -61,6 +62,7 @@ interface PetDetailProps {
 }
 
 const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
+    const navigate = useNavigate();
     const { isLoggedIn } = useAuth();
     const [isSaved, setIsSaved] = useState<boolean>(false);
     const [saveError, setSaveError] = useState<string | null>(null);
@@ -80,13 +82,13 @@ const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
             alert('Please log in to save pets');
             return;
         }
-    
+
         try {
             // Pre-process images to get just the URLs
-            const images = pet.photos && pet.photos.length > 0 
+            const images = pet.photos && pet.photos.length > 0
                 ? pet.photos.map(photo => photo.medium || photo.small || photo.large).filter(Boolean)
                 : [];
-            
+
             // Simplified input structure based on what our backend expects
             const petInput = {
                 externalId: pet.id,
@@ -106,7 +108,7 @@ const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
             await savePet({
                 variables: { input: petInput }
             });
-            
+
             setIsSaved(true);
             setSaveError(null);
         } catch (err) {
@@ -334,6 +336,15 @@ const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
                                         Login to Save
                                     </button>
                                 )}
+                                <button
+                                    className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+                                    onClick={() => {
+                                        onClose(); 
+                                        navigate(`/pets/${pet.id}`);
+                                    }}
+                                >
+                                    View Details
+                                </button>
                             </div>
                         </div>
                     </div>

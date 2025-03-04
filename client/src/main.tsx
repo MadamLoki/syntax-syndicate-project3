@@ -14,6 +14,7 @@ import About from './pages/About'
 import ThreadListPage from './pages/ThreadList'
 import CreateThreadForm from './pages/CreateThreadForm'
 import ProfilePage from './pages/ProflePage'
+import PetDetails from './components/pets/PetDetails'
 
 
 const router = createBrowserRouter([
@@ -40,6 +41,11 @@ const router = createBrowserRouter([
         {
           path: '/findpets',
           element: <PetSearch />,
+          errorElement: <Error />,
+        },
+        {
+          path: '/pets/:id',
+          element: <PetDetails />,
           errorElement: <Error />,
         },
         {

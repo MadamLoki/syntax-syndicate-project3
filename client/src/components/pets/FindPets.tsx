@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ApolloError } from '@apollo/client';
 import { useQuery, useLazyQuery } from '@apollo/client';
 import { Search, Filter, MapPin, Heart } from 'lucide-react';
@@ -104,6 +105,7 @@ interface Filters {
 }
 
 const PetSearch = () => {
+    const navigate = useNavigate();
     // Initialize filters from localStorage with zipcode
     const [filters, setFilters] = useState<Filters>(() => {
         const savedFilters = localStorage.getItem('petSearchFilters');
@@ -497,9 +499,9 @@ const PetSearch = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                     {petsData?.searchPetfinderPets?.animals?.map((pet: Pet) => (
                         <div 
-                            key={pet.id} 
+                        key={pet.id} 
                             className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden transition-transform duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
-                            onClick={() => setSelectedPet(pet)}
+                            onClick={() => navigate(`/pets/${pet.id}`)}
                             aria-label={`View details for ${pet.name}`}
                         >
                             <div className="relative h-48">
