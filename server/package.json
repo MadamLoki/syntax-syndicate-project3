@@ -5,7 +5,7 @@
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc",
-    "seed": "ts-node ../src/config/dbschema/schema.ts",
+    "seed": "ts-node ../src/config/dbschema/schema.js",
     "start": "node dist/server.js",
     "start:prod": "NODE_ENV=production node dist/server.js",
     "watch": "nodemon dist/server.js",
