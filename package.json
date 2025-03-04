@@ -5,14 +5,15 @@
   "main": "server.js",
   "scripts": {
     "test": "test",
+    "seed": "cd server && npm run seed",
     "start": "cd server && npm run build && node dist/server.js",
     "dev": "concurrently \"cd server && npm run watch\" \"cd client && npm run dev\"",
     "dev:build": "npm run build && concurrently \"cd server && npm run watch\" \"cd client && npm run dev\"",
     "setup": "cd server && npm i && cd ../client && npm i",
     "build": "cd server && npm i && npm run build && cd ../client && npm i && npm run build",
     "render-build": "npm install && cd server && npm install && cd ../client && npm install && cd .. && npm run build",
-    "render-start": "cd server && npm start",
-    "render-seed": "cd server && npm run seed"
+    "render-start": "cd server && npm start"
+ 
   },
   "author": "",
   "license": "ISC",
