@@ -31,10 +31,11 @@ type Thread {
   updatedAt: String!
 }
 
+# Use only this CreateThreadInput definition
 input CreateThreadInput {
   title: String!
   content: String!
-  threadType: String!
+  threadType: String!    # "ADOPTION" or "SURRENDER"
   pet: UserPetInput!
 }
 
@@ -48,29 +49,16 @@ type Comment {
   updatedAt: String!
 }
 
-# Input Types
-
-input CreateThreadInput {
-  title: String!
-  content: String!
-  threadType: String!    # "ADOPTION" or "SURRENDER"
-  petId: ID              # Provide the pet's ID instead of images
-}
-
 input CreateCommentInput {
   threadId: ID!
   content: String!
   parentCommentId: ID  
 }
 
-# Queries
-
 type Query {
   threads: [Thread]               
   thread(id: ID!): Thread           
 }
-
-# Mutations
 
 type Mutation {
   createThread(input: CreateThreadInput!): Thread!
