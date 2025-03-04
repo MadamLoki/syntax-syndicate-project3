@@ -42,7 +42,8 @@ const profileResolvers: IResolvers = {
                     {
                         $set: {
                             ...(input.username && { username: input.username }),
-                            ...(input.email && { email: input.email })
+                            ...(input.email && { email: input.email }),
+                            ...(input.profileImage && { profileImage: input.profileImage })
                         }
                     },
                     { new: true, runValidators: true }

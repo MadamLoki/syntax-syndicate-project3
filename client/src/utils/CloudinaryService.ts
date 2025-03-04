@@ -10,7 +10,7 @@ const UPLOAD_IMAGE = gql`
 `;
 
 // Helper function to convert a file to base64
-const fileToBase64 = (file: File): Promise<string> => {
+export const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
@@ -41,9 +41,9 @@ export const useImageUpload = () => {
                 throw new Error('Invalid file type. Please upload a JPG, PNG, GIF, or WebP image.');
             }
 
-            // Validate file size (10MB limit)
-            if (file.size > 10 * 1024 * 1024) {
-                throw new Error('File is too large. Maximum size is 10MB.');
+            // Validate file size (5 limit)
+            if (file.size > 5 * 1024 * 1024) {
+                throw new Error('File is too large. Maximum size is 5MB.');
             }
 
             // Call progress callback at start if provided
@@ -84,11 +84,10 @@ export const useImageUpload = () => {
     return { uploadImage };
 };
 
-// For non-component contexts or services, you need to pass in the client
-export const uploadImage = async (
+// Non-hook version for utility functions
+export const uploadImageDirectly = async (
     file: File,
-    onProgress?: (progress: number) => void,
-    client?: any // Optional Apollo client from context
+    onProgress?: (progress: number) => void
 ): Promise<{
     url: string;
     publicId: string;
@@ -122,8 +121,7 @@ export const uploadImage = async (
             onProgress(40);
         }
 
-        // Make a direct fetch request if no Apollo client is provided
-        // This avoids the need for dynamic import of Apollo client
+        // Make a direct fetch request
         const token = localStorage.getItem('id_token');
         const headers: HeadersInit = {
             'Content-Type': 'application/json'
@@ -137,7 +135,14 @@ export const uploadImage = async (
             method: 'POST',
             headers,
             body: JSON.stringify({
-                query: UPLOAD_IMAGE.loc?.source.body,
+                query: `
+                mutation UploadImage($file: String!) {
+                    uploadImage(file: $file) {
+                    url
+                    publicId
+                    }
+                }
+                `,
                 variables: { file: base64String }
             })
         });
@@ -165,6 +170,7 @@ export const uploadImage = async (
     }
 };
 
+// Helper functions for image management
 export const deleteImage = async (publicId: string): Promise<{ success: boolean; message: string }> => {
     try {
         if (!publicId) {

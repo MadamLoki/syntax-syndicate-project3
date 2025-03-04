@@ -18,7 +18,7 @@ const GET_USER_PROFILE = gql`
         _id
         username
         email
-        profileImageUrl
+        profileImage
         savedPets {
             _id
             name
@@ -93,7 +93,7 @@ interface UserProfile {
     _id: string;
     username: string;
     email: string;
-    profileImageUrl?: string;
+    profileImage?: string;
     savedPets: SavedPet[];
     userPets: UserPet[];
 }
@@ -123,6 +123,7 @@ const ProfilePage = () => {
         username: '',
         email: '',
     });
+    const [profileImage, setProfileImage] = useState<string | undefined>(undefined);
 
     // Pet data
     const [newPet, setNewPet] = useState<UserPet>({
@@ -172,6 +173,8 @@ const ProfilePage = () => {
                     username: data.me.username,
                     email: data.me.email,
                 });
+                // Use the correct field name
+                setProfileImage(data.me.profileImage || undefined);
             }
         },
         fetchPolicy: 'network-only',
@@ -357,6 +360,19 @@ const ProfilePage = () => {
         });
     };
 
+    const handleProfileImageUploaded = (url: string) => {
+        setProfileImage(url);
+
+        // Immediately update the profile with the new image
+        updateProfile({
+            variables: {
+                input: {
+                    profileImage: url
+                }
+            }
+        });
+    };
+
     // Handle form submission for adding a pet
     const handleAddPet = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -501,11 +517,10 @@ const ProfilePage = () => {
                         {/* Profile Picture */}
                         <div>
                             <ProfilePicture
-                                currentImageUrl={profile?.profileImageUrl}
-                                username={profile?.username || ''}
-                                onImageUpdated={(newImageUrl) => {
-                                    refetch();
-                                }}
+                                initialImage={profileImage}
+                                username={profile?.username}
+                                onImageUploaded={handleProfileImageUploaded}
+                                editable={true}
                             />
                         </div>
                         <div className="text-center md:text-left">
@@ -583,60 +598,75 @@ const ProfilePage = () => {
                             )}
                         </div>
 
-                        {isEditing ? (
-                            <form onSubmit={handleUpdateProfile}>
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Username
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={editableProfile.username}
-                                            onChange={(e) =>
-                                                setEditableProfile({ ...editableProfile, username: e.target.value })
-                                            }
-                                            className="w-full p-2 border rounded-md"
-                                            required
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Email
-                                        </label>
-                                        <input
-                                            type="email"
-                                            value={editableProfile.email}
-                                            onChange={(e) =>
-                                                setEditableProfile({ ...editableProfile, email: e.target.value })
-                                            }
-                                            className="w-full p-2 border rounded-md"
-                                            required
-                                        />
-                                    </div>
-                                    <div className="pt-4">
-                                        <button
-                                            type="submit"
-                                            disabled={updateLoading}
-                                            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-blue-300"
-                                        >
-                                            {updateLoading ? 'Saving...' : 'Save Changes'}
-                                        </button>
-                                    </div>
-                                </div>
-                            </form>
-                        ) : (
-                            <div className="space-y-4">
-                                <div>
-                                    <h3 className="text-sm font-medium text-gray-500">Username</h3>
-                                    <p>{profile?.username}</p>
-                                </div>
-                                <div>
-                                    <h3 className="text-sm font-medium text-gray-500">Email</h3>
-                                    <p>{profile?.email}</p>
-                                </div>
+                        <div className="flex flex-col md:flex-row gap-6">
+                            {/* Profile Picture */}
+                            <div className="flex flex-col items-center">
+                                <ProfilePicture
+                                    initialImage={profileImage || (profile?.profileImage || '')}
+                                    username={profile?.username}
+                                    onImageUploaded={handleProfileImageUploaded}
+                                    editable={true} // Set to true to allow editing
+                                />
                             </div>
-                        )}
+
+                            {/* Profile Details */}
+                            <div className="flex-1">
+                                {isEditing ? (
+                                    <form onSubmit={handleUpdateProfile}>
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    Username
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={editableProfile.username}
+                                                    onChange={(e) =>
+                                                        setEditableProfile({ ...editableProfile, username: e.target.value })
+                                                    }
+                                                    className="w-full p-2 border rounded-md"
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    Email
+                                                </label>
+                                                <input
+                                                    type="email"
+                                                    value={editableProfile.email}
+                                                    onChange={(e) =>
+                                                        setEditableProfile({ ...editableProfile, email: e.target.value })
+                                                    }
+                                                    className="w-full p-2 border rounded-md"
+                                                    required
+                                                />
+                                            </div>
+                                            <div className="pt-4">
+                                                <button
+                                                    type="submit"
+                                                    disabled={updateLoading}
+                                                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-blue-300"
+                                                >
+                                                    {updateLoading ? 'Saving...' : 'Save Changes'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                ) : (
+                                    <div className="space-y-4">
+                                        <div>
+                                            <h3 className="text-sm font-medium text-gray-500">Username</h3>
+                                            <p>{profile?.username}</p>
+                                        </div>
+                                        <div>
+                                            <h3 className="text-sm font-medium text-gray-500">Email</h3>
+                                            <p>{profile?.email}</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 )}
 

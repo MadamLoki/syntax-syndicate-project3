@@ -16,7 +16,7 @@ type Profile {
   username: String!
   email: String!
   name: String
-  profileImageUrl: String
+  profileImage: String
   savedPets: [Pet]
   userPets: [UserPet]
 }
@@ -41,7 +41,7 @@ input ProfileInput {
 input UpdateProfileInput {
   username: String
   email: String
-  profileImageUrl: String
+  profileImage: String
 }
 
 type ImageUploadResponse {

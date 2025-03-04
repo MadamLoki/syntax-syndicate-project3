@@ -8,6 +8,7 @@ export const LOGIN_USER = gql`
         _id
         username
         email
+        profileImage
       }
     }
   }
@@ -21,6 +22,7 @@ export const ADD_PROFILE = gql`
         _id
         name
         email
+        profileImage
       }
     }
   }
@@ -32,7 +34,7 @@ export const UPDATE_PROFILE_IMAGE = gql`
       _id
       username
       email
-      profileImageUrl
+      profileImage
     }
   }
 `;
@@ -43,7 +45,7 @@ export const UPDATE_PROFILE = gql`
       _id
       username
       email
-      profileImageUrl
+      profileImage
     }
   }
 `;
