@@ -2,16 +2,14 @@ import React, { useState } from 'react';
 import { ArrowRight, Search, Heart, PawPrint, Home, Users, MessageSquare, Info } from 'lucide-react';
 
 const LandingPage = () => {
-    // Using a local navigate function that would be replaced by the actual React Router hook
-    const navigate = (path) => {
+    const navigate = (path: string) => {
         console.log(`Navigating to: ${path}`);
-        // This would be replaced by the actual navigation
     };
     
     const [searchInput, setSearchInput] = useState('');
 
     // Handle search input changes
-    const handleSearchInputChange = (e) => {
+    const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchInput(e.target.value);
     };
 
@@ -51,7 +49,7 @@ const LandingPage = () => {
     };
 
     // Handle form submission (when user presses Enter)
-    const handleSubmit = (e) => {
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         handleSearch();
     };
@@ -168,7 +166,7 @@ const LandingPage = () => {
                             </button>
                         </form>
                         <div className="text-sm text-gray-500 mt-2">
-                            Examples: "Dog", "Cat", "10001", or browse all available pets
+                            Examples: "Dog", "Cat", Zipcode, or browse all available pets
                         </div>
                     </div>
                 </div>
