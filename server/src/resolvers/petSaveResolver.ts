@@ -36,7 +36,7 @@ const petSaveResolver: IResolvers = {
 
             try {
                 // Log input for debugging
-                console.log('Saving Petfinder pet with input:', JSON.stringify(input, null, 2));
+                // console.log('Saving Petfinder pet with input:', JSON.stringify(input, null, 2));
                 
                 // Validate required fields
                 if (!input.externalId || !input.name || !input.type) {
