@@ -15,6 +15,7 @@ import ThreadListPage from './pages/ThreadList'
 import CreateThreadForm from './pages/CreateThreadForm'
 import ProfilePage from './pages/ProflePage'
 import PetDetails from './components/pets/PetDetails'
+import Shelters from './components/shelters/Shelters'
 
 
 const router = createBrowserRouter([
@@ -67,7 +68,12 @@ const router = createBrowserRouter([
           path: '/profile',
           element: <ProfilePage />,
           errorElement: <Error />,
-        }
+        },
+        {
+          path: '/shelters',
+          element: <Shelters />,
+          errorElement: <Error />,
+        },
       ]
     }
   ])
