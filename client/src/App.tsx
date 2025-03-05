@@ -1,16 +1,31 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import { ApolloClient, InMemoryCache, ApolloProvider, createHttpLink } from '@apollo/client';
+import { ApolloClient, InMemoryCache, ApolloProvider, createHttpLink, from } from '@apollo/client';
 import { setContext } from '@apollo/client/link/context';
 import { RetryLink } from '@apollo/client/link/retry';
+import { onError } from '@apollo/client/link/error';
 
 import '../src/index.css';
 import { AuthProvider } from './components/auth/AuthContext';
 import NavBar from './components/layout/NavBar';
 import Footer from './components/layout/Footer';
 
+
 const httpLink = createHttpLink({
     uri: '/graphql'
+});
+
+const errorLink = onError(({ graphQLErrors, networkError }) => {
+    if (graphQLErrors) {
+        graphQLErrors.forEach(({ message, locations, path }) => {
+            console.error(
+                `[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`
+            );
+        });
+    }
+    if (networkError) {
+        console.error(`[Network error]: ${networkError}`);
+    }
 });
 
 const retryLink = new RetryLink({
@@ -20,9 +35,21 @@ const retryLink = new RetryLink({
         jitter: true
     },
     attempts: {
-        max: 5,
+        max: 5,         // Try up to 5 times
         retryIf: (error, _operation) => {
-            return !!error;
+            // Only retry on network errors or specific server errors
+            if (error.networkError) {
+                console.log('Retrying due to network error...');
+                return true;
+            }
+            
+            // Also retry on 503 Service Unavailable or 502 Bad Gateway
+            if (error.statusCode === 503 || error.statusCode === 502) {
+                console.log('Retrying due to server temporarily unavailable...');
+                return true;
+            }
+            
+            return false;
         }
     }
 });
@@ -50,6 +77,7 @@ const client = new ApolloClient({
             errorPolicy: 'all',
         },
     },
+    connectToDevTools: true // Enable Apollo DevTools
 });
 
 const AppContent = () => {
