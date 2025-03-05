@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { ApolloError } from '@apollo/client';
 import { useQuery, useLazyQuery } from '@apollo/client';
 import { Search, Filter, MapPin, Heart } from 'lucide-react';
@@ -105,7 +104,6 @@ interface Filters {
 }
 
 const PetSearch = () => {
-    const navigate = useNavigate();
     // Initialize filters from localStorage with zipcode
     const [filters, setFilters] = useState<Filters>(() => {
         const savedFilters = localStorage.getItem('petSearchFilters');
@@ -239,23 +237,12 @@ const PetSearch = () => {
     useEffect(() => {
         // Check if we already have search criteria from the filters
         const hasSearchCriteria = filters.type || filters.breed || filters.size || 
-                                filters.gender || filters.age || filters.location;
+                                 filters.gender || filters.age || filters.location;
         
         if (hasSearchCriteria) {
             handleSearch();
         }
     }, []);
-
-    // Handle opening the pet detail modal
-    const handlePetClick = (pet: Pet) => {
-        setSelectedPet(pet);
-    };
-
-    // Handle saving a pet directly from the card
-    const handleSavePetClick = (e: React.MouseEvent, pet: Pet) => {
-        e.stopPropagation(); // Prevent the card click event
-        setSelectedPet(pet); // Open the modal with this pet
-    };
 
     if (typesLoading) {
         return (
@@ -512,21 +499,23 @@ const PetSearch = () => {
                         <div 
                             key={pet.id} 
                             className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden transition-transform duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
-                            onClick={() => handlePetClick(pet)}
+                            onClick={() => setSelectedPet(pet)}
                             aria-label={`View details for ${pet.name}`}
                         >
                             <div className="relative h-48">
                                 <img 
-                                    src={pet.photos && pet.photos.length > 0 ? 
-                                        (pet.photos[0]?.medium || pet.photos[0]?.small || pet.photos[0]?.large) 
-                                        : "/api/placeholder/400/300"} 
+                                    src={pet.photos[0]?.medium || "/api/placeholder/400/300"} 
                                     alt={pet.name} 
                                     className="w-full h-full object-cover object-center" 
                                 />
                                 {isLoggedIn && (
                                     <button 
                                         className="absolute top-2 right-2 p-1.5 bg-white rounded-full text-gray-500 hover:text-pink-500 transition-colors"
-                                        onClick={(e) => handleSavePetClick(e, pet)}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            // Logic for saving pet will be handled in the modal
+                                            setSelectedPet(pet);
+                                        }}
                                         aria-label={`Save ${pet.name} to favorites`}
                                     >
                                         <Heart className="w-5 h-5" />
