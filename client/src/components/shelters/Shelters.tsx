@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { useState, useEffect } from "react";
 import { useQuery } from "@apollo/client";
 import axios from "axios";
@@ -103,7 +105,7 @@ const Shelters = () => {
       {loading && <p className="text-gray-500">Loading...</p>}
       {error && <p className="text-red-500">Error: {error.message}</p>}
 
-      <ul className="mt-4">
+      <ul className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {data?.shelters?.shelters?.map((shelter) => {
           const fullAddress = `${shelter.address.address1 || ""}, ${shelter.address.city}, ${shelter.address.state}`;
           const location = geoCache[fullAddress];

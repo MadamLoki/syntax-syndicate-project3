@@ -1,3 +1,7 @@
+// @ts-nocheck
+
+// 43.218338 -75.44852759999999 
+
 import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
 import { memo, useCallback, useState } from "react";
 
