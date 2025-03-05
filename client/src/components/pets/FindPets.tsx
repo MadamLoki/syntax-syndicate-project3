@@ -517,7 +517,9 @@ const PetSearch = () => {
                         >
                             <div className="relative h-48">
                                 <img 
-                                    src={pet.photos[0]?.medium || "/api/placeholder/400/300"} 
+                                    src={pet.photos && pet.photos.length > 0 ? 
+                                        (pet.photos[0]?.medium || pet.photos[0]?.small || pet.photos[0]?.large) 
+                                        : "/api/placeholder/400/300"} 
                                     alt={pet.name} 
                                     className="w-full h-full object-cover object-center" 
                                 />

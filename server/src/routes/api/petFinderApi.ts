@@ -68,24 +68,24 @@ class PetfinderAPI {
         // Start a new token refresh
         this.tokenRefreshPromise = (async () => {
             try {
-                // Form data for token request
-                const formData = new URLSearchParams({
-                    'grant_type': 'client_credentials',
-                    'client_id': this.apiKey,
-                    'client_secret': this.apiSecret,
-                });
+                // console.log('Requesting new token...');
+                // console.log('API Key length:', this.apiKey.length);
+                // console.log('API Secret length:', this.apiSecret.length);
                 
                 const response = await fetch(`${this.baseUrl}/oauth2/token`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
                     },
-                    body: formData,
+                    body: new URLSearchParams({
+                        'grant_type': 'client_credentials',
+                        'client_id': this.apiKey,
+                        'client_secret': this.apiSecret,
+                    }),
                 });
 
                 if (!response.ok) {
-                    const errorBody = await response.text();
-                    throw new Error(`Authentication failed (${response.status}): ${response.statusText} - ${errorBody}`);
+                    throw new Error(`Authentication failed: ${response.statusText}`);
                 }
 
                 const data = await response.json() as PetfinderAuthResponse;
@@ -101,12 +101,10 @@ class PetfinderAPI {
                 return this.token;
             } catch (error) {
                 console.error('Token refresh error:', error);
-                this.token = null;
-                this.tokenExpiration = 0;
-                
                 throw new ApolloError(
-                    'Failed to authenticate with Petfinder API: ' + (error instanceof Error ? error.message : 'Unknown error'),
-                    'PETFINDER_AUTH_ERROR'
+                    'Failed to authenticate with Petfinder API',
+                    'PETFINDER_AUTH_ERROR',
+                    { originalError: error }
                 );
             } finally {
                 this.tokenRefreshPromise = null;
@@ -116,23 +114,18 @@ class PetfinderAPI {
         return this.tokenRefreshPromise;
     }
 
-    public async getAuthToken(): Promise<string> {
-        return this.getToken();
-    }
-
     private async makeRequest<T>(endpoint: string, params: Record<string, any> = {}): Promise<T> {
         try {
             const token = await this.getToken();
-            console.log(`Making request to endpoint: ${endpoint}`);
+            //console.log(`Making request to endpoint: ${endpoint}`);
             
-            // Build query params, filtering out null/undefined/empty values
             const queryParams = Object.entries(params)
                 .filter(([_, value]) => value != null && value !== '')
                 .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
                 .join('&');
     
             const url = `${this.baseUrl}/${endpoint}${queryParams ? `?${queryParams}` : ''}`;
-            console.log('Request URL:', url);
+            //console.log('Request URL:', url);
     
             const response = await fetch(url, {
                 headers: {
@@ -141,45 +134,14 @@ class PetfinderAPI {
                 },
             });
     
-            // If response is not OK, handle error
             if (!response.ok) {
-                const errorText = await response.text();
-                let errorData;
-                
-                try {
-                    // Try to parse error as JSON
-                    errorData = JSON.parse(errorText);
-                } catch (e) {
-                    // If not JSON, use text as error
-                    errorData = { message: errorText };
-                }
-                
-                console.error('API Error Response:', {
-                    status: response.status,
-                    statusText: response.statusText,
-                    errorData
-                });
-                
-                // Handle specific error cases
-                if (response.status === 401) {
-                    // Clear token and retry once
-                    this.token = null;
-                    this.tokenExpiration = 0;
-                    
-                    // If first attempt, try again with new token
-                    if (!params._retry) {
-                        console.log('Auth error - retrying with new token');
-                        return this.makeRequest(endpoint, { ...params, _retry: true });
-                    }
-                    
-                    throw new Error('Authentication failed after token refresh');
-                }
-                
-                throw new Error(`API request failed: ${response.status} ${response.statusText}. ${errorData.message || 'Unknown error'}`);
+                const errorData = await response.json();
+                console.error('API Error Response:', errorData);
+                throw new Error(`API request failed: ${response.statusText}`);
             }
     
-            // Parse and return response data
             const data = await response.json();
+            //console.log('API Response Data:', JSON.stringify(data, nSull, 2));
             return data;
         } catch (error) {
             console.error('makeRequest error:', error);
@@ -189,18 +151,22 @@ class PetfinderAPI {
 
     public async getTypes(): Promise<string[]> {
         try {
+            //console.log('PetfinderAPI: Fetching pet types...');
             const response = await this.makeRequest<{ types: { name: string }[] }>('types');
-            
+            //console.log('Raw API response:', response); // Debug log
+    
             if (!response || !response.types) {
-                console.error('Invalid response from types endpoint:', response);
+                console.error('PetfinderAPI: Invalid response structure');
                 return [];
             }
-            
-            // Extract type names
-            return response.types.map(type => type.name);
+    
+            // Ensure we're properly extracting the type names
+            const types = response.types.map(type => type.name);
+            //console.log('Extracted types:', types); // Debug log
+    
+            return types;
         } catch (error) {
-            console.error('Error getting types:', error);
-            // Return empty array for non-critical errors
+            console.error('PetfinderAPI: Error in getTypes:', error);
             return [];
         }
     }
@@ -209,80 +175,31 @@ class PetfinderAPI {
         if (!type) {
             throw new Error('Type parameter is required');
         }
-        
-        try {
-            const response = await this.makeRequest<{ breeds: { name: string }[] }>(`types/${type.toLowerCase()}/breeds`);
-            
-            if (!response || !response.breeds || !Array.isArray(response.breeds)) {
-                console.error('Invalid breeds response:', response);
-                return [];
-            }
-            
-            return response.breeds.map((breed: { name: string }) => breed.name);
-        } catch (error) {
-            console.error(`Error fetching breeds for ${type}:`, error);
-            return [];
-        }
-    }
-
-    public async getPetById(id: string) {
-        if (!id) {
-            throw new Error('Pet ID is required');
-        }
-        
-        try {
-            console.log(`Making request to get pet with ID: ${id}`);
-            return this.makeRequest(`animals/${id}`);
-        } catch (error) {
-            console.error(`Error fetching pet with ID ${id}:`, error);
-            throw error;
-        }
+        const response = await this.makeRequest<{ breeds: { name: string }[] }>(`types/${type.toLowerCase()}/breeds`);
+           // Ensure the response has the expected structure
+        return response.breeds.map((breed: { name: string }) => breed.name);
     }
 
     public async searchPets(params: PetfinderSearchParams) {
-        // Sanitize input parameters
-        const sanitizedParams: Record<string, any> = {};
-        
-        // Process each parameter
-        if (params.type) sanitizedParams.type = params.type.toLowerCase();
-        if (params.breed) sanitizedParams.breed = params.breed;
-        if (params.size) sanitizedParams.size = params.size.toLowerCase();
-        if (params.gender) sanitizedParams.gender = params.gender.toLowerCase();
-        if (params.age) sanitizedParams.age = params.age.toLowerCase();
-        
-        // Process location and distance
-        if (params.location && params.location.trim()) {
-            sanitizedParams.location = params.location.trim();
-            if (params.distance) {
-                // Ensure distance is a number
-                sanitizedParams.distance = typeof params.distance === 'string' 
-                    ? parseInt(params.distance, 10) 
-                    : params.distance;
-            }
-        }
-        
-        // Pagination
-        sanitizedParams.limit = params.limit || 20;
-        sanitizedParams.page = params.page || 1;
-        
-        // Search term
-        if (params.name) sanitizedParams.name = params.name;
-        
-        // Default to adoptable status
-        sanitizedParams.status = 'adoptable';
-        
-        // Add sort by newest
-        sanitizedParams.sort = 'recent';
-        
-        console.log('Searching with sanitized parameters:', sanitizedParams);
-        
-        try {
-            const result = await this.makeRequest('animals', sanitizedParams);
-            return result;
-        } catch (error) {
-            console.error('Error in searchPets:', error);
-            throw error;
-        }
+        // Clean up parameters
+        const cleanParams: { [key: string]: any } = {
+            type: params.type?.toLowerCase(),
+            breed: params.breed,
+            size: params.size?.toLowerCase(),
+            gender: params.gender?.toLowerCase(),
+            age: params.age?.toLowerCase(),
+            location: params.location,
+            distance: params.distance,
+            limit: params.limit || 100,
+            name: params.name
+        };
+    
+        // Remove undefined or empty values
+        Object.keys(cleanParams).forEach(key => 
+            (cleanParams[key] === undefined || cleanParams[key] === '') && delete cleanParams[key]
+        );
+    
+        return this.makeRequest('animals', cleanParams);
     }
 }
 
