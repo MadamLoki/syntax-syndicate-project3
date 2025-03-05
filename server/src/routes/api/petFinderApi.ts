@@ -114,6 +114,10 @@ class PetfinderAPI {
         return this.tokenRefreshPromise;
     }
 
+    public async getAuthToken(): Promise<string> {
+        return this.getToken();
+    }
+
     private async makeRequest<T>(endpoint: string, params: Record<string, any> = {}): Promise<T> {
         try {
             const token = await this.getToken();
@@ -178,6 +182,20 @@ class PetfinderAPI {
         const response = await this.makeRequest<{ breeds: { name: string }[] }>(`types/${type.toLowerCase()}/breeds`);
            // Ensure the response has the expected structure
         return response.breeds.map((breed: { name: string }) => breed.name);
+    }
+
+    public async getPetById(id: string) {
+        if (!id) {
+            throw new Error('Pet ID is required');
+        }
+        
+        try {
+            console.log(`Making request to get pet with ID: ${id}`);
+            return this.makeRequest(`animals/${id}`);
+        } catch (error) {
+            console.error(`Error fetching pet with ID ${id}:`, error);
+            throw error;
+        }
     }
 
     public async searchPets(params: PetfinderSearchParams) {

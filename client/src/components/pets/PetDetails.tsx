@@ -1,84 +1,81 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, gql, useMutation } from '@apollo/client';
-import { ArrowLeft, Heart, Share, MapPin, Mail, Phone, Calendar, Check, X, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Heart, Share, MapPin, Mail, Phone, Calendar, Check, X } from 'lucide-react';
 import { ErrorMessage } from '../ErrorMessage';
 import { useAuth } from '../auth/AuthContext';
 import { SAVE_PET } from '../../utils/mutations';
 
-// GraphQL query for local database pets (MongoDB IDs)
-const GET_LOCAL_PET = gql`
-  query GetPet($id: ID!) {
-    pet(id: $id) {
-      _id
+// Separate query for Petfinder pets that accepts a direct ID
+const GET_PETFINDER_PET_BY_ID = gql`
+  query GetPetfinderPetById($id: ID!) {
+    getPetfinderPetById(id: $id) {
+      id
       name
       type
-      breed
+      breeds {
+        primary
+        secondary
+        mixed
+      }
       age
       gender
       size
       description
-      images
+      photos {
+        small
+        medium
+        large
+        full
+      }
       status
-      shelterId
-      source
+      contact {
+        email
+        phone
+        address {
+          address1
+          address2
+          city
+          state
+          postcode
+          country
+        }
+      }
+      attributes {
+        spayed_neutered
+        house_trained
+        declawed
+        special_needs
+        shots_current
+      }
+      environment {
+        children
+        dogs
+        cats
+      }
+      published_at
     }
   }
 `;
 
-// GraphQL query for Petfinder pets - Modified to search by ID only
-// The problem was in how we were passing the ID to the Petfinder API
-const GET_PETFINDER_PET = gql`
-  query SearchPetfinderPets($input: PetfinderSearchInput!) {
-    searchPetfinderPets(input: $input) {
-      animals {
-        id
-        name
-        type
-        breeds {
-          primary
-          secondary
-          mixed
+// GraphQL query for local database pets (MongoDB IDs)
+const GET_LOCAL_PET = gql`
+    query GetPet($id: ID!) {
+        pet(id: $id) {
+            _id
+            name
+            type
+            breed
+            age
+            gender
+            size
+            description
+            images
+            status
+            shelterId
+            source
         }
-        age
-        gender
-        size
-        description
-        photos {
-          small
-          medium
-          large
-          full
-        }
-        status
-        contact {
-          email
-          phone
-          address {
-            address1
-            address2
-            city
-            state
-            postcode
-            country
-          }
-        }
-        attributes {
-          spayed_neutered
-          house_trained
-          declawed
-          special_needs
-          shots_current
-        }
-        environment {
-          children
-          dogs
-          cats
-        }
-        published_at
-      }
     }
-  }
 `;
 
 // Fallback image if pet has no images
@@ -91,8 +88,8 @@ const PetDetails: React.FC = () => {
     const [isSaved, setIsSaved] = useState<boolean>(false);
     const [activeImage, setActiveImage] = useState<number>(0);
     const [showContact, setShowContact] = useState<boolean>(false);
-    const [isMapExpanded, setIsMapExpanded] = useState<boolean>(false);
     const [fetchError, setFetchError] = useState<string | null>(null);
+    const [pet, setPet] = useState<any>(null);
     
     // Determine if we're dealing with a MongoDB ID or an external ID
     const isMongoId = id?.match(/^[0-9a-fA-F]{24}$/);
@@ -105,54 +102,28 @@ const PetDetails: React.FC = () => {
     } = useQuery(GET_LOCAL_PET, {
         variables: { id },
         skip: !id || !isMongoId,
-        fetchPolicy: 'network-only',
         onError: (error) => {
             console.error('Error fetching local pet:', error);
             setFetchError(`Error fetching local pet: ${error.message}`);
         }
     });
 
-    // Petfinder query with better error handling
+    // Petfinder pet query
     const { 
         loading: externalLoading, 
         error: externalError, 
         data: externalData 
-    } = useQuery(GET_PETFINDER_PET, {
-        variables: { 
-            input: { 
-                // When using Petfinder ID, it likely needs a different approach
-                // The API probably expects name or other search params instead of ID directly
-                name: "",      // Use empty string as fallback
-                type: "",      // Use empty string as fallback
-                breed: "",     // Use empty string as fallback
-                page: 1,       // Start with first page
-                limit: 25      // Request reasonable number of results
-            } 
-        },
+    } = useQuery(GET_PETFINDER_PET_BY_ID, {
+        variables: { id },
         skip: !id || !!isMongoId || id.length === 0,
-        fetchPolicy: 'network-only',
         onError: (error) => {
             console.error('Error fetching Petfinder pet:', error);
             setFetchError(`Error fetching Petfinder pet: ${error.message}`);
-            
-            // Log additional details for debugging
-            if (error.networkError) {
-                console.error('Network error details:', error.networkError);
-            }
-            if (error.graphQLErrors) {
-                error.graphQLErrors.forEach((gqlError, i) => {
-                    console.error(`GraphQL error ${i}:`, gqlError);
-                });
-            }
         }
     });
 
-    // Normalize and store pet data
-    const [pet, setPet] = useState<any>(null);
-
-    // Process and normalize data from either source
+    // Process local data if available
     useEffect(() => {
-        // Process local data if available
         if (localData?.pet) {
             const localPet = localData.pet;
             setPet({
@@ -193,19 +164,15 @@ const PetDetails: React.FC = () => {
                     cats: false
                 }
             });
-        } 
-        // Process Petfinder data if available
-        else if (externalData?.searchPetfinderPets?.animals?.length > 0) {
-            // Find the pet with matching ID if possible
-            const matchingPet = externalData.searchPetfinderPets.animals.find(
-                (animal: any) => animal.id.toString() === id
-            );
-            
-            // If no exact match, just use the first pet
-            const externalPet = matchingPet || externalData.searchPetfinderPets.animals[0];
-            
+        }
+    }, [localData]);
+
+    // Process Petfinder data if available
+    useEffect(() => {
+        if (externalData?.getPetfinderPetById) {
+            const externalPet = externalData.getPetfinderPetById;
             setPet({
-                _id: externalPet.id, // Use external ID
+                _id: externalPet.id,
                 id: externalPet.id,
                 name: externalPet.name,
                 type: externalPet.type,
@@ -227,7 +194,7 @@ const PetDetails: React.FC = () => {
                 source: 'petfinder'
             });
         }
-    }, [localData, externalData, id]);
+    }, [externalData]);
 
     // Mutation to save a pet to favorites
     const [savePet, { loading: saveLoading }] = useMutation(SAVE_PET, {
