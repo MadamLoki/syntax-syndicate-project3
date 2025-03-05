@@ -286,7 +286,6 @@ type Query {
   pet(id: ID!): Pet
   getPetfinderTypes: [String!]!
   getPetfinderBreeds(type: String!): [String!]!
-  getPetfinderPetById(id: ID!): PetfinderAnimal
   searchPetfinderPets(input: PetfinderSearchInput): PetfinderResponse
 
   # Application Queries

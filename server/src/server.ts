@@ -1,4 +1,4 @@
-import express, { Request, Response, Express } from 'express';
+import express from 'express';
 import path from 'node:path';
 import { ApolloServer } from 'apollo-server-express';
 import jwt from 'jsonwebtoken';
@@ -36,53 +36,6 @@ app.get('/test-petfinder', async (_req, res) => {
         res.status(500).json({ error: (error as any).message });
     }
 });
-
-const petfinderTestHandler: express.RequestHandler = async (req, res): Promise<void> => {
-    const petId = req.params.id;
-    
-    try {
-        console.log(`Testing Petfinder API for pet ID: ${petId}`);
-        
-        // Get a token first
-        const token = await petfinderAPI.getAuthToken();
-        
-        if (!token) {
-            res.status(401).json({ error: 'Failed to get Petfinder API token' });
-            return;
-        }
-        
-        // Make a direct request to the Petfinder API
-        const url = `https://api.petfinder.com/v2/animals/${petId}`;
-        
-        console.log(`Making request to: ${url}`);
-        
-        const response = await fetch(url, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-            },
-        });
-        
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`Petfinder API error (${response.status}): ${errorText}`);
-            res.status(response.status).json({ 
-                error: `Petfinder API error: ${response.statusText}`,
-                details: errorText
-            });
-            return;
-        }
-        
-        const data = await response.json();
-        res.json(data);
-    } catch (error) {
-        console.error('Test route error:', error);
-        res.status(500).json({ error: 'Server error', message: String(error) });
-    }
-};
-
-// Then use the handler
-app.get('/test-petfinder/:id', petfinderTestHandler);
 
 // Add a debug endpoint that shows more information
 app.get('/debug-petfinder', async (_req, res) => {

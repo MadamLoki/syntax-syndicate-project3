@@ -239,7 +239,7 @@ const PetSearch = () => {
     useEffect(() => {
         // Check if we already have search criteria from the filters
         const hasSearchCriteria = filters.type || filters.breed || filters.size || 
-                                 filters.gender || filters.age || filters.location;
+                                filters.gender || filters.age || filters.location;
         
         if (hasSearchCriteria) {
             handleSearch();
