@@ -136,10 +136,28 @@ type PetfinderAnimal {
   age: String
   gender: String
   size: String
+  colors: PetfinderColors
   photos: [PetfinderPhoto]
   status: String
   attributes: PetfinderAttributes
+  environment: PetfinderEnvironment
+  organization_id: String
   contact: PetfinderContact
+  published_at: String
+  distance: Float
+  description: String
+}
+
+type PetfinderColors {
+  primary: String
+  secondary: String
+  tertiary: String
+}
+
+type PetfinderEnvironment {
+  children: Boolean
+  dogs: Boolean
+  cats: Boolean
 }
 
 type PetfinderPagination {
@@ -181,19 +199,47 @@ input PetfinderSaveInput {
   shelterId: String
 }
 
-# Shelter Types
-type Shelter {
-  _id: ID!
-  latitude: Float!
-  longitude: Float!
-  contactInfo: String!
-}
+# Shelter (Petfinder Organizations)
+    type ShelterAddress {
+        address1: String
+        address2: String
+        city: String
+        state: String
+        postcode: String
+        country: String
+    }
 
-input CreateShelterInput {
-  latitude: Float!
-  longitude: Float!
-  contactInfo: String!
-}
+    type Shelter {
+        id: ID!
+        name: String!
+        email: String
+        phone: String
+        website: String
+        mission_statement: String
+        address: ShelterAddress
+    }
+
+    type ShelterPagination {
+        count_per_page: Int
+        total_count: Int
+        current_page: Int
+        total_pages: Int
+    }
+
+    type ShelterResponse {
+        shelters: [Shelter]
+        pagination: ShelterPagination
+    }
+
+    input ShelterSearchInput {
+        name: String
+        location: String
+        distance: Int
+        state: String
+        country: String
+        page: Int
+        limit: Int
+    }
 
 # Application Types
 type Application {
@@ -264,8 +310,9 @@ type Query {
   applications: [Application]!
   application(id: ID!): Application
 
-  # Shelter Queries
-  shelters: [Shelter]!
+# Shelter Queries
+  shelters(location: String): ShelterResponse
+  searchShelters(input: ShelterSearchInput): ShelterResponse
 
   # Forum Queries
   threads: [Thread]
@@ -295,9 +342,6 @@ type Mutation {
 
   # Application Mutations
   createApplication(input: CreateApplicationInput!): Application!
-
-  # Shelter Mutations
-  createShelter(input: CreateShelterInput!): Shelter!
 
   # Forum Mutations
   createThread(input: CreateThreadInput!): Thread!
