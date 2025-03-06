@@ -22,7 +22,7 @@ const commentSchema = new Schema<Comment>(
         },
         author: {
             type: Schema.Types.ObjectId,ref: 'User', required: true },
-            parentComment: { type: Schema.Types.ObjectId, ref: 'Comment' },
+          
           },
           { timestamps: true }
         );

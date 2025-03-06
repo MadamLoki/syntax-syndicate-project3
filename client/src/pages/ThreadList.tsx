@@ -4,16 +4,20 @@ import ThreadDetails from './ThreadDetails';
 import { Link } from 'react-router-dom';
 
 const GET_THREADS = gql`
-  query GetThreads {
-    threads {
+  query GetThreads($id: ID!) {
+    threads (id: $id) {
       id
       title
       content
       threadType
-      pet {
+      pet(id: $id) {
+        id
         name
         species
         image
+        breed
+        age
+        description
       }
       createdAt
       author {
@@ -25,7 +29,14 @@ const GET_THREADS = gql`
 `;
 
 const ThreadListPage: React.FC = () => {
-  const { data, loading, error } = useQuery(GET_THREADS);
+  const { data, loading, error } = useQuery(GET_THREADS, {
+    onError: (error) => {
+      console.error('GraphQL Query Error:', error);
+      if (error.networkError && 'result' in error.networkError) {
+        console.error('Error Details:', (error.networkError as any).result);
+      }
+    }
+  });
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
 
   if (loading) return <p>Loading threads...</p>;

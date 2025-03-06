@@ -8,7 +8,8 @@ const GET_THREAD = gql`
       title
       content
       threadType
-      pet {
+      pet(id: $id) {
+        id
         name
         species
         breed
@@ -20,6 +21,7 @@ const GET_THREAD = gql`
       author {
         id
         username
+        email
       }
       comments {
         id
@@ -28,6 +30,7 @@ const GET_THREAD = gql`
         author {
           id
           username
+          email
         }
       }
     }
