@@ -21,7 +21,8 @@ const commentSchema = new Schema<Comment>(
             required: true,
         },
         author: {
-            type: Schema.Types.ObjectId,ref: 'User', required: true },
+            type: Schema.Types.ObjectId,ref: 'Profile', 
+            required: true },
           
           },
           { timestamps: true }
