@@ -130,6 +130,7 @@ const startApolloServer = async () => {
         context: async ({ req }: { req: express.Request }) => {
             const token = req.headers.authorization || '';
             const user = getUserFromToken(token);
+            console.log('User from token:', user);
             return { 
                 user,
                 petfinderAPI

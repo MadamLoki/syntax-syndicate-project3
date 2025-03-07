@@ -4,14 +4,14 @@ import ThreadDetails from './ThreadDetails';
 import { Link } from 'react-router-dom';
 
 const GET_THREADS = gql`
-  query GetThreads($id: ID!) {
-    threads (id: $id) {
-      id
+  query GetThreads {
+    threads {
+      _id
       title
       content
       threadType
-      pet(id: $id) {
-        id
+      pet {
+        _id
         name
         species
         image
@@ -21,7 +21,7 @@ const GET_THREADS = gql`
       }
       createdAt
       author {
-        id
+        _id
         username
       }
     }

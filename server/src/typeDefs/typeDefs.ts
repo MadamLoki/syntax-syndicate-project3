@@ -257,14 +257,14 @@ input CreateApplicationInput {
 }
 
 # Forum Types (Using nested pet object)
-type Thread {
-  id: ID!
+type thread {
+  _id: ID!
   title: String!
   content: String!
   threadType: String!    # "ADOPTION" or "SURRENDER"
   pet: UserPet!
   author: User!
-  comments: [Comment]
+  comments: [comment]
   createdAt: String!
   updatedAt: String!
 }
@@ -276,12 +276,12 @@ input CreateThreadInput {
   pet: UserPetInput!
 }
 
-type Comment {
-  id: ID!
-  thread: Thread!
+type comment {
+ _id: ID!
+  thread: thread!
   content: String!
   author: User!
-  parentComment: Comment
+ 
   createdAt: String!
   updatedAt: String!
 }
@@ -315,8 +315,8 @@ type Query {
   searchShelters(input: ShelterSearchInput): ShelterResponse
 
   # Forum Queries
-  threads: [Thread]
-  thread(id: ID!): Thread
+  threads: [thread]
+  thread(id: ID!): thread
 }
 
 # Mutations
@@ -344,8 +344,8 @@ type Mutation {
   createApplication(input: CreateApplicationInput!): Application!
 
   # Forum Mutations
-  createThread(input: CreateThreadInput!): Thread!
-  createComment(input: CreateCommentInput!): Comment!
+  createThread(input: CreateThreadInput!): thread!
+  createComment(input: CreateCommentInput!): comment!
 }
 `;
 

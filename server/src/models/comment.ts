@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
-export interface Comment extends Document {
+export interface comment extends Document {
     thread: mongoose.Types.ObjectId; // Reference to the thread
     content: string; // Content of the comment
     author: mongoose.Types.ObjectId; // Reference to the user who made the comment
@@ -9,7 +9,7 @@ export interface Comment extends Document {
     updatedAt: Date; // Timestamp of when the comment was last updated
 }
 
-const commentSchema = new Schema<Comment>(
+const commentSchema = new Schema<comment>(
     {
         thread: {
             type: Schema.Types.ObjectId,

@@ -53,7 +53,7 @@ const petSchema = new Schema<IUserPet>(
 
 
 
-const Thread = new Schema<IThread>(
+const thread = new Schema<IThread>(
   {
     title: {
       type: String,
@@ -77,4 +77,4 @@ const Thread = new Schema<IThread>(
   });
 
 
-export default mongoose.model<IThread>('Thread', Thread);
+export default mongoose.model<IThread>('thread', thread);

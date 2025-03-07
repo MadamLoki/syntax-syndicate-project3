@@ -10,34 +10,37 @@ const threadResolvers: IResolvers = {
   Query: {
     threads: async (_, __, context) => {
       try {
-        // Ensure the user is authenticated
-        if (!context.user) {
-          throw new AuthenticationError('You must be authenticated to view threads');
-        }
+        // Remove authentication check so that threads can be viewed publicly
+        // if (!context.user) {
+        //   throw new AuthenticationError('You must be authenticated to view threads');
+        // }
 
         const threads = await Thread.find()
           .populate({ path: 'author', model: 'Profile', select: 'username email' })
           .lean();
 
         return threads.map(thread => ({
-          id: thread._id.toString(),
+          _id: thread._id.toString(),
           title: thread.title,
           content: thread.content,
           threadType: thread.threadType,
-          pet: {
-            name: thread.pet.name,
-            species: thread.pet.species,
-            breed: thread.pet.breed,
-            age: thread.pet.age,
-            description: thread.pet.description,
-            image: thread.pet.image,
-          },
+          pet: thread.pet
+            ? {
+                _id: thread.pet._id ? thread.pet._id.toString() : null,
+                name: thread.pet.name,
+                species: thread.pet.species,
+                breed: thread.pet.breed,
+                age: thread.pet.age,
+                description: thread.pet.description,
+                image: thread.pet.image,
+              }
+            : null,
           author: {
             _id: thread.author._id.toString(),
             username: thread.author.username,
             email: thread.author.email,
           },
-          comments: [], // Comments can be fetched separately if needed
+          comments: [],
           createdAt: thread.createdAt.toISOString(),
           updatedAt: thread.updatedAt.toISOString(),
         }));
@@ -48,9 +51,10 @@ const threadResolvers: IResolvers = {
     },
     thread: async (_, { id }: { id: string }, context) => {
       try {
-        if (!context.user) {
-          throw new AuthenticationError('You must be authenticated to view a thread');
-        }
+        // Remove the authentication check so that a thread is viewable publicly
+        // if (!context.user) {
+        //   throw new AuthenticationError('You must be authenticated to view a thread');
+        // }
 
         const thread = await Thread.findById(id)
           .populate({ path: 'author', model: 'Profile', select: 'username email' })
@@ -61,35 +65,40 @@ const threadResolvers: IResolvers = {
         const comments = await Comment.find({ thread: id })
           .populate({ path: 'author', select: 'username email' })
           .lean();
-        console.log(comments);
+
         return {
-          id: thread._id.toString(),
+          _id: thread._id.toString(),
           title: thread.title,
           content: thread.content,
           threadType: thread.threadType,
-          pet: {
-            name: thread.pet.name,
-            species: thread.pet.species,
-            breed: thread.pet.breed,
-            age: thread.pet.age,
-            description: thread.pet.description,
-            image: thread.pet.image,
-          },
+          pet: thread.pet
+            ? {
+                _id: thread.pet._id ? thread.pet._id.toString() : null,
+                name: thread.pet.name,
+                species: thread.pet.species,
+                breed: thread.pet.breed,
+                age: thread.pet.age,
+                description: thread.pet.description,
+                image: thread.pet.image,
+              }
+            : null,
           author: {
             _id: thread.author._id.toString(),
             username: thread.author.username,
             email: thread.author.email,
           },
-         /* comments: comments.map(comment => ({
-            id: comment._id.toString(),
-            content: comment.content,
-            author: {
-              _id: comment.author._id.toString(),
-              username: comment.author.username,
-              email: comment.author.email,
-            },
-            createdAt: comment.createdAt.toISOString(),
-          })),*/
+          // Uncomment if you want to return comments:
+          // comments: comments.map(comment => ({
+          //   _id: comment._id.toString(),
+          //   content: comment.content,
+          //   author: {
+          //     _id: comment.author._id.toString(),
+          //     username: comment.author.username,
+          //     email: comment.author.email,
+          //   },
+          //   createdAt: comment.createdAt.toISOString(),
+          // })),
+          comments: [],
           createdAt: thread.createdAt.toISOString(),
           updatedAt: thread.updatedAt.toISOString(),
         };
@@ -97,7 +106,7 @@ const threadResolvers: IResolvers = {
         console.error('Error fetching thread:', error);
         throw new Error('Failed to fetch thread');
       }
-    }
+    },
   },
   Mutation: {
     createThread: async (_, { input }: { input: any }, context) => {
@@ -124,17 +133,18 @@ const threadResolvers: IResolvers = {
           author: context.user._id,
         });
 
-        const savedThread:any = await newThread.save();
+        const savedThread: any = await newThread.save();
 
         // Retrieve the full profile to get the user's username and email
         const profile = await Profile.findById(context.user._id);
 
         return {
-          id: savedThread._id.toString(),
+          _id: savedThread._id.toString(),
           title: savedThread.title,
           content: savedThread.content,
           threadType: savedThread.threadType,
           pet: {
+            _id: savedThread.pet._id ? savedThread.pet._id.toString() : null,
             name: savedThread.pet.name,
             species: savedThread.pet.species,
             breed: savedThread.pet.breed,
@@ -160,27 +170,25 @@ const threadResolvers: IResolvers = {
       if (!context.user) {
         throw new AuthenticationError('You must be logged in to comment');
       }
-
+    
       try {
-        const thread:any = await Thread.findById(input.threadId);
+        const thread: any = await Thread.findById(input.threadId);
         if (!thread) throw new Error('Thread not found');
-
-        // Retrieve user profile for author details
+    
         const profile = await Profile.findById(context.user._id);
-
+    
         const newComment = new Comment({
           thread: input.threadId,
           content: input.content,
           author: context.user._id,
-          parentComment: input.parentCommentId || undefined,
         });
-
-        const savedComment:any = await newComment.save();
-
+    
+        const savedComment: any = await newComment.save();
+    
         return {
-          id: savedComment._id.toString(),
+          _id: savedComment._id.toString(),
           thread: {
-            id: thread._id.toString(),
+            _id: thread._id.toString(),
           },
           content: savedComment.content,
           author: {
@@ -188,7 +196,6 @@ const threadResolvers: IResolvers = {
             username: profile?.username || '',
             email: profile?.email || '',
           },
-          parentComment: input.parentCommentId ? { id: input.parentCommentId } : null,
           createdAt: savedComment.createdAt.toISOString(),
           updatedAt: savedComment.updatedAt.toISOString(),
         };

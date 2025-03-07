@@ -4,12 +4,12 @@ import { useQuery, gql } from '@apollo/client';
 const GET_THREAD = gql`
   query GetThread($id: ID!) {
     thread(id: $id) {
-      id
+      _id
       title
       content
       threadType
-      pet(id: $id) {
-        id
+      pet {
+        _id
         name
         species
         breed
@@ -19,16 +19,16 @@ const GET_THREAD = gql`
       }
       createdAt
       author {
-        id
+        _id
         username
         email
       }
       comments {
-        id
+        _id
         content
         createdAt
         author {
-          id
+          _id
           username
           email
         }

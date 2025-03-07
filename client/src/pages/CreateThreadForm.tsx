@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 const CREATE_THREAD = gql`
   mutation CreateThread($input: CreateThreadInput!) {
     createThread(input: $input) {
-      id
+      _id
       title
       content
       threadType
@@ -20,7 +20,7 @@ const CREATE_THREAD = gql`
       }
       createdAt
       author {
-        id
+        _id
         username
       }
     }
