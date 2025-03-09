@@ -71,13 +71,13 @@ NewLeash is a comprehensive pet adoption platform that connects pet lovers with 
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/your-username/newleash.git
+git clone https://github.com/MadamLoki/syntax-syndicate-project3.git
 cd newleash
 ```
 
 2. Install dependencies:
 ```bash
-npm run setup
+npm run render-build
 ```
 
 3. Create environment files:
