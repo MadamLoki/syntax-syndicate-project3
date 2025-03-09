@@ -1,4 +1,4 @@
-import { Calendar, DayHeaderContentArg } from '@fullcalendar/core';
+/*import { Calendar, DayHeaderContentArg } from '@fullcalendar/core';
 import { Component, createElement } from '@fullcalendar/core/preact';
 import interactionPlugin from '@fullcalendar/interaction';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -90,4 +90,4 @@ document.addEventListener('DOMContentLoaded', function() {
   calendar.render();
 });
 
-export default Calendar;
+export default Calendar;*/

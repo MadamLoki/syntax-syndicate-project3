@@ -1,6 +1,7 @@
-import React from 'react';
-import { useQuery, gql } from '@apollo/client';
+import React, { useState } from 'react';
+import { useQuery, useMutation, gql } from '@apollo/client';
 
+// Query to fetch thread details including comments
 const GET_THREAD = gql`
   query GetThread($id: ID!) {
     thread(id: $id) {
@@ -37,59 +38,255 @@ const GET_THREAD = gql`
   }
 `;
 
-type ThreadDetailsProps = {
+// Properly structured mutation matching your GraphQL schema
+const CREATE_COMMENT = gql`
+  mutation CreateComment($input: CreateCommentInput!) {
+    createComment(input: $input) {
+      _id
+      content
+      createdAt
+      author {
+        _id
+        username
+      }
+      thread {
+        _id
+      }
+    }
+  }
+`;
+
+interface ThreadDetailsProps {
   threadId: string;
   onClose: () => void;
-};
+}
 
 const ThreadDetails: React.FC<ThreadDetailsProps> = ({ threadId, onClose }) => {
-  const { data, loading, error } = useQuery(GET_THREAD, {
+  // State for the comment form
+  const [commentContent, setCommentContent] = useState('');
+  const [commentError, setCommentError] = useState('');
+
+  // Query to fetch thread data
+  const { data, loading, error, refetch } = useQuery(GET_THREAD, {
     variables: { id: threadId },
+    fetchPolicy: 'network-only', // Forces a network request instead of using cache
+    onError: (error) => {
+      console.error('Error fetching thread:', error);
+    }
   });
 
-  if (loading) return <p>Loading thread details...</p>;
-  if (error) return <p>Error loading details: {error.message}</p>;
+  // Mutation to create a comment
+  const [createComment, { loading: commentLoading }] = useMutation(CREATE_COMMENT, {
+    onCompleted: () => {
+      // Clear the form and refresh the thread data to show the new comment
+      setCommentContent('');
+      setCommentError('');
+      refetch(); // This is crucial - it refreshes the thread data
+    },
+    onError: (error) => {
+      console.error('Error creating comment:', error);
+      setCommentError('Failed to post comment: ' + error.message);
+    }
+  });
+
+  // Handle comment submission
+  const handleCommentSubmit = (e: { preventDefault: () => void; }) => {
+    e.preventDefault();
+    
+    // Validate the comment
+    if (!commentContent.trim()) {
+      setCommentError('Comment cannot be empty');
+      return;
+    }
+
+    // Submit the comment with the correct input structure
+    createComment({
+      variables: {
+        input: {
+          threadId: threadId,
+          content: commentContent
+          // parentCommentId is optional, so we omit it for top-level comments
+        }
+      }
+    });
+  };
+
+  // Format dates for display
+  const formatDate = (dateString: string | number | Date) => {
+    try {
+      return new Date(dateString).toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (e) {
+      return 'Unknown date';
+    }
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center p-8">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mb-4"></div>
+        <p>Loading thread details...</p>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="p-6 text-center">
+        <p className="text-red-600 mb-4">Error loading details: {error.message}</p>
+        <button onClick={onClose} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+          Go Back
+        </button>
+      </div>
+    );
+  }
+
+  // No data state
+  if (!data || !data.thread) {
+    return (
+      <div className="p-6 text-center">
+        <p className="mb-4">Thread not found or has been removed.</p>
+        <button onClick={onClose} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+          Go Back
+        </button>
+      </div>
+    );
+  }
 
   const { thread } = data;
+  
+  // Debug log to check if comments are being received
+  console.log('Thread data received:', thread);
+  console.log('Comments received:', thread.comments || []);
 
   return (
-    <div className="border-t mt-4 pt-4">
-      <button onClick={onClose} className="mb-4 text-blue-500 underline">
-        Close Details
-      </button>
-      <h2 className="text-2xl font-bold">
-        {thread.title} ({thread.threadType})
-      </h2>
-      <p>{thread.content}</p>
+    <div className="pb-6">
+      {/* Header with close button */}
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">Thread Details</h2>
+        <button 
+          onClick={onClose} 
+          className="text-gray-500 hover:text-gray-700 focus:outline-none"
+          aria-label="Close"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Thread title and type */}
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold mb-2">{thread.title}</h2>
+        <span className="inline-block bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full">
+          {thread.threadType === 'ADOPTION' ? 'Looking to Adopt' : 'Giving Up for Adoption'}
+        </span>
+      </div>
+
+      {/* Thread content */}
+      <div className="bg-gray-50 p-4 rounded-lg mb-6">
+        <p className="whitespace-pre-line">{thread.content}</p>
+      </div>
+
+      {/* Pet information section */}
       {thread.pet && (
-        <div className="mt-4">
-          <h3 className="text-xl font-semibold">Pet Information</h3>
-          <p>Name: {thread.pet.name}</p>
-          <p>Species: {thread.pet.species}</p>
-          {thread.pet.breed && <p>Breed: {thread.pet.breed}</p>}
-          <p>Age: {thread.pet.age}</p>
-          {thread.pet.description && <p>Description: {thread.pet.description}</p>}
-          {thread.pet.image && (
-            <img
-              src={thread.pet.image}
-              alt={thread.pet.name}
-              className="w-48 h-48 object-cover mt-2"
-            />
-          )}
+        <div className="border rounded-lg p-4 mb-6">
+          <h3 className="text-xl font-semibold mb-3">Pet Information</h3>
+          <div className="flex flex-col md:flex-row gap-6">
+            {thread.pet.image && (
+              <div className="md:w-1/3">
+                <img
+                  src={thread.pet.image}
+                  alt={thread.pet.name || 'Pet'}
+                  className="w-full max-w-xs rounded-lg object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).onerror = null;
+                    (e.target as HTMLImageElement).src = 'https://placehold.co/400x400?text=No+Image';
+                  }}
+                />
+              </div>
+            )}
+            <div className="md:w-2/3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <p><span className="font-medium">Name:</span> {thread.pet.name}</p>
+                <p><span className="font-medium">Species:</span> {thread.pet.species}</p>
+                <p><span className="font-medium">Age:</span> {thread.pet.age} {thread.pet.age === 1 ? 'year' : 'years'}</p>
+                {thread.pet.breed && <p><span className="font-medium">Breed:</span> {thread.pet.breed}</p>}
+              </div>
+              {thread.pet.description && (
+                <div className="mt-3">
+                  <p className="font-medium mb-1">Description:</p>
+                  <p className="text-gray-700">{thread.pet.description}</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
-      <p className="text-sm text-gray-500">
-        Posted by {thread.author.username} on {new Date(thread.createdAt).toLocaleString()}
+
+      {/* Author and date information */}
+      <p className="text-sm text-gray-500 mb-8">
+        Posted by {thread.author?.username || 'Unknown'} on {formatDate(thread.createdAt)}
       </p>
-      <h3 className="text-xl mt-4">Comments</h3>
-      {thread.comments.map((comment: any) => (
-        <div key={comment.id} className="border p-2 mt-2 rounded">
-          <p>{comment.content}</p>
-          <p className="text-sm text-gray-500">
-            By {comment.author.username} on {new Date(comment.createdAt).toLocaleString()}
+
+      {/* Comment form section */}
+      <div className="border-t pt-6 mb-8">
+        <h3 className="text-xl font-semibold mb-4">Add a Comment</h3>
+        <form onSubmit={handleCommentSubmit}>
+          <textarea
+            className="w-full border rounded-lg p-3 mb-3 min-h-[100px]"
+            value={commentContent}
+            onChange={(e) => setCommentContent(e.target.value)}
+            placeholder="Share your thoughts about this pet..."
+            disabled={commentLoading}
+            required
+          ></textarea>
+          
+          {commentError && (
+            <p className="text-red-600 mb-3">{commentError}</p>
+          )}
+          
+          <button
+            type="submit"
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed"
+            disabled={commentLoading || !commentContent.trim()}
+          >
+            {commentLoading ? 'Posting...' : 'Post Comment'}
+          </button>
+        </form>
+      </div>
+
+      {/* Comments section */}
+      <div>
+        <h3 className="text-xl font-semibold mb-4">
+          Comments ({thread.comments?.length || 0})
+        </h3>
+        
+        {thread.comments && thread.comments.length > 0 ? (
+          <div className="space-y-4">
+            {thread.comments.map((comment: { _id: React.Key | null | undefined; content: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | null | undefined; author: { username: any; }; createdAt: any; }) => (
+              <div key={comment._id} className="border p-4 rounded-lg bg-gray-50">
+                <p className="mb-3 whitespace-pre-line">{comment.content}</p>
+                <div className="flex justify-between items-center text-sm text-gray-500">
+                  <span>{comment.author?.username || 'Unknown'}</span>
+                  <span>{formatDate(comment.createdAt)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500 italic text-center py-4">
+            No comments yet. Be the first to comment!
           </p>
-        </div>
-      ))}
+        )}
+      </div>
     </div>
   );
 };

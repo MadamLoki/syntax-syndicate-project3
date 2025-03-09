@@ -17,6 +17,7 @@ const CREATE_THREAD = gql`
         age
         description
         image
+        
       }
       createdAt
       author {
@@ -32,7 +33,7 @@ const CreateThreadForm: React.FC = () => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [threadType, setThreadType] = useState('ADOPTION');
-  
+
   // Pet information state
   const [petName, setPetName] = useState('');
   const [petSpecies, setPetSpecies] = useState('');
@@ -74,7 +75,8 @@ const CreateThreadForm: React.FC = () => {
               breed: petBreed,
               age: petAge,
               description: petDescription,
-              image: petImage, // This is the base64 string; the resolver will handle the upload
+              image: petImage
+              
             },
           },
         },
@@ -132,15 +134,24 @@ const CreateThreadForm: React.FC = () => {
             required
           />
         </div>
+        
         <div>
           <label className="block mb-1 font-semibold">Species</label>
-          <input
-            type="text"
+          <select
             className="w-full border p-2 rounded"
             value={petSpecies}
             onChange={(e) => setPetSpecies(e.target.value)}
             required
-          />
+          >
+            <option value="">Select species</option>
+            <option value="Dog">Dog</option>
+            <option value="Cat">Cat</option>
+            <option value="Bird">Bird</option>
+            <option value="Fish">Fish</option>
+            <option value="Small Animal">Small Animal</option>
+            <option value="Reptile">Reptile</option>
+            <option value="Other">Other</option>
+          </select>
         </div>
         <div>
           <label className="block mb-1 font-semibold">Breed</label>

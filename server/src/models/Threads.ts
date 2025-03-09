@@ -74,7 +74,14 @@ const thread = new Schema<IThread>(
       type: petSchema,
       required: true
     },
-  });
-
+   
+    author: {
+      type: Schema.Types.ObjectId,
+      ref: 'Profile',
+      required: true
+    }
+  },
+  { timestamps: true }  // This is the critical addition!
+);
 
 export default mongoose.model<IThread>('thread', thread);
