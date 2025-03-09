@@ -16,6 +16,7 @@ import CreateThreadForm from './pages/CreateThreadForm'
 import ProfilePage from './pages/ProflePage'
 import PetDetails from './components/pets/PetDetails'
 import Shelters from './components/shelters/Shelters'
+import Calendar from './pages/Calendar'
 
 
 const router = createBrowserRouter([
@@ -72,6 +73,11 @@ const router = createBrowserRouter([
         {
           path: '/shelters',
           element: <Shelters />,
+          errorElement: <Error />,
+        },
+        {
+          path: '/calander',
+          element: <Calendar />,
           errorElement: <Error />,
         },
       ]

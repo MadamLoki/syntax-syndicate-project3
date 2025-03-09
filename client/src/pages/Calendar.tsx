@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', function() {
       center: 'title',
       right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
     },
-    initialDate: '2018-01-12',
+    initialDate: '2025-01-12',
     navLinks: true, // can click day/week names to navigate views
     editable: true,
     dayMaxEvents: true, // allow "more" link when too many events
@@ -89,3 +89,5 @@ document.addEventListener('DOMContentLoaded', function() {
 
   calendar.render();
 });
+
+export default Calendar;
