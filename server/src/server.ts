@@ -12,9 +12,6 @@ import uploadRoutes from './routes/api/uploadRoutes.js';
 import db from './config/connection.js';
 
 import typeDefs from './typeDefs/typeDefs.js';
-
-
-
 import mergedResolvers from './resolvers/index.js';
 
 dotenv.config();
@@ -133,6 +130,7 @@ const startApolloServer = async () => {
         context: async ({ req }: { req: express.Request }) => {
             const token = req.headers.authorization || '';
             const user = getUserFromToken(token);
+            console.log('User from token:', user);
             return { 
                 user,
                 petfinderAPI

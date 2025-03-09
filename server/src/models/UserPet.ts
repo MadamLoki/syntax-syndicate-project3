@@ -1,7 +1,8 @@
-// server/src/models/UserPet.ts
+
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IUserPet extends Document {
+    _id: mongoose.Types.ObjectId;
     name: string;
     species: string;
     breed?: string;

@@ -8,77 +8,75 @@ import { SAVE_PET } from '../../utils/mutations';
 
 // GraphQL query for local database pets (MongoDB IDs)
 const GET_LOCAL_PET = gql`
-  query GetPet($id: ID!) {
-    pet(id: $id) {
-      _id
-      name
-      type
-      breed
-      age
-      gender
-      size
-      description
-      images
-      status
-      shelterId
-      source
+    query GetPet($id: ID!) {
+        pet(id: $id) {
+            _id
+            name
+            type
+            breed
+            age
+            gender
+            size
+            description
+            images
+            status
+            shelterId
+            source
+        }
     }
-  }
 `;
 
-// GraphQL query for Petfinder pets - Modified to search by ID only
-// The problem was in how we were passing the ID to the Petfinder API
 const GET_PETFINDER_PET = gql`
-  query SearchPetfinderPets($input: PetfinderSearchInput!) {
-    searchPetfinderPets(input: $input) {
-      animals {
-        id
-        name
-        type
-        breeds {
-          primary
-          secondary
-          mixed
+    query SearchPetfinderPets($input: PetfinderSearchInput!) {
+        searchPetfinderPets(input: $input) {
+        animals {
+            id
+            name
+            type
+            breeds {
+                primary
+                secondary
+                mixed
+                }
+            age
+            gender
+            size
+            description
+            photos {
+                small
+                medium
+                large
+                full
+                }
+            status
+            contact {
+                email
+                phone
+                address {
+                    address1
+                    address2
+                    city
+                    state
+                    postcode
+                    country
+                }
+            }
+            attributes {
+                spayed_neutered
+                house_trained
+                declawed
+                special_needs
+                shots_current
+                }
+            environment {
+                children
+                dogs
+                cats
+                }
+            published_at
         }
-        age
-        gender
-        size
-        description
-        photos {
-          small
-          medium
-          large
-          full
         }
-        status
-        contact {
-          email
-          phone
-          address {
-            address1
-            address2
-            city
-            state
-            postcode
-            country
-          }
-        }
-        attributes {
-          spayed_neutered
-          house_trained
-          declawed
-          special_needs
-          shots_current
-        }
-        environment {
-          children
-          dogs
-          cats
-        }
-        published_at
-      }
     }
-  }
 `;
 
 // Fallback image if pet has no images
@@ -790,8 +788,7 @@ const PetDetails: React.FC = () => {
 
                                     <button
                                         type="submit"
-                                        className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors"
-                                    >
+                                        className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors" >
                                         Send Inquiry
                                     </button>
                                 </form>

@@ -53,24 +53,30 @@ class PetfinderAPI {
     }
 
     private async getToken(): Promise<string> {
-        console.log('Getting token...');
-        // If we have a valid token, return it
-        if (this.token && Date.now() < this.tokenExpiration - 30000) { // 30-second buffer
-            console.log('Using existing token');
+        console.log('Checking token status...');
+        // If we have a valid token with at least 60 seconds left, return it
+        if (this.token && Date.now() < this.tokenExpiration - 60000) { 
+            console.log('Using existing token (expires in:', Math.round((this.tokenExpiration - Date.now())/1000), 'seconds)');
             return this.token;
         }
-
+    
         // If a token refresh is already in progress, wait for it
         if (this.tokenRefreshPromise) {
+            console.log('Token refresh already in progress, waiting...');
             return this.tokenRefreshPromise;
         }
-
+    
         // Start a new token refresh
+        console.log('Starting new token refresh...');
         this.tokenRefreshPromise = (async () => {
             try {
-                // console.log('Requesting new token...');
-                // console.log('API Key length:', this.apiKey.length);
-                // console.log('API Secret length:', this.apiSecret.length);
+                // Validate API key and secret
+                if (!this.apiKey || !this.apiSecret) {
+                    console.error('Missing API key or secret');
+                    throw new Error('Petfinder API credentials are missing or invalid');
+                }
+                
+                console.log('Requesting new token from Petfinder API...');
                 
                 const response = await fetch(`${this.baseUrl}/oauth2/token`, {
                     method: 'POST',
@@ -83,50 +89,67 @@ class PetfinderAPI {
                         'client_secret': this.apiSecret,
                     }),
                 });
-
+    
+                // Check for non-200 response
                 if (!response.ok) {
-                    throw new Error(`Authentication failed: ${response.statusText}`);
+                    const errorText = await response.text();
+                    console.error(`Authentication failed: ${response.status} ${response.statusText}`, errorText);
+                    throw new Error(`Petfinder authentication failed: ${response.statusText}`);
                 }
-
+    
                 const data = await response.json() as PetfinderAuthResponse;
                 
-                if (data.token_type !== 'Bearer') {
-                    throw new Error('Unexpected token type received');
+                if (!data || !data.access_token) {
+                    throw new Error('Invalid authentication response from Petfinder API');
                 }
-
+                
+                if (data.token_type !== 'Bearer') {
+                    console.warn('Unexpected token type received:', data.token_type);
+                }
+    
                 this.token = data.access_token;
                 // Set expiration to 60 seconds before actual expiration for safety
                 this.tokenExpiration = Date.now() + (data.expires_in * 1000) - 60000;
                 
+                console.log('Token refreshed successfully, expires in', data.expires_in, 'seconds');
                 return this.token;
             } catch (error) {
                 console.error('Token refresh error:', error);
-                throw new ApolloError(
-                    'Failed to authenticate with Petfinder API',
-                    'PETFINDER_AUTH_ERROR',
-                    { originalError: error }
-                );
+                // Clear the token to force a complete refresh next time
+                this.token = null;
+                this.tokenExpiration = 0;
+                throw error;
             } finally {
                 this.tokenRefreshPromise = null;
             }
         })();
-
+    
         return this.tokenRefreshPromise;
     }
 
     private async makeRequest<T>(endpoint: string, params: Record<string, any> = {}): Promise<T> {
         try {
             const token = await this.getToken();
-            //console.log(`Making request to endpoint: ${endpoint}`);
             
-            const queryParams = Object.entries(params)
-                .filter(([_, value]) => value != null && value !== '')
-                .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-                .join('&');
-    
+            // Clean parameters: remove nulls, undefined, and empty strings
+            const cleanParams = Object.fromEntries(
+                Object.entries(params)
+                    .filter(([_, value]) => value != null && value !== '')
+                    .map(([key, value]) => {
+                        // Convert arrays or objects to JSON strings if needed
+                        if (typeof value === 'object' && value !== null) {
+                            return [key, JSON.stringify(value)];
+                        }
+                        return [key, value];
+                    })
+            );
+            
+            // Build URL with clean parameters
+            const queryParams = new URLSearchParams(cleanParams).toString();
             const url = `${this.baseUrl}/${endpoint}${queryParams ? `?${queryParams}` : ''}`;
-            //console.log('Request URL:', url);
-    
+            
+            console.log(`Making request to: ${url}`);
+            
             const response = await fetch(url, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -134,17 +157,25 @@ class PetfinderAPI {
                 },
             });
     
+            // Handle non-200 responses properly
             if (!response.ok) {
-                const errorData = await response.json();
-                console.error('API Error Response:', errorData);
-                throw new Error(`API request failed: ${response.statusText}`);
+                // Try to get error details from response
+                let errorDetails = '';
+                try {
+                    const errorData = await response.json();
+                    errorDetails = JSON.stringify(errorData);
+                } catch (e) {
+                    // If parsing fails, use status text
+                    errorDetails = response.statusText;
+                }
+                
+                throw new Error(`Petfinder API request failed (${response.status}): ${errorDetails}`);
             }
     
             const data = await response.json();
-            //console.log('API Response Data:', JSON.stringify(data, nSull, 2));
             return data;
         } catch (error) {
-            console.error('makeRequest error:', error);
+            console.error('Petfinder API request error:', error);
             throw error;
         }
     }
@@ -181,7 +212,7 @@ class PetfinderAPI {
     }
 
     public async searchPets(params: PetfinderSearchParams) {
-        // Clean up parameters
+        // Ensure all parameters are properly formatted
         const cleanParams: { [key: string]: any } = {
             type: params.type?.toLowerCase(),
             breed: params.breed,
@@ -193,6 +224,12 @@ class PetfinderAPI {
             limit: params.limit || 100,
             name: params.name
         };
+    
+        // Ensure location is properly formatted for the API
+        if (cleanParams.location && cleanParams.location.length === 5 && !isNaN(Number(cleanParams.location))) {
+            // It's likely a zip code, make sure it's properly formatted
+            cleanParams.location = cleanParams.location.trim();
+        }
     
         // Remove undefined or empty values
         Object.keys(cleanParams).forEach(key => 

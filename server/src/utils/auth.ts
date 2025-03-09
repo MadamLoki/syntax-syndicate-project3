@@ -23,6 +23,7 @@ export const authenticateToken = ({ req }: any) => {
         const { data }: any = jwt.verify(token, process.env.JWT_SECRET_KEY || '', { maxAge: '2hr' });
         // If the token is valid, attach the user data to the request object
         req.user = data;
+        console.log(data);
     } catch (err) {
         // If the token is invalid, log an error message
         console.log('Invalid token');

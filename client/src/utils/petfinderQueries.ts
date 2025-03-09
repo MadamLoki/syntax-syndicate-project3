@@ -21,16 +21,50 @@ export const SEARCH_PETFINDER_PETS = gql`
                 type
                 breeds {
                     primary
+                    secondary
+                    mixed
                 }
                 age
+                gender
                 size
-                photos {
-                    medium
+                colors {
+                    primary
+                    secondary
+                    tertiary
                 }
+                attributes {
+                    spayed_neutered
+                    house_trained
+                    declawed
+                    special_needs
+                    shots_current
+                }
+                environment {
+                    children
+                    dogs
+                    cats
+                }
+                description
+                organization_id
+                photos {
+                    small
+                    medium
+                    large
+                    full
+                }
+                status
+                published_at
+                distance
                 contact {
+                    email
+                    phone
                     address {
+                        address1
+                        address2
                         city
                         state
+                        postcode
+                        country
                     }
                 }
             }
