@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X, Search, User, LogOut } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
@@ -9,7 +9,7 @@ const NavBar = () => {
   const { isLoggedIn, logout } = useAuth();
 
   const handleLogout = () => {
-    logout(); 
+    logout();
     navigate('/login');
   };
 
@@ -17,38 +17,38 @@ const NavBar = () => {
     <nav className="dark:bg-gray-800 shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
-          
+
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
               <Link to="/" className="text-2xl font-bold text-blue-600">
                 NewLeash
               </Link>
             </div>
-            
-           
+
+
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-              <Link 
-                to="/findpets" 
+              <Link
+                to="/findpets"
                 className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-400 hover:text-blue-600"
               >
                 <Search className="w-4 h-4 mr-1" />
                 Find Pets
               </Link>
-              <Link 
-                to="/shelters" 
+              <Link
+                to="/shelters"
                 className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-400 hover:text-blue-600"
               >
                 Shelters
               </Link>
-            
-              <Link 
-                to="/forum" 
+
+              <Link
+                to="/forum"
                 className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-400 hover:text-blue-600"
               >
                 Forum
               </Link>
-              <Link 
-                to="/about" 
+              <Link
+                to="/about"
                 className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-400 hover:text-blue-600"
               >
                 About
@@ -56,7 +56,7 @@ const NavBar = () => {
             </div>
           </div>
 
-         
+
           <div className="hidden sm:flex items-center space-x-4">
             {isLoggedIn ? (
               <>
@@ -70,14 +70,14 @@ const NavBar = () => {
               </>
             ) : (
               <div className="flex space-x-4">
-                <Link 
-                  to="/login" 
+                <Link
+                  to="/login"
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-600 bg-white hover:bg-blue-50"
                 >
                   Sign in
                 </Link>
-                <Link 
-                  to="/signup" 
+                <Link
+                  to="/signup"
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
                 >
                   Sign up
@@ -86,10 +86,10 @@ const NavBar = () => {
             )}
           </div>
 
-        
+
           <div className="flex items-center sm:hidden">
-            <button 
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-blue-600 hover:bg-gray-100"
             >
               {isMobileMenuOpen ? (<X className="block h-6 w-6" />) : (<Menu className="block h-6 w-6" />)}
@@ -98,44 +98,44 @@ const NavBar = () => {
         </div>
       </div>
 
-      
+
       {isMobileMenuOpen && (
         <div className="sm:hidden">
           <div className="pt-2 pb-3 space-y-1">
-            <Link 
-              to="/findpets" 
+            <Link
+              to="/findpets"
               className="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50"
             >
               Find Pets
             </Link>
-            <Link 
-              to="/shelters" 
+            <Link
+              to="/shelters"
               className="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50"
             >
               Shelters
             </Link>
-            <Link 
-              to="/forum" 
+            <Link
+              to="/forum"
               className="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50"
             >
               Forum
             </Link>
-            <Link 
-              to="/about" 
+            <Link
+              to="/about"
               className="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50"
             >
               About
             </Link>
             {!isLoggedIn && (
               <>
-                <Link 
-                  to="/login" 
+                <Link
+                  to="/login"
                   className="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50"
                 >
                   Sign in
                 </Link>
-                <Link 
-                  to="/signup" 
+                <Link
+                  to="/signup"
                   className="block pl-3 pr-4 py-2 text-base font-medium text-blue-600 hover:bg-gray-50"
                 >
                   Sign up

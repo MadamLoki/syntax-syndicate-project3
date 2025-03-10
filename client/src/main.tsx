@@ -9,14 +9,13 @@ import LoginForm from './components/auth/LoginForm'
 import Error from './pages/Error'
 import SignupForm from './components/auth/SignupForm'
 import PetSearch from './components/pets/FindPets'
-//import Shelters from './components/shelters/Shelters'
 import About from './pages/About'
 import ThreadListPage from './pages/ThreadList'
 import CreateThreadForm from './pages/CreateThreadForm'
 import ProfilePage from './pages/ProflePage'
 import PetDetails from './components/pets/PetDetails'
 import Shelters from './components/shelters/Shelters'
-//import Calendar from './pages/Calendar'
+import CalendarMain from './pages/CalendarMain'
 
 
 const router = createBrowserRouter([
@@ -75,11 +74,11 @@ const router = createBrowserRouter([
           element: <Shelters />,
           errorElement: <Error />,
         },
-        /*{
-          path: '/calander',
-          element: <Calendar />,
+        {
+          path: '/calendar',
+          element: <CalendarMain />,
           errorElement: <Error />,
-        },*/
+        },
       ]
     }
   ])
