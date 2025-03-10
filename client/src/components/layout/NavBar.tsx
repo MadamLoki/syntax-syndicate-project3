@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, Search, User, LogOut } from 'lucide-react';
+import { Menu, X, Search, User, LogOut, Calendar } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
+import CalendarMain from '../../pages/CalendarMain';
 
 const NavBar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -40,13 +41,19 @@ const NavBar = () => {
               >
                 Shelters
               </Link>
-
               <Link
                 to="/forum"
                 className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-400 hover:text-blue-600"
               >
                 Forum
               </Link>
+                <Link
+                to="/calendar"
+                className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-400 hover:text-blue-600"
+                >
+                <Calendar className="w-4 h-4 mr-1" />
+                Calendar
+                </Link>
               <Link
                 to="/about"
                 className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-400 hover:text-blue-600"
@@ -119,6 +126,12 @@ const NavBar = () => {
               className="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50"
             >
               Forum
+            </Link>
+            <Link
+              to="/calender"
+              className="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50"
+            >
+              Calendar
             </Link>
             <Link
               to="/about"
