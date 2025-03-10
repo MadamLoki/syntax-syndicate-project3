@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { ApolloError } from '@apollo/client';
 import { useQuery, useLazyQuery } from '@apollo/client';
 import { Search, Filter, MapPin, Heart } from 'lucide-react';
@@ -105,7 +104,6 @@ interface Filters {
 }
 
 const PetSearch = () => {
-    const navigate = useNavigate();
     // Initialize filters from localStorage with zipcode
     const [filters, setFilters] = useState<Filters>(() => {
         const savedFilters = localStorage.getItem('petSearchFilters');
@@ -141,35 +139,69 @@ const PetSearch = () => {
     }
 
     // Query for pet types with fetchPolicy to ensure fresh data
-    const { data: typesData, loading: typesLoading, refetch: refetchTypes } = useQuery<TypesResponse>(
+    const { data: typesData, loading: typesLoading, error: typesError, refetch: refetchTypes } = useQuery<TypesResponse>(
         GET_PETFINDER_TYPES,
         {
             fetchPolicy: 'network-only',
             notifyOnNetworkStatusChange: true,
             onError: (error) => {
                 console.error('Types query error:', error);
+                // Set error state with more details for UI display
                 setError(error);
+                
+                // If the error is an auth error, we might want to trigger a token refresh
+                if (error.graphQLErrors?.some(e => e.extensions?.code === 'PETFINDER_AUTH_ERROR')) {
+                    console.log('Authentication error detected, will retry after delay...');
+                    setTimeout(() => {
+                        console.log('Retrying types query...');
+                        refetchTypes();
+                    }, 2000);
+                }
             }
         }
     );
 
-    const [getBreeds, { data: breedsData, loading: breedsLoading }] = useLazyQuery<
+    const [getBreeds, { data: breedsData, loading: breedsLoading, error: breedsError }] = useLazyQuery<
         BreedsResponse,
         { type: string }
     >(GET_PETFINDER_BREEDS, {
+        // Only fetch when we have a valid type
         onError: (error) => {
             console.error('Error fetching breeds:', error);
-            setError(error);
-        }
+
+            // Only set the error state if we're not dealing with a simple "type required" validation error
+            if (!error.graphQLErrors?.some(e => e.extensions?.code === 'INVALID_PARAMETERS')) {
+                setError(error);
+            }
+
+            // Handle auth errors similar to the types query
+            if (error.graphQLErrors?.some(e => e.extensions?.code === 'PETFINDER_AUTH_ERROR')) {
+                setTimeout(() => {
+                    console.log('Retrying breeds query...');
+                    if (filters.type) {
+                        getBreeds({ variables: { type: filters.type } });
+                    }
+                }, 2000);
+            }
+        },
+        fetchPolicy: 'network-only'
     });
 
-    const [searchPets, { data: petsData, loading: petsLoading }] = useLazyQuery<
+    const [searchPets, { data: petsData, loading: petsLoading, error: petsError }] = useLazyQuery<
         { searchPetfinderPets: PetfinderResponse },
         { input: SearchParams }
     >(SEARCH_PETFINDER_PETS, {
         onError: (error) => {
             console.error('Error searching pets:', error);
             setError(error);
+
+            // Automatic retry for auth errors
+            if (error.graphQLErrors?.some(e => e.extensions?.code === 'PETFINDER_AUTH_ERROR')) {
+                setTimeout(() => {
+                    console.log('Retrying pet search...');
+                    handleSearch();
+                }, 2000);
+            }
         },
         fetchPolicy: 'network-only'
     });
@@ -205,28 +237,19 @@ const PetSearch = () => {
 
     const handleSearch = async () => {
         try {
-            const searchParams: SearchParams = {
-                limit: filters.limit || 20,
-                page: filters.page || 1
-            };
-
-            // Add search parameters only if they have non-empty values
-            if (searchTerm?.trim()) searchParams.name = searchTerm.trim();
-            if (filters.type?.trim()) searchParams.type = filters.type.trim();
-            if (filters.breed?.trim()) searchParams.breed = filters.breed.trim();
-            if (filters.size?.trim()) searchParams.size = filters.size.trim();
-            if (filters.gender?.trim()) searchParams.gender = filters.gender.trim();
-            if (filters.age?.trim()) searchParams.age = filters.age.trim();
-            if (filters.location?.trim()) {
-                searchParams.location = filters.location.trim();
-                if (filters.distance) {
-                    searchParams.distance = parseInt(filters.distance);
-                }
+            // Validate search parameters
+            const validatedParams = validateSearchParams();
+            if (!validatedParams) {
+                // validateSearchParams will set an error if validation fails
+                return;
             }
-
+            
+            console.log('Searching with parameters:', validatedParams);
+            
+            // Execute the search query
             await searchPets({
                 variables: {
-                    input: searchParams as SearchParams
+                    input: validatedParams
                 }
             });
         } catch (err) {
@@ -235,27 +258,97 @@ const PetSearch = () => {
         }
     };
 
+    const validateSearchParams = () => {
+        // Clear previous errors
+        setError(null);
+        
+        // Create a clean search parameters object
+        const searchParams: SearchParams = {
+            limit: filters.limit || 20,
+            page: filters.page || 1
+        };
+    
+        // Validate and add optional parameters
+        if (searchTerm?.trim()) searchParams.name = searchTerm.trim();
+        
+        // Add type if selected
+        if (filters.type?.trim()) searchParams.type = filters.type.trim();
+        
+        // Only add breed if type is selected (prevents "breed without type" errors)
+        if (filters.type?.trim() && filters.breed?.trim()) {
+            searchParams.breed = filters.breed.trim();
+        }
+        
+        // Add other filter parameters
+        if (filters.size?.trim()) searchParams.size = filters.size.trim();
+        if (filters.gender?.trim()) searchParams.gender = filters.gender.trim();
+        if (filters.age?.trim()) searchParams.age = filters.age.trim();
+        
+        // Validate location if provided
+        if (filters.location?.trim()) {
+            const location = filters.location.trim();
+            
+            // Validate zipcode format if it looks like a zipcode
+            if (/^\d+$/.test(location)) {
+                if (location.length !== 5) {
+                    setError(new ApolloError({ errorMessage: 'Please enter a valid 5-digit zipcode' }));
+                    return null;
+                }
+            }
+            
+            searchParams.location = location;
+            
+            // Only add distance if we have a valid location
+            if (filters.distance) {
+                const distance = parseInt(filters.distance);
+                if (!isNaN(distance) && distance > 0) {
+                    searchParams.distance = distance;
+                }
+            }
+        }
+        
+        return searchParams;
+    };
+
+    // Improved error UI rendering
+    const renderErrorMessage = (error: ApolloError) => {
+        // Extract the most relevant error message for users
+        let errorMessage = 'Failed to connect to pet database. Please try again later.';
+        let errorDetails = '';
+
+        if (error.graphQLErrors?.length) {
+            const mainError = error.graphQLErrors[0];
+            errorMessage = mainError.message;
+
+            // Add more user-friendly context based on error code
+            if (mainError.extensions?.code === 'PETFINDER_AUTH_ERROR') {
+                errorDetails = 'There was a problem connecting to the pet database. We\'re working to resolve this.';
+            } else if (mainError.extensions?.code === 'PETFINDER_NETWORK_ERROR') {
+                errorDetails = 'Please check your internet connection and try again.';
+            }
+        } else if (error.networkError) {
+            errorMessage = 'Network connection issue. Please check your internet and try again.';
+        }
+
+        return (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <h3 className="text-red-700 font-medium mb-2">Error</h3>
+                <p className="text-red-600 mb-2">{errorMessage}</p>
+                {errorDetails && <p className="text-gray-600 text-sm">{errorDetails}</p>}
+            </div>
+        );
+    };
+
     // Handle initial search when component loads
     useEffect(() => {
         // Check if we already have search criteria from the filters
-        const hasSearchCriteria = filters.type || filters.breed || filters.size || 
-                                filters.gender || filters.age || filters.location;
-        
+        const hasSearchCriteria = filters.type || filters.breed || filters.size ||
+            filters.gender || filters.age || filters.location;
+
         if (hasSearchCriteria) {
             handleSearch();
         }
     }, []);
-
-    // Handle opening the pet detail modal
-    const handlePetClick = (pet: Pet) => {
-        setSelectedPet(pet);
-    };
-
-    // Handle saving a pet directly from the card
-    const handleSavePetClick = (e: React.MouseEvent, pet: Pet) => {
-        e.stopPropagation(); // Prevent the card click event
-        setSelectedPet(pet); // Open the modal with this pet
-    };
 
     if (typesLoading) {
         return (
@@ -282,18 +375,18 @@ const PetSearch = () => {
     function renderPaginationButtons() {
         const totalPages = petsData?.searchPetfinderPets?.pagination.total_pages || 1;
         const currentPage = filters.page;
-        
+
         // Calculate page range to show
         let startPage = Math.max(1, currentPage - 2);
         let endPage = Math.min(totalPages, startPage + 4);
-        
+
         // Adjust start if we're near the end
         if (endPage - startPage < 4) {
             startPage = Math.max(1, endPage - 4);
         }
-        
+
         const buttons = [];
-        
+
         for (let i = startPage; i <= endPage; i++) {
             buttons.push(
                 <button
@@ -307,7 +400,7 @@ const PetSearch = () => {
                 </button>
             );
         }
-        
+
         return buttons;
     }
 
@@ -322,34 +415,34 @@ const PetSearch = () => {
                 <div className="flex flex-col sm:flex-row gap-4 mb-4">
                     <div className="flex-1 relative flex flex-col sm:flex-row gap-4">
                         <div className="relative flex-1">
-                            <input 
-                                type="text" 
-                                placeholder="Search pets..." 
+                            <input
+                                type="text"
+                                placeholder="Search pets..."
                                 value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)} 
-                                className="w-full pl-10 pr-4 py-2 border rounded-lg" 
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2 border rounded-lg"
                                 aria-label="Search by pet name"
                             />
                             <Search className="absolute left-3 top-3 text-gray-400" />
                         </div>
                         <div className="relative flex-1">
-                            <input 
-                                type="text" 
-                                placeholder="Enter Zipcode" 
+                            <input
+                                type="text"
+                                placeholder="Enter Zipcode"
                                 value={filters.location || ''}
                                 onChange={(e) => setFilters(prev => ({
                                     ...prev,
                                     location: e.target.value
                                 }))}
                                 maxLength={5}
-                                className="w-full pl-10 pr-4 py-2 border rounded-lg" 
+                                className="w-full pl-10 pr-4 py-2 border rounded-lg"
                                 aria-label="Search by location"
                             />
                             <MapPin className="absolute left-3 top-3 text-gray-400" />
                         </div>
                     </div>
-                    <button 
-                        onClick={() => setIsFilterOpen(!isFilterOpen)} 
+                    <button
+                        onClick={() => setIsFilterOpen(!isFilterOpen)}
                         className="px-4 py-2 border rounded-lg hover:bg-gray-50"
                         aria-expanded={isFilterOpen}
                         aria-controls="filter-panel"
@@ -357,9 +450,9 @@ const PetSearch = () => {
                         <Filter className="w-5 h-5 inline-block mr-2" />
                         Filters
                     </button>
-                    <button 
-                        onClick={handleSearch} 
-                        disabled={petsLoading} 
+                    <button
+                        onClick={handleSearch}
+                        disabled={petsLoading}
                         className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 disabled:bg-blue-300"
                     >
                         {petsLoading ? 'Searching...' : 'Search'}
@@ -373,10 +466,10 @@ const PetSearch = () => {
                                 <label htmlFor="pet-type" className="block text-sm font-medium text-gray-700 mb-1">
                                     Type
                                 </label>
-                                <select 
+                                <select
                                     id="pet-type"
-                                    value={filters.type} 
-                                    onChange={(e) => handleTypeChange(e.target.value)} 
+                                    value={filters.type}
+                                    onChange={(e) => handleTypeChange(e.target.value)}
                                     className="w-full border rounded-lg p-2"
                                 >
                                     <option value="">Select Type</option>
@@ -412,10 +505,10 @@ const PetSearch = () => {
                                 <label htmlFor="pet-age" className="block text-sm font-medium text-gray-700 mb-1">
                                     Age
                                 </label>
-                                <select 
+                                <select
                                     id="pet-age"
-                                    value={filters.age} 
-                                    onChange={(e) => setFilters(prev => ({ ...prev, age: e.target.value }))} 
+                                    value={filters.age}
+                                    onChange={(e) => setFilters(prev => ({ ...prev, age: e.target.value }))}
                                     className="w-full border rounded-lg p-2"
                                 >
                                     <option value="">Select Age</option>
@@ -430,10 +523,10 @@ const PetSearch = () => {
                                 <label htmlFor="pet-size" className="block text-sm font-medium text-gray-700 mb-1">
                                     Size
                                 </label>
-                                <select 
+                                <select
                                     id="pet-size"
-                                    value={filters.size} 
-                                    onChange={(e) => setFilters(prev => ({ ...prev, size: e.target.value }))} 
+                                    value={filters.size}
+                                    onChange={(e) => setFilters(prev => ({ ...prev, size: e.target.value }))}
                                     className="w-full border rounded-lg p-2"
                                 >
                                     <option value="">Select Size</option>
@@ -448,10 +541,10 @@ const PetSearch = () => {
                                 <label htmlFor="pet-gender" className="block text-sm font-medium text-gray-700 mb-1">
                                     Gender
                                 </label>
-                                <select 
+                                <select
                                     id="pet-gender"
-                                    value={filters.gender} 
-                                    onChange={(e) => setFilters(prev => ({ ...prev, gender: e.target.value }))} 
+                                    value={filters.gender}
+                                    onChange={(e) => setFilters(prev => ({ ...prev, gender: e.target.value }))}
                                     className="w-full border rounded-lg p-2"
                                 >
                                     <option value="">Select Gender</option>
@@ -509,22 +602,26 @@ const PetSearch = () => {
             {petsData?.searchPetfinderPets?.animals && petsData.searchPetfinderPets.animals.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                     {petsData?.searchPetfinderPets?.animals?.map((pet: Pet) => (
-                        <div 
-                            key={pet.id} 
+                        <div
+                            key={pet.id}
                             className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden transition-transform duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
-                            onClick={() => handlePetClick(pet)}
+                            onClick={() => setSelectedPet(pet)}
                             aria-label={`View details for ${pet.name}`}
                         >
                             <div className="relative h-48">
-                                <img 
-                                    src={pet.photos[0]?.medium || "/api/placeholder/400/300"} 
-                                    alt={pet.name} 
-                                    className="w-full h-full object-cover object-center" 
+                                <img
+                                    src={pet.photos[0]?.medium || "/api/placeholder/400/300"}
+                                    alt={pet.name}
+                                    className="w-full h-full object-cover object-center"
                                 />
                                 {isLoggedIn && (
-                                    <button 
+                                    <button
                                         className="absolute top-2 right-2 p-1.5 bg-white rounded-full text-gray-500 hover:text-pink-500 transition-colors"
-                                        onClick={(e) => handleSavePetClick(e, pet)}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            // Logic for saving pet will be handled in the modal
+                                            setSelectedPet(pet);
+                                        }}
                                         aria-label={`Save ${pet.name} to favorites`}
                                     >
                                         <Heart className="w-5 h-5" />
@@ -572,7 +669,7 @@ const PetSearch = () => {
                         >
                             Previous
                         </button>
-                        
+
                         <div className="flex gap-2">
                             {filters.page > 3 && (
                                 <>
@@ -586,9 +683,9 @@ const PetSearch = () => {
                                     <span className="px-2 flex items-center">...</span>
                                 </>
                             )}
-                            
+
                             {renderPaginationButtons()}
-                            
+
                             {filters.page < petsData?.searchPetfinderPets?.pagination.total_pages - 2 && (
                                 <>
                                     <span className="px-2 flex items-center">...</span>
@@ -616,9 +713,9 @@ const PetSearch = () => {
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">
                             <span className="text-sm text-gray-600">Show:</span>
-                            <select 
-                                value={filters.limit} 
-                                onChange={(e) => setFilters(prev => ({ 
+                            <select
+                                value={filters.limit}
+                                onChange={(e) => setFilters(prev => ({
                                     ...prev,
                                     limit: parseInt(e.target.value),
                                     page: 1 // Reset to first page when changing limit

@@ -1,46 +1,87 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import { IUserPet } from './UserPet';
+import { IProfile } from './Profile';
 
-export interface IUserPet {
-  name: string;
-  species: string;
-  breed?: string;
-  age: number;
-  description?: string;
-  image?: string; // This will store the Cloudinary URL for the pet image
-}
 
 export interface IThread extends Document {
   title: string;
   content: string;
   threadType: 'ADOPTION' | 'SURRENDER';
   pet: IUserPet;  // Nested pet information
-  author: mongoose.Types.ObjectId;  // Reference to the User model
+  author: IProfile;  // Reference to the Profile model
   createdAt: Date;
   updatedAt: Date;
 }
 
-const petSchema = new Schema<IUserPet>({
-  name: { type: String, required: true },
-  species: { type: String, required: true },
-  breed: { type: String },
-  age: { type: Number, required: true },
-  description: { type: String },
-  image: { type: String },
-});
-
-const threadSchema = new Schema<IThread>(
+const petSchema = new Schema<IUserPet>(
   {
-    title: { type: String, required: true },
-    content: { type: String, required: true },
-    threadType: { 
-      type: String, 
-      required: true, 
-      enum: ['ADOPTION', 'SURRENDER'] 
+    name: {
+      type: String,
+      required: true,
+      trim: true
     },
-    pet: { type: petSchema, required: true },
-    author: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    species: {
+      type: String,
+      required: true,
+      enum: ['Dog', 'Cat', 'Bird', 'Fish', 'Small Animal', 'Reptile', 'Other']
+    },
+    breed: {
+      type: String,
+      trim: true
+    },
+    age: {
+      type: Number,
+      required: true,
+      min: 0,
+      max: 100
+    },
+    description: {
+      type: String,
+      trim: true
+    },
+    image: {
+      type: String
+    },
+    owner: {
+      type: Schema.Types.ObjectId,
+      ref: 'Profile',
+      required: true
+    }
   },
   { timestamps: true }
 );
 
-export default mongoose.model<IThread>('Thread', threadSchema);
+
+
+const thread = new Schema<IThread>(
+  {
+    title: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    content: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    threadType: {
+      type: String,
+      required: true,
+      enum: ['ADOPTION', 'SURRENDER']
+    },
+    pet: {
+      type: petSchema,
+      required: true
+    },
+   
+    author: {
+      type: Schema.Types.ObjectId,
+      ref: 'Profile',
+      required: true
+    }
+  },
+  { timestamps: true }  // This is the critical addition!
+);
+
+export default mongoose.model<IThread>('thread', thread);

@@ -136,10 +136,28 @@ type PetfinderAnimal {
   age: String
   gender: String
   size: String
+  colors: PetfinderColors
   photos: [PetfinderPhoto]
   status: String
   attributes: PetfinderAttributes
+  environment: PetfinderEnvironment
+  organization_id: String
   contact: PetfinderContact
+  published_at: String
+  distance: Float
+  description: String
+}
+
+type PetfinderColors {
+  primary: String
+  secondary: String
+  tertiary: String
+}
+
+type PetfinderEnvironment {
+  children: Boolean
+  dogs: Boolean
+  cats: Boolean
 }
 
 type PetfinderPagination {
@@ -239,14 +257,14 @@ input CreateApplicationInput {
 }
 
 # Forum Types (Using nested pet object)
-type Thread {
-  id: ID!
+type thread {
+  _id: ID!
   title: String!
   content: String!
   threadType: String!    # "ADOPTION" or "SURRENDER"
   pet: UserPet!
   author: User!
-  comments: [Comment]
+  comments: [comment]
   createdAt: String!
   updatedAt: String!
 }
@@ -258,12 +276,12 @@ input CreateThreadInput {
   pet: UserPetInput!
 }
 
-type Comment {
-  id: ID!
-  thread: Thread!
+type comment {
+ _id: ID!
+  thread: thread!
   content: String!
   author: User!
-  parentComment: Comment
+ 
   createdAt: String!
   updatedAt: String!
 }
@@ -292,13 +310,13 @@ type Query {
   applications: [Application]!
   application(id: ID!): Application
 
-  # Shelter Queries
-    shelters(location: String): ShelterResponse
-    searchShelters(input: ShelterSearchInput): ShelterResponse
+# Shelter Queries
+  shelters(location: String): ShelterResponse
+  searchShelters(input: ShelterSearchInput): ShelterResponse
 
   # Forum Queries
-  threads: [Thread]
-  thread(id: ID!): Thread
+  threads: [thread]
+  thread(id: ID!): thread
 }
 
 # Mutations
@@ -326,8 +344,8 @@ type Mutation {
   createApplication(input: CreateApplicationInput!): Application!
 
   # Forum Mutations
-  createThread(input: CreateThreadInput!): Thread!
-  createComment(input: CreateCommentInput!): Comment!
+  createThread(input: CreateThreadInput!): thread!
+  createComment(input: CreateCommentInput!): comment!
 }
 `;
 

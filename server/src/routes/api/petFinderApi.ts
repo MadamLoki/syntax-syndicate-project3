@@ -53,87 +53,103 @@ class PetfinderAPI {
     }
 
     private async getToken(): Promise<string> {
-        console.log('Getting token...');
-        // If we have a valid token, return it
-        if (this.token && Date.now() < this.tokenExpiration - 30000) { // 30-second buffer
-            console.log('Using existing token');
+        console.log('Checking token status...');
+        // If we have a valid token with at least 60 seconds left, return it
+        if (this.token && Date.now() < this.tokenExpiration - 60000) { 
+            console.log('Using existing token (expires in:', Math.round((this.tokenExpiration - Date.now())/1000), 'seconds)');
             return this.token;
         }
-
+    
         // If a token refresh is already in progress, wait for it
         if (this.tokenRefreshPromise) {
+            console.log('Token refresh already in progress, waiting...');
             return this.tokenRefreshPromise;
         }
-
+    
         // Start a new token refresh
+        console.log('Starting new token refresh...');
         this.tokenRefreshPromise = (async () => {
             try {
-                // Form data for token request
-                const formData = new URLSearchParams({
-                    'grant_type': 'client_credentials',
-                    'client_id': this.apiKey,
-                    'client_secret': this.apiSecret,
-                });
+                // Validate API key and secret
+                if (!this.apiKey || !this.apiSecret) {
+                    console.error('Missing API key or secret');
+                    throw new Error('Petfinder API credentials are missing or invalid');
+                }
+                
+                console.log('Requesting new token from Petfinder API...');
                 
                 const response = await fetch(`${this.baseUrl}/oauth2/token`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
                     },
-                    body: formData,
+                    body: new URLSearchParams({
+                        'grant_type': 'client_credentials',
+                        'client_id': this.apiKey,
+                        'client_secret': this.apiSecret,
+                    }),
                 });
-
+    
+                // Check for non-200 response
                 if (!response.ok) {
-                    const errorBody = await response.text();
-                    throw new Error(`Authentication failed (${response.status}): ${response.statusText} - ${errorBody}`);
+                    const errorText = await response.text();
+                    console.error(`Authentication failed: ${response.status} ${response.statusText}`, errorText);
+                    throw new Error(`Petfinder authentication failed: ${response.statusText}`);
                 }
-
+    
                 const data = await response.json() as PetfinderAuthResponse;
                 
-                if (data.token_type !== 'Bearer') {
-                    throw new Error('Unexpected token type received');
+                if (!data || !data.access_token) {
+                    throw new Error('Invalid authentication response from Petfinder API');
                 }
-
+                
+                if (data.token_type !== 'Bearer') {
+                    console.warn('Unexpected token type received:', data.token_type);
+                }
+    
                 this.token = data.access_token;
                 // Set expiration to 60 seconds before actual expiration for safety
                 this.tokenExpiration = Date.now() + (data.expires_in * 1000) - 60000;
                 
+                console.log('Token refreshed successfully, expires in', data.expires_in, 'seconds');
                 return this.token;
             } catch (error) {
                 console.error('Token refresh error:', error);
+                // Clear the token to force a complete refresh next time
                 this.token = null;
                 this.tokenExpiration = 0;
-                
-                throw new ApolloError(
-                    'Failed to authenticate with Petfinder API: ' + (error instanceof Error ? error.message : 'Unknown error'),
-                    'PETFINDER_AUTH_ERROR'
-                );
+                throw error;
             } finally {
                 this.tokenRefreshPromise = null;
             }
         })();
-
+    
         return this.tokenRefreshPromise;
-    }
-
-    public async getAuthToken(): Promise<string> {
-        return this.getToken();
     }
 
     private async makeRequest<T>(endpoint: string, params: Record<string, any> = {}): Promise<T> {
         try {
             const token = await this.getToken();
-            console.log(`Making request to endpoint: ${endpoint}`);
             
-            // Build query params, filtering out null/undefined/empty values
-            const queryParams = Object.entries(params)
-                .filter(([_, value]) => value != null && value !== '')
-                .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-                .join('&');
-    
+            // Clean parameters: remove nulls, undefined, and empty strings
+            const cleanParams = Object.fromEntries(
+                Object.entries(params)
+                    .filter(([_, value]) => value != null && value !== '')
+                    .map(([key, value]) => {
+                        // Convert arrays or objects to JSON strings if needed
+                        if (typeof value === 'object' && value !== null) {
+                            return [key, JSON.stringify(value)];
+                        }
+                        return [key, value];
+                    })
+            );
+            
+            // Build URL with clean parameters
+            const queryParams = new URLSearchParams(cleanParams).toString();
             const url = `${this.baseUrl}/${endpoint}${queryParams ? `?${queryParams}` : ''}`;
-            console.log('Request URL:', url);
-    
+            
+            console.log(`Making request to: ${url}`);
+            
             const response = await fetch(url, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -141,66 +157,47 @@ class PetfinderAPI {
                 },
             });
     
-            // If response is not OK, handle error
+            // Handle non-200 responses properly
             if (!response.ok) {
-                const errorText = await response.text();
-                let errorData;
-                
+                // Try to get error details from response
+                let errorDetails = '';
                 try {
-                    // Try to parse error as JSON
-                    errorData = JSON.parse(errorText);
+                    const errorData = await response.json();
+                    errorDetails = JSON.stringify(errorData);
                 } catch (e) {
-                    // If not JSON, use text as error
-                    errorData = { message: errorText };
+                    // If parsing fails, use status text
+                    errorDetails = response.statusText;
                 }
                 
-                console.error('API Error Response:', {
-                    status: response.status,
-                    statusText: response.statusText,
-                    errorData
-                });
-                
-                // Handle specific error cases
-                if (response.status === 401) {
-                    // Clear token and retry once
-                    this.token = null;
-                    this.tokenExpiration = 0;
-                    
-                    // If first attempt, try again with new token
-                    if (!params._retry) {
-                        console.log('Auth error - retrying with new token');
-                        return this.makeRequest(endpoint, { ...params, _retry: true });
-                    }
-                    
-                    throw new Error('Authentication failed after token refresh');
-                }
-                
-                throw new Error(`API request failed: ${response.status} ${response.statusText}. ${errorData.message || 'Unknown error'}`);
+                throw new Error(`Petfinder API request failed (${response.status}): ${errorDetails}`);
             }
     
-            // Parse and return response data
             const data = await response.json();
             return data;
         } catch (error) {
-            console.error('makeRequest error:', error);
+            console.error('Petfinder API request error:', error);
             throw error;
         }
     }
 
     public async getTypes(): Promise<string[]> {
         try {
+            //console.log('PetfinderAPI: Fetching pet types...');
             const response = await this.makeRequest<{ types: { name: string }[] }>('types');
-            
+            //console.log('Raw API response:', response); // Debug log
+    
             if (!response || !response.types) {
-                console.error('Invalid response from types endpoint:', response);
+                console.error('PetfinderAPI: Invalid response structure');
                 return [];
             }
-            
-            // Extract type names
-            return response.types.map(type => type.name);
+    
+            // Ensure we're properly extracting the type names
+            const types = response.types.map(type => type.name);
+            //console.log('Extracted types:', types); // Debug log
+    
+            return types;
         } catch (error) {
-            console.error('Error getting types:', error);
-            // Return empty array for non-critical errors
+            console.error('PetfinderAPI: Error in getTypes:', error);
             return [];
         }
     }
@@ -209,80 +206,37 @@ class PetfinderAPI {
         if (!type) {
             throw new Error('Type parameter is required');
         }
-        
-        try {
-            const response = await this.makeRequest<{ breeds: { name: string }[] }>(`types/${type.toLowerCase()}/breeds`);
-            
-            if (!response || !response.breeds || !Array.isArray(response.breeds)) {
-                console.error('Invalid breeds response:', response);
-                return [];
-            }
-            
-            return response.breeds.map((breed: { name: string }) => breed.name);
-        } catch (error) {
-            console.error(`Error fetching breeds for ${type}:`, error);
-            return [];
-        }
-    }
-
-    public async getPetById(id: string) {
-        if (!id) {
-            throw new Error('Pet ID is required');
-        }
-        
-        try {
-            console.log(`Making request to get pet with ID: ${id}`);
-            return this.makeRequest(`animals/${id}`);
-        } catch (error) {
-            console.error(`Error fetching pet with ID ${id}:`, error);
-            throw error;
-        }
+        const response = await this.makeRequest<{ breeds: { name: string }[] }>(`types/${type.toLowerCase()}/breeds`);
+           // Ensure the response has the expected structure
+        return response.breeds.map((breed: { name: string }) => breed.name);
     }
 
     public async searchPets(params: PetfinderSearchParams) {
-        // Sanitize input parameters
-        const sanitizedParams: Record<string, any> = {};
-        
-        // Process each parameter
-        if (params.type) sanitizedParams.type = params.type.toLowerCase();
-        if (params.breed) sanitizedParams.breed = params.breed;
-        if (params.size) sanitizedParams.size = params.size.toLowerCase();
-        if (params.gender) sanitizedParams.gender = params.gender.toLowerCase();
-        if (params.age) sanitizedParams.age = params.age.toLowerCase();
-        
-        // Process location and distance
-        if (params.location && params.location.trim()) {
-            sanitizedParams.location = params.location.trim();
-            if (params.distance) {
-                // Ensure distance is a number
-                sanitizedParams.distance = typeof params.distance === 'string' 
-                    ? parseInt(params.distance, 10) 
-                    : params.distance;
-            }
+        // Ensure all parameters are properly formatted
+        const cleanParams: { [key: string]: any } = {
+            type: params.type?.toLowerCase(),
+            breed: params.breed,
+            size: params.size?.toLowerCase(),
+            gender: params.gender?.toLowerCase(),
+            age: params.age?.toLowerCase(),
+            location: params.location,
+            distance: params.distance,
+            limit: params.limit || 100,
+            name: params.name
+        };
+    
+        // Ensure location is properly formatted for the API
+        if (cleanParams.location && cleanParams.location.length === 5 && !isNaN(Number(cleanParams.location))) {
+            // It's likely a zip code, make sure it's properly formatted
+            cleanParams.location = cleanParams.location.trim();
         }
-        
-        // Pagination
-        sanitizedParams.limit = params.limit || 20;
-        sanitizedParams.page = params.page || 1;
-        
-        // Search term
-        if (params.name) sanitizedParams.name = params.name;
-        
-        // Default to adoptable status
-        sanitizedParams.status = 'adoptable';
-        
-        // Add sort by newest
-        sanitizedParams.sort = 'recent';
-        
-        console.log('Searching with sanitized parameters:', sanitizedParams);
-        
-        try {
-            const result = await this.makeRequest('animals', sanitizedParams);
-            return result;
-        } catch (error) {
-            console.error('Error in searchPets:', error);
-            throw error;
-        }
+    
+        // Remove undefined or empty values
+        Object.keys(cleanParams).forEach(key => 
+            (cleanParams[key] === undefined || cleanParams[key] === '') && delete cleanParams[key]
+        );
+    
+        return this.makeRequest('animals', cleanParams);
     }
 }
 
