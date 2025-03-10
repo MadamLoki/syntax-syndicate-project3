@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
-import { ArrowRight, Search, Heart, PawPrint, Home, Users, MessageSquare, Info } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowRight, Search, Heart, PawPrint, Home, Users, MessageSquare, Info, Calendar } from 'lucide-react';
 
 const LandingPage = () => {
-    const navigate = (path: string) => {
-        console.log(`Navigating to: ${path}`);
-    };
-    
+    const navigate = useNavigate();
     const [searchInput, setSearchInput] = useState('');
 
     // Handle search input changes
@@ -116,12 +114,18 @@ const LandingPage = () => {
                                 Connect with local shelters, pet lovers, and your future furry friend all in one place.
                             </p>
                             <div className="flex flex-col sm:flex-row gap-4">
-                                <button className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors" onClick={() => navigate('/findpets')}>
+                                <Link 
+                                    to="/findpets"
+                                    className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors text-center"
+                                >
                                     Browse Pets
-                                </button>
-                                <button className="border-2 border-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors" onClick={() => navigate('/signup')}>
+                                </Link>
+                                <Link 
+                                    to="/signup"
+                                    className="border-2 border-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-center"
+                                >
                                     Join Community
-                                </button>
+                                </Link>
                             </div>
                         </div>
                         <div className="lg:w-1/2 mt-8 lg:mt-0">
@@ -172,8 +176,91 @@ const LandingPage = () => {
                 </div>
             </section>
 
-            {/* Our Mission Section */}
+            {/* Calendar Section */}
             <section className="py-16 bg-white">
+                <div className="container mx-auto px-6">
+                    <div className="max-w-5xl mx-auto">
+                        <div className="flex flex-col lg:flex-row items-center gap-10">
+                            <div className="lg:w-1/2">
+                                <div className="inline-block p-3 bg-blue-100 rounded-full mb-6">
+                                    <Calendar className="w-8 h-8 text-blue-600" />
+                                </div>
+                                <h2 className="text-3xl font-bold mb-4 text-gray-800">Pet Adoption Events</h2>
+                                <p className="text-lg text-gray-600 mb-6">
+                                    Stay updated with all local pet adoption events, vaccination clinics, and training workshops near you.
+                                </p>
+                                <ul className="space-y-4 mb-6">
+                                    <li className="flex items-start">
+                                        <div className="bg-blue-100 p-1 rounded-full mr-3 mt-1">
+                                            <PawPrint className="w-4 h-4 text-blue-600" />
+                                        </div>
+                                        <span className="text-gray-700">Browse upcoming adoption events in your area</span>
+                                    </li>
+                                    <li className="flex items-start">
+                                        <div className="bg-blue-100 p-1 rounded-full mr-3 mt-1">
+                                            <PawPrint className="w-4 h-4 text-blue-600" />
+                                        </div>
+                                        <span className="text-gray-700">Add events to your personal calendar</span>
+                                    </li>
+                                    <li className="flex items-start">
+                                        <div className="bg-blue-100 p-1 rounded-full mr-3 mt-1">
+                                            <PawPrint className="w-4 h-4 text-blue-600" />
+                                        </div>
+                                        <span className="text-gray-700">Register for workshops and virtual events</span>
+                                    </li>
+                                </ul>
+                                <button 
+                                    className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors inline-flex items-center"
+                                    onClick={() => navigate('/calendar')}
+                                >
+                                    View Calendar
+                                    <ArrowRight className="ml-2 w-4 h-4" />
+                                </button>
+                            </div>
+                            <div className="lg:w-1/2 p-4 bg-blue-50 rounded-lg shadow">
+                                <h3 className="font-semibold text-blue-800 mb-3">Upcoming Events</h3>
+                                <div className="space-y-3">
+                                    <div className="bg-white p-3 rounded-lg shadow-sm">
+                                        <div className="flex justify-between">
+                                            <h4 className="font-medium">Adoption Day Event</h4>
+                                            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                                                Adoption
+                                            </span>
+                                        </div>
+                                        <p className="text-sm text-gray-500">January 15, 2025 • Central Park Community Center</p>
+                                    </div>
+                                    <div className="bg-white p-3 rounded-lg shadow-sm">
+                                        <div className="flex justify-between">
+                                            <h4 className="font-medium">Vaccination Clinic</h4>
+                                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                                Clinic
+                                            </span>
+                                        </div>
+                                        <p className="text-sm text-gray-500">January 22, 2025 • Main Street Vet Hospital</p>
+                                    </div>
+                                    <div className="bg-white p-3 rounded-lg shadow-sm">
+                                        <div className="flex justify-between">
+                                            <h4 className="font-medium">Pet First Aid Workshop</h4>
+                                            <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
+                                                Training
+                                            </span>
+                                        </div>
+                                        <p className="text-sm text-gray-500">January 28, 2025 • Community Center</p>
+                                    </div>
+                                </div>
+                                <div className="mt-4 text-center">
+                                    <Link to="/calendar" className="text-blue-600 hover:text-blue-800 text-sm font-semibold">
+                                        View all events →
+                                    </Link>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Our Mission Section */}
+            <section className="py-16 bg-gray-50">
                 <div className="container mx-auto px-6">
                     <div className="max-w-4xl mx-auto text-center">
                         <div className="inline-block p-3 bg-blue-100 rounded-full mb-6">
@@ -184,19 +271,19 @@ const LandingPage = () => {
                             At NewLeash, we believe every pet deserves a loving home and every person deserves to experience the joy of pet companionship. Our platform is designed to break down barriers in the adoption process by connecting shelters, rescues, and potential adopters in one seamless experience.
                         </p>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left mt-12">
-                            <div className="bg-gray-50 p-6 rounded-lg">
+                            <div className="bg-white p-6 rounded-lg shadow-sm">
                                 <div className="text-blue-600 font-bold text-xl mb-3">For Adopters</div>
                                 <p className="text-gray-600">
                                     Find your perfect companion with our powerful search tools, save favorites, and connect directly with shelters.
                                 </p>
                             </div>
-                            <div className="bg-gray-50 p-6 rounded-lg">
+                            <div className="bg-white p-6 rounded-lg shadow-sm">
                                 <div className="text-blue-600 font-bold text-xl mb-3">For Shelters</div>
                                 <p className="text-gray-600">
                                     Showcase your animals to a wider audience and connect with potential adopters who match your requirements.
                                 </p>
                             </div>
-                            <div className="bg-gray-50 p-6 rounded-lg">
+                            <div className="bg-white p-6 rounded-lg shadow-sm">
                                 <div className="text-blue-600 font-bold text-xl mb-3">For Community</div>
                                 <p className="text-gray-600">
                                     Share experiences, offer advice, and participate in a community dedicated to animal welfare.
@@ -208,7 +295,7 @@ const LandingPage = () => {
             </section>
 
             {/* Features Section */}
-            <section className="py-16 bg-gray-50">
+            <section className="py-16 bg-white">
                 <div className="container mx-auto px-6">
                     <div className="text-center mb-16">
                         <h2 className="text-3xl font-bold text-gray-800 mb-4">Everything You Need in One Place</h2>
@@ -230,7 +317,7 @@ const LandingPage = () => {
             </section>
 
             {/* How It Works Section */}
-            <section className="py-16 bg-white">
+            <section className="py-16 bg-gray-50">
                 <div className="container mx-auto px-6">
                     <div className="text-center mb-16">
                         <h2 className="text-3xl font-bold text-gray-800 mb-4">How It Works</h2>
@@ -257,7 +344,7 @@ const LandingPage = () => {
             </section>
 
             {/* Pet Education Section */}
-            <section className="py-16 bg-gray-50">
+            <section className="py-16 bg-white">
                 <div className="container mx-auto px-6">
                     <div className="max-w-6xl mx-auto">
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -295,13 +382,10 @@ const LandingPage = () => {
                                         </div>
                                     </li>
                                 </ul>
-                                <button 
-                                    className="mt-8 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors inline-flex items-center"
-                                    onClick={() => navigate('/resources')}
-                                >
+                                <Link to="/about" className="mt-8 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors inline-flex items-center">
                                     Explore Resources
                                     <ArrowRight className="ml-2 w-4 h-4" />
-                                </button>
+                                </Link>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <img src="https://www.gsdoc.org/wp-content/uploads/2024/07/dog-training-clipart-cartoon-image-of-dog-trainer-removebg-preview.jpg" alt="Dog training" className="rounded-lg shadow-md" />
