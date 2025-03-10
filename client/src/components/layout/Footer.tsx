@@ -1,3 +1,5 @@
+import React from 'react';
+
 const Footer = () => {
     return (
         <footer className="dark:bg-gray-800">
@@ -8,16 +10,16 @@ const Footer = () => {
                     <h3 className="text-sm text-gray-500 sm:text-center dark:text-gray-400 mb-4">Contributors</h3>
                     <ul className="flex flex-wrap items-center mt-3 text-sm font-medium text-gray-500 dark:text-gray-400 sm:mt-0">
                         <li>
-                            <a href="#" className="hover:underline me-4 md:me-6">Sara Ryan</a>
+                            <a className="hover:underline me-4 md:me-6">Sara Ryan</a>
                         </li>
                         <li>
-                            <a href="#" className="hover:underline me-4 md:me-6">Adebanjo Fajemisin</a>
+                            <a className="hover:underline me-4 md:me-6">Adebanjo Fajemisin</a>
                         </li>
                         <li>
-                            <a href="#" className="hover:underline me-4 md:me-6">Shelia Bradford</a>
+                            <a className="hover:underline me-4 md:me-6">Shelia Bradford</a>
                         </li>
                         <li>
-                            <a href="#" className="hover:underline">Joshua Loller</a>
+                            <a className="hover:underline">Joshua Loller</a>
                         </li>
                     </ul>
                 </div>
