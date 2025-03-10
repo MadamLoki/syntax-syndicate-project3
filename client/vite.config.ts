@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react'
+import react from '@vitejs/plugin-react';
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -10,9 +10,22 @@ export default defineConfig({
     proxy: {
       '/graphql': {
         target: 'http://localhost:3001',
-        secure: false,
         changeOrigin: true,
-        ws: true,
+        secure: false,
+        ws: true, 
+        // Add more robust error handling for proxy
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            console.log('Proxy error:', err);
+          });
+          proxy.on('proxyReq', (_proxyReq, req, _res) => {
+            console.log('Proxying request:', req.method, req.url);
+          });
+          // Wait for server to start
+          proxy.on('proxyRes', (proxyRes, req, _res) => {
+            console.log('Proxy response:', proxyRes.statusCode, req.url);
+          });
+        }
       }
     }
   },
@@ -25,9 +38,10 @@ export default defineConfig({
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
-          ui: ['lucide-react']
+          ui: ['lucide-react'],
+          apollo: ['@apollo/client'] // Separate Apollo into its own chunk
         }
       }
     }
   },
-})
+});

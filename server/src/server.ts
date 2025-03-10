@@ -37,6 +37,24 @@ app.get('/test-petfinder', async (_req, res) => {
     }
 });
 
+app.get('/api/test-petfinder', async (_req, res) => {
+    try {
+        const token = await petfinderAPI.getAuthToken();
+        res.json({ 
+            success: true, 
+            message: 'Successfully connected to Petfinder API',
+            token_obtained: !!token
+        });
+    } catch (error) {
+        console.error('Petfinder API test failed:', error);
+        res.status(500).json({ 
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            details: process.env.NODE_ENV === 'development' ? error : undefined
+        });
+    }
+});
+
 // Add a debug endpoint that shows more information
 app.get('/debug-petfinder', async (_req, res) => {
     try {
