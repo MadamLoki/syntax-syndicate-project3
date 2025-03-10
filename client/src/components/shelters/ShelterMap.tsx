@@ -16,7 +16,6 @@ interface ShelterMapProps {
 }
 
 const ShelterMap: React.FC<ShelterMapProps> = ({ lat, lng }) => {
-    console.log(lat, lng, " lat lng")
     const center = { lat, lng };
 
     const { isLoaded } = useJsApiLoader({
