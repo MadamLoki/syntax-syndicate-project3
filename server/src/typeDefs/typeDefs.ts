@@ -98,6 +98,10 @@ type PetfinderBreed {
   mixed: Boolean
 }
 
+input PetfinderPetInput {
+  id: String!
+}
+
 type PetfinderPhoto {
   small: String
   medium: String
@@ -305,6 +309,7 @@ type Query {
   getPetfinderTypes: [String!]!
   getPetfinderBreeds(type: String!): [String!]!
   searchPetfinderPets(input: PetfinderSearchInput): PetfinderResponse
+  getPetfinderPet(input: PetfinderPetInput!): PetfinderAnimal
 
   # Application Queries
   applications: [Application]!

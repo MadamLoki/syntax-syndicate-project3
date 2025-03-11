@@ -64,7 +64,7 @@ interface PetDetailProps {
 const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
     const navigate = useNavigate();
     const { isLoggedIn } = useAuth();
-    const [isSaved, setIsSaved] = useState<boolean>(false);
+    const [isSaved, setIsSaved] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [savePet, { loading }] = useMutation(SAVE_PET, {
         onCompleted: () => {
@@ -77,8 +77,23 @@ const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
         }
     });
 
-    const handleSavePet = async (e: React.MouseEvent) => {
-        e.stopPropagation(); // Prevent the modal from closing
+    
+    interface SavePetInput {
+        externalId: string;
+        name: string;
+        type: string;
+        breed: string;
+        age: string;
+        gender: string;
+        size: string;
+        status: string;
+        images: string[];
+        description: string;
+        shelterId: string;
+    }
+
+    const handleSavePet = async (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.stopPropagation();
         
         if (!isLoggedIn) {
             alert('Please log in to save pets');
@@ -87,12 +102,12 @@ const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
 
         try {
             // Pre-process images to get just the URLs
-            const images = pet.photos && pet.photos.length > 0
+            const images: string[] = pet.photos && pet.photos.length > 0
                 ? pet.photos.map(photo => photo.medium || photo.small || photo.large).filter(Boolean)
                 : [];
 
             // Simplified input structure based on what our backend expects
-            const petInput = {
+            const petInput: SavePetInput = {
                 externalId: pet.id,
                 name: pet.name,
                 type: pet.type,
@@ -124,8 +139,14 @@ const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
     };
 
     const handleViewFullDetails = () => {
-        onClose(); // Close the modal
-        navigate(`/pets/${pet.id}`); // Navigate to the full details page
+        console.log('Navigating to pet details with ID:', pet.id);
+        const petId = pet.id;
+        
+        console.log('Using ID for navigation:', petId);
+        onClose();
+        
+        // Navigate to the pet details page with the proper ID
+        navigate(`/pets/${petId}`);
     };
 
     const formatDate = (dateString?: string) => {

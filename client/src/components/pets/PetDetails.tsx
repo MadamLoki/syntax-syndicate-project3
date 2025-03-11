@@ -27,54 +27,52 @@ const GET_LOCAL_PET = gql`
 `;
 
 const GET_PETFINDER_PET = gql`
-    query SearchPetfinderPets($input: PetfinderSearchInput!) {
-        searchPetfinderPets(input: $input) {
-        animals {
-            id
-            name
-            type
-            breeds {
-                primary
-                secondary
-                mixed
-                }
-            age
-            gender
-            size
-            description
-            photos {
-                small
-                medium
-                large
-                full
-                }
-            status
-            contact {
-                email
-                phone
-                address {
-                    address1
-                    address2
-                    city
-                    state
-                    postcode
-                    country
-                }
-            }
-            attributes {
-                spayed_neutered
-                house_trained
-                declawed
-                special_needs
-                shots_current
-                }
-            environment {
-                children
-                dogs
-                cats
-                }
-            published_at
+    query GetPetfinderPet($input: PetfinderPetInput!) {
+        getPetfinderPet(input: $input) {
+        id
+        name
+        type
+        breeds {
+            primary
+            secondary
+            mixed
         }
+        age
+        gender
+        size
+        description
+        photos {
+            small
+            medium
+            large
+            full
+        }
+        status
+        contact {
+            email
+            phone
+            address {
+            address1
+            address2
+            city
+            state
+            postcode
+            country
+            }
+        }
+        attributes {
+            spayed_neutered
+            house_trained
+            declawed
+            special_needs
+            shots_current
+        }
+        environment {
+            children
+            dogs
+            cats
+        }
+        published_at
         }
     }
 `;
@@ -83,7 +81,7 @@ const GET_PETFINDER_PET = gql`
 const DEFAULT_IMAGE = "/api/placeholder/600/400";
 
 const PetDetails: React.FC = () => {
-    const { id } = useParams<{ id: string }>();
+    const { id } = useParams();
     const navigate = useNavigate();
     const { isLoggedIn } = useAuth();
     const [isSaved, setIsSaved] = useState<boolean>(false);
@@ -91,9 +89,61 @@ const PetDetails: React.FC = () => {
     const [showContact, setShowContact] = useState<boolean>(false);
     const [isMapExpanded, setIsMapExpanded] = useState<boolean>(false);
     const [fetchError, setFetchError] = useState<string | null>(null);
-    
     // Determine if we're dealing with a MongoDB ID or an external ID
-    const isMongoId = id?.match(/^[0-9a-fA-F]{24}$/);
+    interface PetContact {
+        email?: string;
+        phone?: string;
+        address?: {
+            address1?: string;
+            address2?: string;
+            city?: string;
+            state?: string;
+            postcode?: string;
+            country?: string;
+        };
+    }
+
+    interface PetAttributes {
+        spayed_neutered?: boolean;
+        house_trained?: boolean;
+        declawed?: boolean;
+        special_needs?: boolean;
+        shots_current?: boolean;
+    }
+
+    interface PetEnvironment {
+        children?: boolean;
+        dogs?: boolean;
+        cats?: boolean;
+    }
+
+    interface Pet {
+        _id: string;
+        id: string;
+        name: string;
+        type: string;
+        breed: string;
+        secondaryBreed?: string;
+        age: string;
+        gender: string;
+        size: string;
+        description: string;
+        images: string[];
+        status: string;
+        shelterId?: string;
+        source: string;
+        contact: PetContact;
+        attributes: PetAttributes;
+        environment: PetEnvironment;
+        published_at?: string;
+    }
+
+    const isMongoObjectId = (id: string): boolean => {
+        // MongoDB Object IDs are 24-character hex strings
+        return /^[0-9a-fA-F]{24}$/.test(id);
+    };
+
+    const isMongoId = id ? isMongoObjectId(id) : false;
 
     // Local pet query
     const { 
@@ -118,13 +168,7 @@ const PetDetails: React.FC = () => {
     } = useQuery(GET_PETFINDER_PET, {
         variables: { 
             input: { 
-                // When using Petfinder ID, it likely needs a different approach
-                // The API probably expects name or other search params instead of ID directly
-                name: "",      // Use empty string as fallback
-                type: "",      // Use empty string as fallback
-                breed: "",     // Use empty string as fallback
-                page: 1,       // Start with first page
-                limit: 25      // Request reasonable number of results
+                id: id 
             } 
         },
         skip: !id || !!isMongoId || id.length === 0,
