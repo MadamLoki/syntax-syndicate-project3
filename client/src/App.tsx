@@ -74,7 +74,7 @@ const authLink = setContext((operation, { headers }) => {
     
     // Log operations that require authentication
     if (token) {
-        console.log(`Adding auth token to operation: ${operation.operationName}`);
+        //console.log(`Adding auth token to operation: ${operation.operationName}`);
     }
     
     return {

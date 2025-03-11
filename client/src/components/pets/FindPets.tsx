@@ -286,7 +286,7 @@ const PetSearch = () => {
             }
 
             setIsSearching(true);
-            console.log('Searching with parameters:', validatedParams);
+            //console.log('Searching with parameters:', validatedParams);
 
             // Execute the search query
             await searchPets({
