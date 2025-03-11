@@ -56,6 +56,7 @@ type Pet {
   name: String!
   type: String
   breed: String
+  secondaryBreed: String
   age: String
   gender: String
   size: String
@@ -64,6 +65,7 @@ type Pet {
   status: String
   shelterId: ID!
   source: String
+  organization_id: String
 }
 
 input CreatePetInput {
@@ -96,6 +98,10 @@ type PetfinderBreed {
   primary: String
   secondary: String
   mixed: Boolean
+}
+
+input PetfinderPetInput {
+  id: String!
 }
 
 type PetfinderPhoto {
@@ -197,6 +203,7 @@ input PetfinderSaveInput {
   images: [String]
   description: String
   shelterId: String
+  organization_id: String
 }
 
 # Shelter (Petfinder Organizations)
@@ -305,6 +312,7 @@ type Query {
   getPetfinderTypes: [String!]!
   getPetfinderBreeds(type: String!): [String!]!
   searchPetfinderPets(input: PetfinderSearchInput): PetfinderResponse
+  getPetfinderPet(input: PetfinderPetInput!): PetfinderAnimal
 
   # Application Queries
   applications: [Application]!

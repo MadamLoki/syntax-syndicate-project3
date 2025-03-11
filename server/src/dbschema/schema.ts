@@ -1,67 +1,186 @@
-// seedThreads.ts
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
-import Thread from '../models/Threads'; // Adjust path if necessary
-import db from '../config/connection';  // Your DB connection module
+import { IProfile } from '../models/Profile.js';
+import { IPet } from '../models/Pet.js';
+import { IApplication } from '../models/application.js';
 
-dotenv.config();
+interface CollectionValidators {
+  profiles: mongoose.Collection;
+  pets: mongoose.Collection;
+  applications: mongoose.Collection;
+}
 
-const seedThreads = async () => {
+const initializeSchema = async () => {
   try {
-    // Ensure database connection is established
-    await db();
-    console.log('MongoDB connected for seeding threads.');
+    // Type-safe profile model initialization
+    const ProfileModel = mongoose.model<IProfile>('Profile');
+    const PetModel = mongoose.model<IPet>('Pet');
+    const ApplicationModel = mongoose.model<IApplication>('Application');
 
-    // Optional: clear existing threads
-    await Thread.deleteMany({});
-    console.log('Existing threads removed.');
+    // Create indexes with error handling
+    const createCollectionIndexes = async () => {
+      try {
+        await Promise.all([
+          // Profile indexes
+          ProfileModel.collection.createIndexes([
+            { key: { email: 1 }, unique: true },
+            { key: { username: 1 }, unique: true }
+          ]),
 
-    // Example threads data
-    const sampleThreads = [
-      {
-        title: 'Looking to Adopt a Friendly Dog',
-        content: 'I am looking for a gentle, family-friendly dog. Preferably medium-sized and well-trained.',
-        threadType: 'ADOPTION',
-        pet: {
-          name: 'Buddy',
-          species: 'Dog',
-          breed: 'Labrador Retriever',
-          age: 3,
-          description: 'A friendly and playful Labrador looking for a loving home.',
-          image: 'https://example.com/images/buddy.jpg' // Replace with a valid URL or a base64 string if needed
-        },
-        // For seeding, we’re using a dummy ObjectId.
-        // In a real-world scenario, this should reference an existing user.
-        author: new mongoose.Types.ObjectId(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        title: 'Giving Up My Cat for Adoption',
-        content: 'Due to personal circumstances, I need to give up my cat. She is very affectionate and indoor-only.',
-        threadType: 'SURRENDER',
-        pet: {
-          name: 'Whiskers',
-          species: 'Cat',
-          breed: 'Siamese',
-          age: 5,
-          description: 'A loving and sociable cat who gets along with everyone.',
-          image: 'https://example.com/images/whiskers.jpg'
-        },
-        author: new mongoose.Types.ObjectId(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      // Add additional sample threads as needed
-    ];
+          // Pet indexes
+          PetModel.collection.createIndexes([
+            { key: { shelterId: 1 } },
+            { key: { status: 1 } },
+            { key: { breed: 1 } },
+            { key: { externalId: 1 } }
+          ]),
 
-    const createdThreads = await Thread.insertMany(sampleThreads);
-    console.log(`Inserted ${createdThreads.length} threads.`);
-    process.exit(0);
+          // Application indexes
+          ApplicationModel.collection.createIndexes([
+            { key: { petId: 1 } },
+            { key: { adopterId: 1 } },
+            { key: { status: 1 } },
+            { key: { createdAt: 1 } }
+          ])
+        ]);
+        console.log('Indexes created successfully');
+      } catch (error) {
+        console.error('Error creating indexes:', error);
+        throw new Error('Failed to create indexes');
+      }
+    };
+
+    // Create validators with error handling
+    const createValidators = async () => {
+      try {
+        // Check if database connection exists
+        if (!mongoose.connection.db) {
+          throw new Error('Database connection not established');
+        }
+
+        const db = mongoose.connection.db;
+
+        await Promise.all([
+          // Profile validator
+          db.command({
+            collMod: "profiles",
+            validator: {
+              $jsonSchema: {
+                bsonType: "object",
+                required: ["username", "email", "password"],
+                properties: {
+                  username: {
+                    bsonType: "string",
+                    minLength: 3,
+                    maxLength: 50
+                  },
+                  email: {
+                    bsonType: "string",
+                    pattern: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+                  },
+                  password: {
+                    bsonType: "string",
+                    minLength: 6
+                  },
+                  savedPets: {
+                    bsonType: "array",
+                    items: {
+                      bsonType: "objectId"
+                    }
+                  }
+                }
+              }
+            },
+            validationLevel: "moderate"
+          }),
+
+          db.command({
+            collMod: "pets",
+            validator: {
+              $jsonSchema: {
+                bsonType: "object",
+                required: ["name", "shelterId"],
+                properties: {
+                  name: {
+                    bsonType: "string",
+                    minLength: 1,
+                    maxLength: 100
+                  },
+                  externalId: {
+                    bsonType: ["string", "null"]
+                  },
+                  breed: {
+                    bsonType: ["string", "null"]
+                  },
+                  age: {
+                    oneOf: [
+                      { bsonType: "int" },
+                      { bsonType: "string" },
+                      { bsonType: "null" }
+                    ]
+                  },
+                  type: {
+                    bsonType: ["string", "null"]
+                  },
+                  status: {
+                    bsonType: "string",
+                    enum: ["Available", "Pending", "Adopted", "available", "pending", "adopted"]
+                  },
+                  shelterId: {
+                    bsonType: "string"
+                  },
+                  source: {
+                    bsonType: ["string", "null"]
+                  }
+                }
+              }
+            },
+            validationLevel: "moderate"
+          }),
+
+          // Application validator
+          db.command({
+            collMod: "applications",
+            validator: {
+              $jsonSchema: {
+                bsonType: "object",
+                required: ["petId", "message", "status"],
+                properties: {
+                  petId: {
+                    bsonType: "objectId"
+                  },
+                  adopterId: {
+                    bsonType: "objectId"
+                  },
+                  message: {
+                    bsonType: "string",
+                    minLength: 1,
+                    maxLength: 1000
+                  },
+                  status: {
+                    bsonType: "string",
+                    enum: ["Pending", "Reviewed", "Accepted", "Rejected"]
+                  }
+                }
+              }
+            }
+          })
+        ]);
+        console.log('Validators created successfully');
+      } catch (error) {
+        console.error('Error creating validators:', error);
+        throw new Error('Failed to create validators');
+      }
+    };
+
+    // Execute initialization steps
+    await createCollectionIndexes();
+    await createValidators();
+
+    console.log('Schema initialization completed successfully');
   } catch (error) {
-    console.error('Error seeding threads:', error);
-    process.exit(1);
+    console.error('Schema initialization failed:', error instanceof Error ? error.message : String(error));
+    throw error;
   }
 };
 
-seedThreads();
+export default initializeSchema;

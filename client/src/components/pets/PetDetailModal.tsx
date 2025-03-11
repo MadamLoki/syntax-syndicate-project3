@@ -57,6 +57,7 @@ interface PetDetailProps {
         contact: PetfinderContact;
         published_at?: string;
         distance?: number;
+        organization_id?: string;
     };
     onClose: () => void;
 }
@@ -64,7 +65,7 @@ interface PetDetailProps {
 const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
     const navigate = useNavigate();
     const { isLoggedIn } = useAuth();
-    const [isSaved, setIsSaved] = useState<boolean>(false);
+    const [isSaved, setIsSaved] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [savePet, { loading }] = useMutation(SAVE_PET, {
         onCompleted: () => {
@@ -76,10 +77,9 @@ const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
             setSaveError(error.message);
         }
     });
+    const handleSavePet = async (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.stopPropagation();
 
-    const handleSavePet = async (e: React.MouseEvent) => {
-        e.stopPropagation(); // Prevent the modal from closing
-        
         if (!isLoggedIn) {
             alert('Please log in to save pets');
             return;
@@ -87,23 +87,23 @@ const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
 
         try {
             // Pre-process images to get just the URLs
-            const images = pet.photos && pet.photos.length > 0
-                ? pet.photos.map(photo => photo.medium || photo.small || photo.large).filter(Boolean)
+            const images: string[] = pet.photos && pet.photos.length > 0
+                ? pet.photos.map(photo => photo.medium || photo.small || photo.large).filter(Boolean as any)
                 : [];
 
-            // Simplified input structure based on what our backend expects
+            // Create compatible input object without secondaryBreed
             const petInput = {
                 externalId: pet.id,
                 name: pet.name,
                 type: pet.type,
-                breed: pet.breeds.primary,
+                breed: pet.breeds.primary + (pet.breeds.secondary ? ` / ${pet.breeds.secondary}` : ""),
                 age: pet.age,
                 gender: pet.gender,
                 size: pet.size,
                 status: pet.status || "Available",
                 images: images,
                 description: pet.description || "",
-                shelterId: "petfinder"
+                shelterId: pet.organization_id || "petfinder"
             };
 
             // Call the mutation
@@ -124,18 +124,50 @@ const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
     };
 
     const handleViewFullDetails = () => {
-        onClose(); // Close the modal
-        navigate(`/pets/${pet.id}`); // Navigate to the full details page
+        // Store pet data in localStorage before navigating
+        try {
+            // Pre-process pet data for easier retrieval
+            const petData = {
+                id: pet.id,
+                name: pet.name,
+                type: pet.type,
+                breed: pet.breeds.primary,
+                secondaryBreed: pet.breeds.secondary,
+                age: pet.age,
+                gender: pet.gender,
+                size: pet.size,
+                description: pet.description || '',
+                images: pet.photos?.map(photo => photo.large || photo.medium || photo.small).filter(Boolean),
+                status: pet.status,
+                contact: pet.contact,
+                attributes: pet.attributes,
+                published_at: pet.published_at
+            };
+
+            // Store for temporary access
+            localStorage.setItem('tempPetDetails', JSON.stringify(petData));
+
+            console.log('Navigating to pet details with ID:', pet.id);
+            onClose();
+
+            // Navigate to the pet details page with the proper ID
+            navigate(`/pets/${pet.id}`);
+        } catch (error) {
+            console.error('Error preparing data for navigation:', error);
+            // Fallback to basic navigation if data prep fails
+            onClose();
+            navigate(`/pets/${pet.id}`);
+        }
     };
 
     const formatDate = (dateString?: string) => {
         if (!dateString) return 'Unknown';
         const date = new Date(dateString);
-        return new Intl.DateTimeFormat('en-US', {
+        return date.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'long',
             day: 'numeric',
-        }).format(date);
+        });
     };
 
     const renderAttributes = () => {
@@ -261,8 +293,8 @@ const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
                                 <div className="mt-4">
                                     <h3 className="text-lg font-semibold mb-2">About {pet.name}</h3>
                                     <p className="text-gray-700">
-                                        {pet.description.length > 150 
-                                            ? `${pet.description.substring(0, 150)}...` 
+                                        {pet.description.length > 150
+                                            ? `${pet.description.substring(0, 150)}...`
                                             : pet.description}
                                     </p>
                                     {pet.description.length > 150 && (

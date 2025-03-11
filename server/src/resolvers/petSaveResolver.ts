@@ -35,37 +35,40 @@ const petSaveResolver: IResolvers = {
             }
 
             try {
-                // Log input for debugging
-                // console.log('Saving Petfinder pet with input:', JSON.stringify(input, null, 2));
-                
                 // Validate required fields
                 if (!input.externalId || !input.name || !input.type) {
                     throw new Error('Missing required field(s): externalId, name, or type');
                 }
-                
-                let petAge: number | string = input.age;
-                if (typeof input.age === 'string' && !isNaN(Number(input.age))) {
-                    petAge = Number(input.age);
+
+                // Normalize status to ensure it's one of the allowed values
+                let normalizedStatus = 'Available';
+                if (input.status) {
+                    const status = input.status.toString().toLowerCase();
+                    if (['available', 'pending', 'adopted'].includes(status)) {
+                        // Convert first letter to uppercase for consistent formatting
+                        normalizedStatus = status.charAt(0).toUpperCase() + status.slice(1);
+                    }
                 }
 
+                // Create a pet object with proper data typing and validation
                 const petData = {
                     externalId: input.externalId,
-                    name: input.name,
+                    name: input.name.substring(0, 100), // Ensure name is within length limits
                     type: input.type || 'Unknown',
-                    breed: input.breed || 'Unknown',
-                    age: petAge,
-                    gender: input.gender,
-                    size: input.size,
-                    status: input.status || 'Available',
+                    breed: input.breed || null,
+                    age: input.age || 'Unknown',
+                    gender: input.gender || null,
+                    size: input.size || null,
+                    status: normalizedStatus,
                     images: Array.isArray(input.images) ? input.images : [],
                     description: input.description || '',
                     shelterId: input.shelterId || 'petfinder',
                     source: 'petfinder'
                 };
-                
+
                 // Check if pet with this external ID already exists
                 let pet = await Pet.findOne({ externalId: input.externalId });
-                
+
                 if (!pet) {
                     // Create a new pet entry
                     try {
@@ -73,33 +76,35 @@ const petSaveResolver: IResolvers = {
                         console.log('Created new pet:', pet._id);
                     } catch (err) {
                         console.error('Error creating pet document:', err);
-                        // Try a simplified version as fallback if validation failed
-                        const simplifiedPet = {
-                            externalId: input.externalId,
-                            name: input.name,
-                            type: input.type || 'Unknown',
-                            shelterId: 'petfinder',
-                        };
-                        pet = await Pet.create(simplifiedPet);
-                        console.log('Created simplified pet due to validation issues:', pet._id);
+                        throw new Error(`Failed to create pet: ${err instanceof Error ? err.message : 'Unknown error'}`);
                     }
                 } else {
                     console.log('Found existing pet:', pet._id);
                     try {
-                        await Pet.findByIdAndUpdate(pet._id, {
-                            $set: petData
-                        });
+                        pet = await Pet.findByIdAndUpdate(
+                            pet._id,
+                            { $set: petData },
+                            { new: true }
+                        );
                     } catch (updateErr) {
                         console.error('Error updating pet document:', updateErr);
+                        throw new Error(`Failed to update pet: ${updateErr instanceof Error ? updateErr.message : 'Unknown error'}`);
                     }
                 }
 
                 // Add to user's saved pets if not already saved
+                if (!pet) {
+                    throw new Error('Pet not found');
+                }
+
                 const updatedProfile = await Profile.findByIdAndUpdate(
                     context.user._id,
                     { $addToSet: { savedPets: pet._id } },
                     { new: true }
-                ).populate('savedPets');
+                ).populate({
+                    path: 'savedPets',
+                    select: '_id name type breed age gender size status description images shelterId source'
+                });
 
                 if (!updatedProfile) {
                     throw new Error('User profile not found');

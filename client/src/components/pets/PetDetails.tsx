@@ -27,54 +27,52 @@ const GET_LOCAL_PET = gql`
 `;
 
 const GET_PETFINDER_PET = gql`
-    query SearchPetfinderPets($input: PetfinderSearchInput!) {
-        searchPetfinderPets(input: $input) {
-        animals {
-            id
-            name
-            type
-            breeds {
-                primary
-                secondary
-                mixed
-                }
-            age
-            gender
-            size
-            description
-            photos {
-                small
-                medium
-                large
-                full
-                }
-            status
-            contact {
-                email
-                phone
-                address {
-                    address1
-                    address2
-                    city
-                    state
-                    postcode
-                    country
-                }
-            }
-            attributes {
-                spayed_neutered
-                house_trained
-                declawed
-                special_needs
-                shots_current
-                }
-            environment {
-                children
-                dogs
-                cats
-                }
-            published_at
+    query GetPetfinderPet($input: PetfinderPetInput!) {
+        getPetfinderPet(input: $input) {
+        id
+        name
+        type
+        breeds {
+            primary
+            secondary
+            mixed
         }
+        age
+        gender
+        size
+        description
+        photos {
+            small
+            medium
+            large
+            full
+        }
+        status
+        contact {
+            email
+            phone
+            address {
+            address1
+            address2
+            city
+            state
+            postcode
+            country
+            }
+        }
+        attributes {
+            spayed_neutered
+            house_trained
+            declawed
+            special_needs
+            shots_current
+        }
+        environment {
+            children
+            dogs
+            cats
+        }
+        published_at
         }
     }
 `;
@@ -83,7 +81,7 @@ const GET_PETFINDER_PET = gql`
 const DEFAULT_IMAGE = "/api/placeholder/600/400";
 
 const PetDetails: React.FC = () => {
-    const { id } = useParams<{ id: string }>();
+    const { id } = useParams();
     const navigate = useNavigate();
     const { isLoggedIn } = useAuth();
     const [isSaved, setIsSaved] = useState<boolean>(false);
@@ -91,15 +89,67 @@ const PetDetails: React.FC = () => {
     const [showContact, setShowContact] = useState<boolean>(false);
     const [isMapExpanded, setIsMapExpanded] = useState<boolean>(false);
     const [fetchError, setFetchError] = useState<string | null>(null);
-    
     // Determine if we're dealing with a MongoDB ID or an external ID
-    const isMongoId = id?.match(/^[0-9a-fA-F]{24}$/);
+    interface PetContact {
+        email?: string;
+        phone?: string;
+        address?: {
+            address1?: string;
+            address2?: string;
+            city?: string;
+            state?: string;
+            postcode?: string;
+            country?: string;
+        };
+    }
+
+    interface PetAttributes {
+        spayed_neutered?: boolean;
+        house_trained?: boolean;
+        declawed?: boolean;
+        special_needs?: boolean;
+        shots_current?: boolean;
+    }
+
+    interface PetEnvironment {
+        children?: boolean;
+        dogs?: boolean;
+        cats?: boolean;
+    }
+
+    interface Pet {
+        _id: string;
+        id: string;
+        name: string;
+        type: string;
+        breed: string;
+        secondaryBreed?: string;
+        age: string;
+        gender: string;
+        size: string;
+        description: string;
+        images: string[];
+        status: string;
+        shelterId?: string;
+        source: string;
+        contact: PetContact;
+        attributes: PetAttributes;
+        environment: PetEnvironment;
+        published_at?: string;
+    }
+
+    const isMongoObjectId = (id: string): boolean => {
+        // MongoDB Object IDs are 24-character hex strings
+        return /^[0-9a-fA-F]{24}$/.test(id);
+    };
+
+    const isMongoId = id ? isMongoObjectId(id) : false;
 
     // Local pet query
-    const { 
-        loading: localLoading, 
-        error: localError, 
-        data: localData 
+    const {
+        loading: localLoading,
+        error: localError,
+        data: localData
     } = useQuery(GET_LOCAL_PET, {
         variables: { id },
         skip: !id || !isMongoId,
@@ -111,28 +161,22 @@ const PetDetails: React.FC = () => {
     });
 
     // Petfinder query with better error handling
-    const { 
-        loading: externalLoading, 
-        error: externalError, 
-        data: externalData 
+    const {
+        loading: externalLoading,
+        error: externalError,
+        data: externalData
     } = useQuery(GET_PETFINDER_PET, {
-        variables: { 
-            input: { 
-                // When using Petfinder ID, it likely needs a different approach
-                // The API probably expects name or other search params instead of ID directly
-                name: "",      // Use empty string as fallback
-                type: "",      // Use empty string as fallback
-                breed: "",     // Use empty string as fallback
-                page: 1,       // Start with first page
-                limit: 25      // Request reasonable number of results
-            } 
+        variables: {
+            input: {
+                id: id
+            }
         },
         skip: !id || !!isMongoId || id.length === 0,
         fetchPolicy: 'network-only',
         onError: (error) => {
             console.error('Error fetching Petfinder pet:', error);
             setFetchError(`Error fetching Petfinder pet: ${error.message}`);
-            
+
             // Log additional details for debugging
             if (error.networkError) {
                 console.error('Network error details:', error.networkError);
@@ -191,17 +235,11 @@ const PetDetails: React.FC = () => {
                     cats: false
                 }
             });
-        } 
+        }
         // Process Petfinder data if available
-        else if (externalData?.searchPetfinderPets?.animals?.length > 0) {
-            // Find the pet with matching ID if possible
-            const matchingPet = externalData.searchPetfinderPets.animals.find(
-                (animal: any) => animal.id.toString() === id
-            );
-            
-            // If no exact match, just use the first pet
-            const externalPet = matchingPet || externalData.searchPetfinderPets.animals[0];
-            
+        else if (externalData?.getPetfinderPet) {
+            const externalPet = externalData.getPetfinderPet;
+
             setPet({
                 _id: externalPet.id, // Use external ID
                 id: externalPet.id,
@@ -214,7 +252,7 @@ const PetDetails: React.FC = () => {
                 size: externalPet.size,
                 description: externalPet.description || '',
                 // Transform photos array to images array format
-                images: externalPet.photos?.map((photo: any) => 
+                images: externalPet.photos?.map((photo: any) =>
                     photo.large || photo.medium || photo.small
                 ).filter(Boolean) || [],
                 status: externalPet.status,
@@ -225,7 +263,24 @@ const PetDetails: React.FC = () => {
                 source: 'petfinder'
             });
         }
-    }, [localData, externalData, id]);
+        // Add fallback to localStorage if both queries complete but no data found
+        else if (!localLoading && !externalLoading && !localError && !externalError) {
+            try {
+                const storedPet = localStorage.getItem('tempPetDetails');
+                if (storedPet) {
+                    const parsedPet = JSON.parse(storedPet);
+                    if (parsedPet.id === id) {
+                        setPet(parsedPet);
+                        // Clean up localStorage after successful use
+                        localStorage.removeItem('tempPetDetails');
+                    }
+                }
+            } catch (err) {
+                console.error('Error retrieving pet from localStorage:', err);
+            }
+        }
+    }, [localData, externalData, id, localLoading, externalLoading, localError, externalError]);
+
 
     // Mutation to save a pet to favorites
     const [savePet, { loading: saveLoading }] = useMutation(SAVE_PET, {
@@ -355,7 +410,7 @@ const PetDetails: React.FC = () => {
         // Format location string
         const getLocationString = () => {
             if (!pet.contact || !pet.contact.address) return 'Location not specified';
-            
+
             const { city, state, postcode } = pet.contact.address;
             return [city, state, postcode].filter(Boolean).join(', ');
         };
@@ -393,8 +448,8 @@ const PetDetails: React.FC = () => {
                                 onClick={handleSavePet}
                                 disabled={saveLoading || isSaved}
                                 className={`flex items-center px-3 py-1.5 rounded-lg border ${isSaved
-                                        ? 'border-pink-500 text-pink-500 bg-pink-50'
-                                        : 'border-gray-300 text-gray-700 hover:border-pink-500 hover:text-pink-500'
+                                    ? 'border-pink-500 text-pink-500 bg-pink-50'
+                                    : 'border-gray-300 text-gray-700 hover:border-pink-500 hover:text-pink-500'
                                     }`}
                             >
                                 <Heart className="w-4 h-4 mr-1.5" fill={isSaved ? "currentColor" : "none"} />
@@ -655,14 +710,13 @@ const PetDetails: React.FC = () => {
 
                                     {/* Status badge */}
                                     <div className="flex items-center">
-                                        <div className={`h-2.5 w-2.5 rounded-full mr-2 ${
-                                            pet.status === 'Available' || pet.status === 'available' 
-                                                ? 'bg-green-500' 
+                                        <div className={`h-2.5 w-2.5 rounded-full mr-2 ${pet.status === 'Available' || pet.status === 'available'
+                                                ? 'bg-green-500'
                                                 : 'bg-yellow-500'
-                                        }`}></div>
+                                            }`}></div>
                                         <span className="font-medium">
-                                            {pet.status === 'Available' || pet.status === 'available' 
-                                                ? 'Available for Adoption' 
+                                            {pet.status === 'Available' || pet.status === 'available'
+                                                ? 'Available for Adoption'
                                                 : pet.status}
                                         </span>
                                     </div>

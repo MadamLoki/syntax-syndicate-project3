@@ -12,47 +12,47 @@ const petfinderResolvers: IResolvers = {
             if (!petfinderAPI) {
                 throw new ApolloError('Petfinder API not initialized', 'PETFINDER_API_ERROR');
             }
-        
+
             try {
                 const types = await petfinderAPI.getTypes();
-                
+
                 // Validate response format
                 if (!types || !Array.isArray(types)) {
                     console.error('Invalid response from Petfinder API:', types);
                     throw new ApolloError('Invalid response from Petfinder API', 'PETFINDER_DATA_ERROR');
                 }
-        
+
                 // Transform and validate each type
                 const validTypes = types.filter(type => typeof type === 'string' && type.length > 0);
-                
+
                 if (validTypes.length === 0 && types.length > 0) {
                     console.error('Received types but none were valid:', types);
                     throw new ApolloError('Invalid pet types received from API', 'PETFINDER_DATA_FORMAT_ERROR');
                 }
-                
+
                 return validTypes;
             } catch (error) {
                 console.error('Error getting pet types from Petfinder:', error);
-                
+
                 // Differentiate between different error types for better client-side handling
                 if (error instanceof ApolloError) {
                     throw error; // Re-throw Apollo errors we've already created
                 }
-                
+
                 let errorCode = 'PETFINDER_API_ERROR';
                 let message = 'Failed to fetch pet types from Petfinder';
-                
+
                 // Enhance the error with more specific information if available
                 if (error instanceof Error) {
                     message = `${message}: ${error.message}`;
-                    
+
                     if (error.message.includes('authentication') || error.message.includes('token')) {
                         errorCode = 'PETFINDER_AUTH_ERROR';
                     } else if (error.message.includes('network') || error.message.includes('connect')) {
                         errorCode = 'PETFINDER_NETWORK_ERROR';
                     }
                 }
-                
+
                 throw new ApolloError(message, errorCode, {
                     originalError: error
                 });
@@ -70,35 +70,35 @@ const petfinderResolvers: IResolvers = {
 
             try {
                 const breeds = await petfinderAPI.getBreeds(type);
-                
+
                 // Validate response
                 if (!breeds || !Array.isArray(breeds)) {
                     console.error('Invalid breeds response:', breeds);
                     throw new ApolloError('Invalid response from Petfinder API', 'PETFINDER_DATA_ERROR');
                 }
-                
+
                 // Return actual array, never fallback to placeholder values
                 return breeds;
             } catch (error) {
                 console.error('Error fetching breeds:', error);
-                
+
                 if (error instanceof ApolloError) {
                     throw error;
                 }
-                
+
                 let errorCode = 'PETFINDER_API_ERROR';
                 let message = `Failed to fetch breeds for type "${type}"`;
-                
+
                 if (error instanceof Error) {
                     message = `${message}: ${error.message}`;
-                    
+
                     if (error.message.includes('authentication') || error.message.includes('token')) {
                         errorCode = 'PETFINDER_AUTH_ERROR';
                     } else if (error.message.includes('network') || error.message.includes('connect')) {
                         errorCode = 'PETFINDER_NETWORK_ERROR';
                     }
                 }
-                
+
                 throw new ApolloError(message, errorCode, {
                     originalError: error,
                     petType: type
@@ -110,21 +110,21 @@ const petfinderResolvers: IResolvers = {
             if (!petfinderAPI) {
                 throw new ApolloError('Petfinder API not initialized', 'PETFINDER_API_ERROR');
             }
-        
+
             try {
                 // Convert GraphQL input to Petfinder API parameters
                 const searchParams = {
                     ...input,
                     // Add any parameter transformations here if needed
                 };
-        
+
                 const result = await petfinderAPI.searchPets(searchParams);
-                
+
                 // Validate the response structure
                 if (!result || typeof result !== 'object') {
                     throw new ApolloError('Invalid response from Petfinder API', 'PETFINDER_DATA_ERROR');
                 }
-                
+
                 // Transform and normalize the response to match our GraphQL schema
                 // This is critical to handle field discrepancies
                 if (result.animals && Array.isArray(result.animals)) {
@@ -203,7 +203,7 @@ const petfinderResolvers: IResolvers = {
                 } else {
                     result.animals = [];
                 }
-                
+
                 // Ensure pagination object is present
                 if (!result.pagination) {
                     result.pagination = {
@@ -213,20 +213,39 @@ const petfinderResolvers: IResolvers = {
                         total_pages: 1
                     };
                 }
-                
+
                 return result;
             } catch (error) {
                 console.error('Error searching pets:', error);
-                
+
                 // Handle specific error types
                 if (error instanceof ApolloError) {
                     throw error;
                 }
-                
+
                 throw new ApolloError(
                     `Failed to search pets: ${error instanceof Error ? error.message : 'Unknown error'}`,
                     'PETFINDER_SEARCH_ERROR',
                     { searchParams: input }
+                );
+            }
+        },
+
+        getPetfinderPet: async (_, { input }, { petfinderAPI }) => {
+            if (!petfinderAPI) {
+                throw new ApolloError('Petfinder API not initialized', 'PETFINDER_API_ERROR');
+            }
+
+            try {
+                // Call the Petfinder API with the specific ID
+                const result = await petfinderAPI.getPetById(input.id);
+                return result.animal;
+            } catch (error) {
+                console.error('Error fetching specific pet from Petfinder:', error);
+                throw new ApolloError(
+                    `Failed to fetch pet details: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                    'PETFINDER_PET_ERROR',
+                    { petId: input.id }
                 );
             }
         }

@@ -12,30 +12,36 @@ import ProfilePicture from '../components/ProfilePicture';
 
 
 // GraphQL queries and mutations
-const GET_USER_PROFILE = gql`
+export const GET_USER_PROFILE = gql`
     query GetUserProfile {
         me {
-          _id
-          username
-          email
-          profileImage
-          savedPets {
-              _id
-              name
-              breed
-              age
-              images
-              type
-          }
-          userPets {
-              _id
-              name
-              species
-              breed
-              age
-              description
-              image
-          }
+            _id
+            username
+            email
+            profileImage
+            savedPets {
+                _id
+                name
+                type
+                breed
+                age
+                gender
+                size
+                status
+                description
+                images
+                shelterId
+                source
+            }
+            userPets {
+                _id
+                name
+                species
+                breed
+                age
+                description
+                image
+            }
         }
     }
 `;
@@ -54,13 +60,13 @@ export const UPDATE_PROFILE = gql`
 const ADD_USER_PET = gql`
     mutation AddUserPet($input: UserPetInput!) {
         addUserPet(input: $input) {
-          _id
-          name
-          species
-          breed
-          age
-          description
-          image
+            _id
+            name
+            species
+            breed
+            age
+            description
+            image
         }
     }
 `;
@@ -100,6 +106,7 @@ interface SavedPet {
     age?: number | string;
     images?: string[];
     type?: string;
+    size?: string;
 }
 
 interface UserProfile {
@@ -592,9 +599,9 @@ const ProfilePage = () => {
                 {message.text && (
                     <div
                         className={`p-4 mb-6 rounded-md ${message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
-                                message.type === 'warning' ? 'bg-yellow-50 text-yellow-700 border border-yellow-200' :
-                                    message.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
-                                        'bg-blue-50 text-blue-700 border border-blue-200'
+                            message.type === 'warning' ? 'bg-yellow-50 text-yellow-700 border border-yellow-200' :
+                                message.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
+                                    'bg-blue-50 text-blue-700 border border-blue-200'
                             }`}
                     >
                         {message.text}
@@ -605,8 +612,8 @@ const ProfilePage = () => {
                 <div className="flex border-b border-gray-200 mb-8">
                     <button
                         className={`py-4 px-6 font-medium ${activeTab === 'profile'
-                                ? 'text-blue-600 border-b-2 border-blue-600'
-                                : 'text-gray-500 hover:text-gray-700'
+                            ? 'text-blue-600 border-b-2 border-blue-600'
+                            : 'text-gray-500 hover:text-gray-700'
                             }`}
                         onClick={() => setActiveTab('profile')}
                     >
@@ -614,8 +621,8 @@ const ProfilePage = () => {
                     </button>
                     <button
                         className={`py-4 px-6 font-medium ${activeTab === 'pets'
-                                ? 'text-blue-600 border-b-2 border-blue-600'
-                                : 'text-gray-500 hover:text-gray-700'
+                            ? 'text-blue-600 border-b-2 border-blue-600'
+                            : 'text-gray-500 hover:text-gray-700'
                             }`}
                         onClick={() => setActiveTab('pets')}
                     >
@@ -623,8 +630,8 @@ const ProfilePage = () => {
                     </button>
                     <button
                         className={`py-4 px-6 font-medium ${activeTab === 'saved'
-                                ? 'text-blue-600 border-b-2 border-blue-600'
-                                : 'text-gray-500 hover:text-gray-700'
+                            ? 'text-blue-600 border-b-2 border-blue-600'
+                            : 'text-gray-500 hover:text-gray-700'
                             } relative`}
                         onClick={() => setActiveTab('saved')}
                     >
@@ -1025,83 +1032,103 @@ const ProfilePage = () => {
 
                         {profile.savedPets.length > 0 ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {profile.savedPets.map((pet) => (
-                                    <div
-                                        key={pet._id}
-                                        className="border rounded-lg overflow-hidden hover:shadow-md transition-shadow"
-                                    >
-                                        <div className="h-48 bg-gray-200 relative">
-                                            {pet.images && pet.images.length > 0 ? (
-                                                <img
-                                                    src={pet.images[0]}
-                                                    alt={pet.name}
-                                                    className="h-full w-full object-cover"
-                                                />
-                                            ) : (
-                                                <div className="h-full flex items-center justify-center bg-blue-100 text-blue-600">
-                                                    <span className="text-2xl">{pet.name.charAt(0)}</span>
-                                                </div>
-                                            )}
-                                            <button
-                                                onClick={() => handleRemoveSavedPet(pet._id)}
-                                                className="absolute top-2 right-2 bg-white p-1.5 rounded-full shadow-md text-gray-500 hover:text-red-500"
-                                                aria-label="Remove from saved"
-                                                disabled={removeSavedLoading}
-                                            >
-                                                <Trash className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                        <div className="p-4">
-                                            <h3 className="font-bold text-lg">{pet.name}</h3>
-                                            <div className="mt-2 space-y-2">
-                                                <div className="flex flex-wrap gap-2">
-                                                    {pet.type && (
-                                                        <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                                                            {pet.type}
-                                                        </span>
-                                                    )}
-                                                    {pet.breed && (
-                                                        <span className="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">
-                                                            {pet.breed}
-                                                        </span>
-                                                    )}
-                                                    {pet.age && (
-                                                        <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                                                            {pet.age} {typeof pet.age === 'number' && pet.age === 1 ? 'year' : 'years'} old
-                                                        </span>
-                                                    )}
-                                                </div>
+                                {profile.savedPets.map((pet) => {
+                                    // Enhance display logic to handle potential missing data
+                                    const petAge = pet.age || 'Unknown';
+                                    const displayAge = typeof petAge === 'number'
+                                        ? `${petAge} ${petAge === 1 ? 'year' : 'years'} old`
+                                        : typeof petAge === 'string'
+                                            ? petAge === 'Unknown' ? 'Unknown age' : petAge
+                                            : 'Unknown age';
+
+                                    return (
+                                        <div
+                                            key={pet._id}
+                                            className="border rounded-lg overflow-hidden hover:shadow-md transition-shadow"
+                                        >
+                                            <div className="h-48 bg-gray-200 relative">
+                                                {pet.images && pet.images.length > 0 ? (
+                                                    <img
+                                                        src={pet.images[0]}
+                                                        alt={pet.name}
+                                                        className="h-full w-full object-cover"
+                                                        onError={(e) => {
+                                                            // Handle image loading errors gracefully
+                                                            const target = e.target as HTMLImageElement;
+                                                            target.onerror = null;
+                                                            target.src = "/api/placeholder/400/300";
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <div className="h-full flex items-center justify-center bg-blue-100 text-blue-600">
+                                                        <span className="text-2xl">{pet.name.charAt(0)}</span>
+                                                    </div>
+                                                )}
                                                 <button
-                                                    className="w-full mt-4 text-blue-600 hover:text-blue-800 border border-blue-600 hover:border-blue-800 px-3 py-1.5 rounded-md text-sm transition-colors"
-                                                    onClick={() => navigate(`/pets/${pet._id}`)}
+                                                    onClick={() => handleRemoveSavedPet(pet._id)}
+                                                    className="absolute top-2 right-2 bg-white p-1.5 rounded-full shadow-md text-gray-500 hover:text-red-500"
+                                                    aria-label="Remove from saved"
+                                                    disabled={removeSavedLoading}
                                                 >
-                                                View Details
-                                            </button>
+                                                    <Trash className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                            <div className="p-4">
+                                                <h3 className="font-bold text-lg">{pet.name}</h3>
+                                                <div className="mt-2 space-y-2">
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {pet.type && (
+                                                            <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                                                                {pet.type}
+                                                            </span>
+                                                        )}
+                                                        {pet.breed && (
+                                                            <span className="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">
+                                                                {pet.breed}
+                                                            </span>
+                                                        )}
+                                                        {pet.size && (
+                                                            <span className="inline-block bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">
+                                                                {pet.size}
+                                                            </span>
+                                                        )}
+                                                        <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                                                            {displayAge}
+                                                        </span>
+                                                    </div>
+                                                    <button
+                                                        className="w-full mt-4 text-blue-600 hover:text-blue-800 border border-blue-600 hover:border-blue-800 px-3 py-1.5 rounded-md text-sm transition-colors"
+                                                        onClick={() => navigate(`/pets/${pet._id}`)}
+                                                    >
+                                                        View Details
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
+                                    )
+                                })}
+                            </div>
+                        ) : (
+                            // No changes to the "No Saved Pets" display
+                            <div className="text-center py-10 bg-gray-50 rounded-lg">
+                                <div className="flex justify-center mb-4">
+                                    <div className="bg-pink-100 h-16 w-16 rounded-full flex items-center justify-center">
+                                        <Heart className="h-8 w-8 text-pink-600" />
                                     </div>
-                                    </div>
-                        ))}
-                    </div>
-                ) : (
-                <div className="text-center py-10 bg-gray-50 rounded-lg">
-                    <div className="flex justify-center mb-4">
-                        <div className="bg-pink-100 h-16 w-16 rounded-full flex items-center justify-center">
-                            <Heart className="h-8 w-8 text-pink-600" />
-                        </div>
-                    </div>
-                    <h3 className="text-lg font-semibold mb-2">No Saved Pets Yet</h3>
-                    <p className="text-gray-600 mb-4">Browse and save pets you're interested in adopting.</p>
-                    <button
-                        onClick={() => navigate('/findpets')}
-                        className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-                    >
-                        Find Pets
-                    </button>
-                </div>
+                                </div>
+                                <h3 className="text-lg font-semibold mb-2">No Saved Pets Yet</h3>
+                                <p className="text-gray-600 mb-4">Browse and save pets you're interested in adopting.</p>
+                                <button
+                                    onClick={() => navigate('/findpets')}
+                                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+                                >
+                                    Find Pets
+                                </button>
+                            </div>
                         )}
-            </div>
+                    </div>
                 )}
-        </div>
+            </div>
         </div >
     );
 };
