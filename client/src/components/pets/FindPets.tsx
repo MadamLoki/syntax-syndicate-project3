@@ -142,11 +142,11 @@ const PetSearch = () => {
     }
 
     // Query for pet types with error handling
-    const { 
-        data: typesData, 
-        loading: typesLoading, 
-        error: typesError, 
-        refetch: refetchTypes 
+    const {
+        data: typesData,
+        loading: typesLoading,
+        error: typesError,
+        refetch: refetchTypes
     } = useQuery<TypesResponse>(
         GET_PETFINDER_TYPES,
         {
@@ -155,11 +155,11 @@ const PetSearch = () => {
             onError: (error) => {
                 console.error('Types query error:', error);
                 setError(error);
-                
+
                 // Auto-retry for specific errors
-                if (error.networkError || 
-                    error.graphQLErrors?.some(e => 
-                        e.extensions?.code === 'PETFINDER_AUTH_ERROR' || 
+                if (error.networkError ||
+                    error.graphQLErrors?.some(e =>
+                        e.extensions?.code === 'PETFINDER_AUTH_ERROR' ||
                         e.message.includes('502')
                     )) {
                     setTimeout(() => {
@@ -177,15 +177,15 @@ const PetSearch = () => {
     >(GET_PETFINDER_BREEDS, {
         onError: (error) => {
             console.error('Error fetching breeds:', error);
-            
+
             // Only set user-facing errors for non-validation issues
             if (!error.graphQLErrors?.some(e => e.extensions?.code === 'INVALID_PARAMETERS')) {
                 setError(error);
             }
-            
+
             // Auto-retry network errors
-            if (error.networkError || 
-                error.graphQLErrors?.some(e => 
+            if (error.networkError ||
+                error.graphQLErrors?.some(e =>
                     e.extensions?.code === 'PETFINDER_AUTH_ERROR' ||
                     e.message.includes('502')
                 )) {
@@ -211,14 +211,14 @@ const PetSearch = () => {
             console.error('Error searching pets:', error);
             setError(error);
             setIsSearching(false);
-            
+
             // Auto-retry with reduced limit on 502 errors
-            if ((error.networkError || 
+            if ((error.networkError ||
                 error.graphQLErrors?.some(e => e.message.includes('502'))) &&
                 retryCount < 2) {
-                
+
                 setRetryCount(retryCount + 1);
-                
+
                 // If error is when using larger limit, auto-fallback to smaller limit
                 if (filters.limit > 20) {
                     console.log(`Retrying with reduced limit (${Math.max(20, filters.limit / 2)})`);
@@ -259,7 +259,7 @@ const PetSearch = () => {
         // Only search if there were previous results or explicit search criteria
         const hasSearchCriteria = filters.type || filters.breed || filters.size ||
             filters.gender || filters.age || filters.location;
-            
+
         if (petsData || hasSearchCriteria) {
             handleSearch();
         }
@@ -277,17 +277,17 @@ const PetSearch = () => {
         try {
             // Clear existing error
             setError(null);
-            
+
             // Validate search parameters
             const validatedParams = validateSearchParams();
             if (!validatedParams) {
                 // validateSearchParams will set an error if validation fails
                 return;
             }
-            
+
             setIsSearching(true);
             console.log('Searching with parameters:', validatedParams);
-            
+
             // Execute the search query
             await searchPets({
                 variables: {
@@ -304,33 +304,33 @@ const PetSearch = () => {
     const validateSearchParams = () => {
         // Clear previous errors
         setError(null);
-        
+
         // Create a clean search parameters object
         const searchParams: SearchParams = {
             limit: filters.limit || 20,
             page: filters.page || 1
         };
-    
+
         // Validate and add optional parameters
         if (searchTerm?.trim()) searchParams.name = searchTerm.trim();
-        
+
         // Add type if selected
         if (filters.type?.trim()) searchParams.type = filters.type.trim();
-        
+
         // Only add breed if type is selected (prevents "breed without type" errors)
         if (filters.type?.trim() && filters.breed?.trim()) {
             searchParams.breed = filters.breed.trim();
         }
-        
+
         // Add other filter parameters
         if (filters.size?.trim()) searchParams.size = filters.size.trim();
         if (filters.gender?.trim()) searchParams.gender = filters.gender.trim();
         if (filters.age?.trim()) searchParams.age = filters.age.trim();
-        
+
         // Validate location if provided
         if (filters.location?.trim()) {
             const location = filters.location.trim();
-            
+
             // Validate zipcode format if it looks like a zipcode
             if (/^\d+$/.test(location)) {
                 if (location.length !== 5) {
@@ -338,9 +338,9 @@ const PetSearch = () => {
                     return null;
                 }
             }
-            
+
             searchParams.location = location;
-            
+
             // Only add distance if we have a valid location
             if (filters.distance) {
                 const distance = parseInt(filters.distance);
@@ -349,7 +349,7 @@ const PetSearch = () => {
                 }
             }
         }
-        
+
         return searchParams;
     };
 
@@ -670,7 +670,7 @@ const PetSearch = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                     {petsData?.searchPetfinderPets?.animals?.map((pet: Pet) => (
                         <div
-                            key={pet.id}
+                            key={`pet-${pet.id}`} // Include a prefix to make the key more unique
                             className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden transition-transform duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
                             onClick={() => setSelectedPet(pet)}
                             aria-label={`View details for ${pet.name}`}
@@ -691,7 +691,6 @@ const PetSearch = () => {
                                         className="absolute top-2 right-2 p-1.5 bg-white rounded-full text-gray-500 hover:text-pink-500 transition-colors"
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            // Logic for saving pet will be handled in the modal
                                             setSelectedPet(pet);
                                         }}
                                         aria-label={`Save ${pet.name} to favorites`}
@@ -757,7 +756,11 @@ const PetSearch = () => {
                                 </>
                             )}
 
-                            {renderPaginationButtons()}
+                            {renderPaginationButtons().map((button, index) => (
+                                <div key={`page-button-${index}`}>
+                                    {button}
+                                </div>
+                            ))}
 
                             {filters.page < petsData?.searchPetfinderPets?.pagination.total_pages - 2 && (
                                 <>

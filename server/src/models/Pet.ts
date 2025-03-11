@@ -21,7 +21,7 @@ const petSchema = new Schema<IPet>(
     name: { type: String, required: true },
     breed: { type: String },
     age: { 
-      type: Schema.Types.Mixed, // Allow both number or string (like "Adult")
+      type: Schema.Types.Mixed,
       default: 'Unknown'
     },
     type: { type: String, default: 'Unknown' },

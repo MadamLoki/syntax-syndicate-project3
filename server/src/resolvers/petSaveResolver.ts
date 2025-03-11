@@ -35,19 +35,18 @@ const petSaveResolver: IResolvers = {
             }
 
             try {
-                // Log input for debugging
-                // console.log('Saving Petfinder pet with input:', JSON.stringify(input, null, 2));
-                
                 // Validate required fields
                 if (!input.externalId || !input.name || !input.type) {
                     throw new Error('Missing required field(s): externalId, name, or type');
                 }
                 
+                // Properly handle age data type - could be a string like "Adult" or a number
                 let petAge: number | string = input.age;
                 if (typeof input.age === 'string' && !isNaN(Number(input.age))) {
                     petAge = Number(input.age);
                 }
 
+                // Create a pet object with proper data typing
                 const petData = {
                     externalId: input.externalId,
                     name: input.name,

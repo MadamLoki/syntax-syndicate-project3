@@ -77,21 +77,6 @@ const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
         }
     });
 
-    
-    interface SavePetInput {
-        externalId: string;
-        name: string;
-        type: string;
-        breed: string;
-        age: string;
-        gender: string;
-        size: string;
-        status: string;
-        images: string[];
-        description: string;
-        shelterId: string;
-    }
-
     const handleSavePet = async (e: React.MouseEvent<HTMLButtonElement>) => {
         e.stopPropagation();
         
@@ -103,11 +88,11 @@ const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
         try {
             // Pre-process images to get just the URLs
             const images: string[] = pet.photos && pet.photos.length > 0
-                ? pet.photos.map(photo => photo.medium || photo.small || photo.large).filter(Boolean)
+                ? pet.photos.map(photo => photo.medium || photo.small || photo.large).filter(Boolean as any)
                 : [];
 
             // Simplified input structure based on what our backend expects
-            const petInput: SavePetInput = {
+            const petInput = {
                 externalId: pet.id,
                 name: pet.name,
                 type: pet.type,
@@ -139,24 +124,50 @@ const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
     };
 
     const handleViewFullDetails = () => {
-        console.log('Navigating to pet details with ID:', pet.id);
-        const petId = pet.id;
-        
-        console.log('Using ID for navigation:', petId);
-        onClose();
-        
-        // Navigate to the pet details page with the proper ID
-        navigate(`/pets/${petId}`);
+        // Store pet data in localStorage before navigating
+        try {
+            // Pre-process pet data for easier retrieval
+            const petData = {
+                id: pet.id,
+                name: pet.name,
+                type: pet.type,
+                breed: pet.breeds.primary,
+                secondaryBreed: pet.breeds.secondary,
+                age: pet.age,
+                gender: pet.gender,
+                size: pet.size,
+                description: pet.description || '',
+                images: pet.photos?.map(photo => photo.large || photo.medium || photo.small).filter(Boolean),
+                status: pet.status,
+                contact: pet.contact,
+                attributes: pet.attributes,
+                published_at: pet.published_at
+            };
+            
+            // Store for temporary access
+            localStorage.setItem('tempPetDetails', JSON.stringify(petData));
+            
+            console.log('Navigating to pet details with ID:', pet.id);
+            onClose();
+            
+            // Navigate to the pet details page with the proper ID
+            navigate(`/pets/${pet.id}`);
+        } catch (error) {
+            console.error('Error preparing data for navigation:', error);
+            // Fallback to basic navigation if data prep fails
+            onClose();
+            navigate(`/pets/${pet.id}`);
+        }
     };
 
     const formatDate = (dateString?: string) => {
         if (!dateString) return 'Unknown';
         const date = new Date(dateString);
-        return new Intl.DateTimeFormat('en-US', {
+        return date.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'long',
             day: 'numeric',
-        }).format(date);
+        });
     };
 
     const renderAttributes = () => {
