@@ -54,7 +54,7 @@ const Shelters = () => {
       if (response.data.status === "OK") {
         const location = response.data.results[0].geometry.location;
         setGeoCache((prev) => ({ ...prev, [address]: location }));
-        console.log(`Coordinates for ${address}:`, location);
+        //console.log(`Coordinates for ${address}:`, location);
         return location;
       }
     } catch (error) {
