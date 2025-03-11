@@ -40,16 +40,26 @@ const petSaveResolver: IResolvers = {
                     throw new Error('Missing required field(s): externalId, name, or type');
                 }
 
-                // Create a pet object with proper data typing
+                // Normalize status to ensure it's one of the allowed values
+                let normalizedStatus = 'Available';
+                if (input.status) {
+                    const status = input.status.toString().toLowerCase();
+                    if (['available', 'pending', 'adopted'].includes(status)) {
+                        // Convert first letter to uppercase for consistent formatting
+                        normalizedStatus = status.charAt(0).toUpperCase() + status.slice(1);
+                    }
+                }
+
+                // Create a pet object with proper data typing and validation
                 const petData = {
                     externalId: input.externalId,
-                    name: input.name,
+                    name: input.name.substring(0, 100), // Ensure name is within length limits
                     type: input.type || 'Unknown',
-                    breed: input.breed || 'Unknown',
+                    breed: input.breed || null,
                     age: input.age || 'Unknown',
-                    gender: input.gender || 'Unknown',
-                    size: input.size || 'Unknown',
-                    status: input.status || 'Available',
+                    gender: input.gender || null,
+                    size: input.size || null,
+                    status: normalizedStatus,
                     images: Array.isArray(input.images) ? input.images : [],
                     description: input.description || '',
                     shelterId: input.shelterId || 'petfinder',
