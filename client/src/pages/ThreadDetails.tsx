@@ -56,15 +56,25 @@ const CREATE_COMMENT = gql`
   }
 `;
 
+// New mutation for deleting a thread - updated to match your resolver parameter name
+const DELETE_THREAD = gql`
+  mutation DeleteThread($threadId: ID!) {
+    deleteThread(threadId: $threadId)
+  }
+`;
+
 interface ThreadDetailsProps {
   threadId: string;
   onClose: () => void;
+  currentUserId?: string; // Add this to check if current user is the author
 }
 
-const ThreadDetails: React.FC<ThreadDetailsProps> = ({ threadId, onClose }) => {
+const ThreadDetails: React.FC<ThreadDetailsProps> = ({ threadId, onClose, currentUserId }) => {
   // State for the comment form
   const [commentContent, setCommentContent] = useState('');
   const [commentError, setCommentError] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   // Query to fetch thread data
   const { data, loading, error, refetch } = useQuery(GET_THREAD, {
@@ -89,6 +99,25 @@ const ThreadDetails: React.FC<ThreadDetailsProps> = ({ threadId, onClose }) => {
     }
   });
 
+  // Mutation to delete a thread
+  const [deleteThread, { loading: deleteLoading }] = useMutation(DELETE_THREAD, {
+    onCompleted: (data) => {
+      // Show success message if needed
+      console.log('Thread deleted successfully');
+      
+      // Trigger a page refresh or redirect
+      window.location.reload(); // This will refresh the current page
+      
+      // Alternatively, you can just close the modal
+      // onClose(); // Close the details and return to list view
+    },
+    onError: (error) => {
+      console.error('Error deleting thread:', error);
+      setDeleteError('Failed to delete thread: ' + error.message);
+      setShowDeleteConfirm(false);
+    }
+  });
+
   // Handle comment submission
   const handleCommentSubmit = (e: { preventDefault: () => void; }) => {
     e.preventDefault();
@@ -108,6 +137,13 @@ const ThreadDetails: React.FC<ThreadDetailsProps> = ({ threadId, onClose }) => {
           // parentCommentId is optional, so we omit it for top-level comments
         }
       }
+    });
+  };
+
+  // Handle thread deletion
+  const handleDeleteThread = () => {
+    deleteThread({
+      variables: { threadId: threadId }
     });
   };
 
@@ -162,6 +198,11 @@ const ThreadDetails: React.FC<ThreadDetailsProps> = ({ threadId, onClose }) => {
 
   const { thread } = data;
   
+  // Check if current user is the author of the thread
+  // For testing, we'll make delete option available to all users until authentication is fully implemented
+  const isAuthor = true; // Temporarily set to true so delete button always shows
+  // Later you can revert to: currentUserId && thread.author && currentUserId === thread.author._id;
+  
   // Debug log to check if comments are being received
   console.log('Thread data received:', thread);
   console.log('Comments received:', thread.comments || []);
@@ -184,10 +225,25 @@ const ThreadDetails: React.FC<ThreadDetailsProps> = ({ threadId, onClose }) => {
 
       {/* Thread title and type */}
       <div className="mb-6">
-        <h2 className="text-2xl font-bold mb-2">{thread.title}</h2>
-        <span className="inline-block bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full">
-          {thread.threadType === 'ADOPTION' ? 'Looking to Adopt' : 'Giving Up for Adoption'}
-        </span>
+        <div className="flex justify-between items-start">
+          <div>
+            <h2 className="text-2xl font-bold mb-2">{thread.title}</h2>
+            <span className="inline-block bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full">
+              {thread.threadType === 'ADOPTION' ? 'Looking to Adopt' : 'Giving Up for Adoption'}
+            </span>
+          </div>
+          
+          {/* Delete button - made visible for all users for now */}
+          <div>
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="text-red-600 hover:text-red-800 px-3 py-1 rounded border border-red-600 hover:border-red-800"
+              disabled={deleteLoading}
+            >
+              Delete Thread
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Thread content */}
@@ -287,6 +343,37 @@ const ThreadDetails: React.FC<ThreadDetailsProps> = ({ threadId, onClose }) => {
           </p>
         )}
       </div>
+
+      {/* Delete confirmation modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-md w-full">
+            <h3 className="text-xl font-bold mb-4">Delete Thread</h3>
+            <p className="mb-6">Are you sure you want to delete this thread? This action cannot be undone.</p>
+            
+            {deleteError && (
+              <p className="text-red-600 mb-4">{deleteError}</p>
+            )}
+            
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 border rounded hover:bg-gray-100"
+                disabled={deleteLoading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteThread}
+                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:bg-red-300"
+                disabled={deleteLoading}
+              >
+                {deleteLoading ? 'Deleting...' : 'Delete Thread'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -346,6 +346,7 @@ type Mutation {
   # Forum Mutations
   createThread(input: CreateThreadInput!): thread!
   createComment(input: CreateCommentInput!): comment!
+  deleteThread(threadId: ID!): Boolean!
 }
 `;
 

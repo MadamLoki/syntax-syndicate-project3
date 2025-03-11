@@ -177,6 +177,35 @@ const threadResolvers: IResolvers = {
   },
   
   Mutation: {
+     deleteThread: async (_, {threadId }, context) => {
+      if (!context.user) {
+        throw new AuthenticationError('You must be logged in to delete a thread');
+      }
+
+      try{ 
+        const thread = await Thread.findById(threadId);
+        if (!thread) {
+          throw new Error(`Thread not found`);
+        }
+
+        if (thread.author.toString() !== context.user._id.toString() ){
+          throw new AuthenticationError('You can only delete your own threads');
+
+      }
+
+      await Comment.deleteMany({ thread: threadId });
+
+      await Thread.findByIdAndDelete(threadId);
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting thread:', error);
+      throw new Error(`Failed to delete thread: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  },
+   
+
+
     createThread: async (_, { input }: { input: any }, context) => {
       if (!context.user) {
         throw new AuthenticationError('You must be logged in to create a thread');
