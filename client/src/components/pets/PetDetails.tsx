@@ -236,15 +236,9 @@ const PetDetails: React.FC = () => {
                 }
             });
         } 
-        // Process Petfinder data if available
-        else if (externalData?.searchPetfinderPets?.animals?.length > 0) {
-            // Find the pet with matching ID if possible
-            const matchingPet = externalData.searchPetfinderPets.animals.find(
-                (animal: any) => animal.id.toString() === id
-            );
-            
-            // If no exact match, just use the first pet
-            const externalPet = matchingPet || externalData.searchPetfinderPets.animals[0];
+        // Process Petfinder data if available - Fix this section
+        else if (externalData?.getPetfinderPet) {
+            const externalPet = externalData.getPetfinderPet;
             
             setPet({
                 _id: externalPet.id, // Use external ID
@@ -268,8 +262,25 @@ const PetDetails: React.FC = () => {
                 published_at: externalPet.published_at,
                 source: 'petfinder'
             });
+        } 
+        // Add fallback to localStorage if both queries complete but no data found
+        else if (!localLoading && !externalLoading && !localError && !externalError && !pet) {
+            try {
+                const storedPet = localStorage.getItem('tempPetDetails');
+                if (storedPet) {
+                    const parsedPet = JSON.parse(storedPet);
+                    if (parsedPet.id === id) {
+                        setPet(parsedPet);
+                        // Clean up localStorage after successful use
+                        localStorage.removeItem('tempPetDetails');
+                    }
+                }
+            } catch (err) {
+                console.error('Error retrieving pet from localStorage:', err);
+            }
         }
-    }, [localData, externalData, id]);
+    }, [localData, externalData, id, localLoading, externalLoading, localError, externalError, pet]);
+
 
     // Mutation to save a pet to favorites
     const [savePet, { loading: saveLoading }] = useMutation(SAVE_PET, {

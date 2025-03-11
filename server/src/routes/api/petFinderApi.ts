@@ -56,7 +56,7 @@ class PetfinderAPI {
         console.log('Checking token status...');
         // If we have a valid token with at least 60 seconds left, return it
         if (this.token && Date.now() < this.tokenExpiration - 60000) {
-            console.log('Using existing token (expires in:', Math.round((this.tokenExpiration - Date.now()) / 1000), 'seconds)');
+           // console.log('Using existing token (expires in:', Math.round((this.tokenExpiration - Date.now()) / 1000), 'seconds)');
             return this.token;
         }
 
@@ -148,7 +148,7 @@ class PetfinderAPI {
             const queryParams = new URLSearchParams(cleanParams).toString();
             const url = `${this.baseUrl}/${endpoint}${queryParams ? `?${queryParams}` : ''}`;
 
-            console.log(`Making request to: ${url}`);
+            // console.log(`Making request to: ${url}`);
 
             const response = await fetch(url, {
                 headers: {
