@@ -11,6 +11,7 @@ import PetDetailModal from './PetDetailModal';
 import { useAuth } from '../auth/AuthContext';
 import { ErrorMessage } from '../ErrorMessage';
 
+// Pet interfaces remain the same...
 interface PetfinderBreed {
     primary: string;
     secondary?: string;
@@ -116,7 +117,7 @@ const PetSearch = () => {
             location: '',
             distance: '100',
             page: 1,
-            limit: 20
+            limit: 20 // Default to 20 for better performance
         };
     });
 
@@ -128,6 +129,8 @@ const PetSearch = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [error, setError] = useState<ApolloError | null>(null);
     const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
+    const [isSearching, setIsSearching] = useState(false);
+    const [retryCount, setRetryCount] = useState(0);
     const { isLoggedIn } = useAuth();
 
     interface TypesResponse {
@@ -138,22 +141,29 @@ const PetSearch = () => {
         getPetfinderBreeds: string[];
     }
 
-    // Query for pet types with fetchPolicy to ensure fresh data
-    const { data: typesData, loading: typesLoading, error: typesError, refetch: refetchTypes } = useQuery<TypesResponse>(
+    // Query for pet types with error handling
+    const { 
+        data: typesData, 
+        loading: typesLoading, 
+        error: typesError, 
+        refetch: refetchTypes 
+    } = useQuery<TypesResponse>(
         GET_PETFINDER_TYPES,
         {
             fetchPolicy: 'network-only',
             notifyOnNetworkStatusChange: true,
             onError: (error) => {
                 console.error('Types query error:', error);
-                // Set error state with more details for UI display
                 setError(error);
                 
-                // If the error is an auth error, we might want to trigger a token refresh
-                if (error.graphQLErrors?.some(e => e.extensions?.code === 'PETFINDER_AUTH_ERROR')) {
-                    console.log('Authentication error detected, will retry after delay...');
+                // Auto-retry for specific errors
+                if (error.networkError || 
+                    error.graphQLErrors?.some(e => 
+                        e.extensions?.code === 'PETFINDER_AUTH_ERROR' || 
+                        e.message.includes('502')
+                    )) {
                     setTimeout(() => {
-                        console.log('Retrying types query...');
+                        console.log('Auto-retrying types query...');
                         refetchTypes();
                     }, 2000);
                 }
@@ -165,19 +175,21 @@ const PetSearch = () => {
         BreedsResponse,
         { type: string }
     >(GET_PETFINDER_BREEDS, {
-        // Only fetch when we have a valid type
         onError: (error) => {
             console.error('Error fetching breeds:', error);
-
-            // Only set the error state if we're not dealing with a simple "type required" validation error
+            
+            // Only set user-facing errors for non-validation issues
             if (!error.graphQLErrors?.some(e => e.extensions?.code === 'INVALID_PARAMETERS')) {
                 setError(error);
             }
-
-            // Handle auth errors similar to the types query
-            if (error.graphQLErrors?.some(e => e.extensions?.code === 'PETFINDER_AUTH_ERROR')) {
+            
+            // Auto-retry network errors
+            if (error.networkError || 
+                error.graphQLErrors?.some(e => 
+                    e.extensions?.code === 'PETFINDER_AUTH_ERROR' ||
+                    e.message.includes('502')
+                )) {
                 setTimeout(() => {
-                    console.log('Retrying breeds query...');
                     if (filters.type) {
                         getBreeds({ variables: { type: filters.type } });
                     }
@@ -191,16 +203,38 @@ const PetSearch = () => {
         { searchPetfinderPets: PetfinderResponse },
         { input: SearchParams }
     >(SEARCH_PETFINDER_PETS, {
+        onCompleted: () => {
+            setRetryCount(0); // Reset retry count on success
+            setIsSearching(false);
+        },
         onError: (error) => {
             console.error('Error searching pets:', error);
             setError(error);
-
-            // Automatic retry for auth errors
-            if (error.graphQLErrors?.some(e => e.extensions?.code === 'PETFINDER_AUTH_ERROR')) {
-                setTimeout(() => {
-                    console.log('Retrying pet search...');
-                    handleSearch();
-                }, 2000);
+            setIsSearching(false);
+            
+            // Auto-retry with reduced limit on 502 errors
+            if ((error.networkError || 
+                error.graphQLErrors?.some(e => e.message.includes('502'))) &&
+                retryCount < 2) {
+                
+                setRetryCount(retryCount + 1);
+                
+                // If error is when using larger limit, auto-fallback to smaller limit
+                if (filters.limit > 20) {
+                    console.log(`Retrying with reduced limit (${Math.max(20, filters.limit / 2)})`);
+                    setTimeout(() => {
+                        setFilters(prev => ({
+                            ...prev,
+                            limit: Math.max(20, Math.floor(prev.limit / 2)) // Reduce limit but not below 20
+                        }));
+                        // The effect will trigger a new search
+                    }, 1000);
+                } else {
+                    // Otherwise just retry
+                    setTimeout(() => {
+                        handleSearch();
+                    }, 2000);
+                }
             }
         },
         fetchPolicy: 'network-only'
@@ -220,14 +254,18 @@ const PetSearch = () => {
         }
     };
 
-    // Add effect to trigger search when page changes
+    // Effect to trigger search when page or limit changes
     useEffect(() => {
-        if (petsData) { // Only search if we have existing results
+        // Only search if there were previous results or explicit search criteria
+        const hasSearchCriteria = filters.type || filters.breed || filters.size ||
+            filters.gender || filters.age || filters.location;
+            
+        if (petsData || hasSearchCriteria) {
             handleSearch();
         }
     }, [filters.page, filters.limit]);
 
-    // Add effect to reset page when filters change
+    // Effect to reset page when substantive filters change
     useEffect(() => {
         setFilters(prev => ({
             ...prev,
@@ -237,6 +275,9 @@ const PetSearch = () => {
 
     const handleSearch = async () => {
         try {
+            // Clear existing error
+            setError(null);
+            
             // Validate search parameters
             const validatedParams = validateSearchParams();
             if (!validatedParams) {
@@ -244,6 +285,7 @@ const PetSearch = () => {
                 return;
             }
             
+            setIsSearching(true);
             console.log('Searching with parameters:', validatedParams);
             
             // Execute the search query
@@ -255,6 +297,7 @@ const PetSearch = () => {
         } catch (err) {
             console.error('Error performing search:', err);
             setError(err as ApolloError);
+            setIsSearching(false);
         }
     };
 
@@ -310,31 +353,39 @@ const PetSearch = () => {
         return searchParams;
     };
 
-    // Improved error UI rendering
+    // Improved error UI rendering with suggested solutions
     const renderErrorMessage = (error: ApolloError) => {
         // Extract the most relevant error message for users
-        let errorMessage = 'Failed to connect to pet database. Please try again later.';
+        let errorMessage = 'Failed to connect to pet database. Please try again.';
         let errorDetails = '';
+        let suggestedAction = '';
 
         if (error.graphQLErrors?.length) {
             const mainError = error.graphQLErrors[0];
             errorMessage = mainError.message;
 
-            // Add more user-friendly context based on error code
+            // Add more user-friendly context based on error code or message
             if (mainError.extensions?.code === 'PETFINDER_AUTH_ERROR') {
-                errorDetails = 'There was a problem connecting to the pet database. We\'re working to resolve this.';
+                errorDetails = 'There was a problem connecting to the pet database.';
+                suggestedAction = 'Please try again in a moment.';
+            } else if (mainError.message.includes('502') || mainError.message.includes('timeout')) {
+                errorDetails = 'The pet database is currently experiencing high traffic or connectivity issues.';
+                suggestedAction = 'Try reducing the number of results per page or refining your search criteria.';
             } else if (mainError.extensions?.code === 'PETFINDER_NETWORK_ERROR') {
                 errorDetails = 'Please check your internet connection and try again.';
             }
         } else if (error.networkError) {
-            errorMessage = 'Network connection issue. Please check your internet and try again.';
+            errorMessage = 'Network connection issue.';
+            errorDetails = 'Unable to reach the pet database at this time.';
+            suggestedAction = 'Please check your internet connection and try again in a few moments.';
         }
 
         return (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                 <h3 className="text-red-700 font-medium mb-2">Error</h3>
                 <p className="text-red-600 mb-2">{errorMessage}</p>
-                {errorDetails && <p className="text-gray-600 text-sm">{errorDetails}</p>}
+                {errorDetails && <p className="text-gray-600 text-sm mb-2">{errorDetails}</p>}
+                {suggestedAction && <p className="text-blue-600 text-sm">{suggestedAction}</p>}
             </div>
         );
     };
@@ -358,7 +409,7 @@ const PetSearch = () => {
         );
     }
 
-    if (error) {
+    if (error && !petsData) {
         return (
             <div className="flex flex-col items-center justify-center min-h-screen p-4">
                 <ErrorMessage error={error} className="max-w-lg w-full mb-4" />
@@ -395,6 +446,7 @@ const PetSearch = () => {
                     className={`px-4 py-2 border rounded-lg ${currentPage === i ? 'bg-blue-500 text-white' : 'hover:bg-gray-50'}`}
                     aria-label={`Page ${i}`}
                     aria-current={currentPage === i ? 'page' : undefined}
+                    disabled={isSearching || petsLoading}
                 >
                     {i}
                 </button>
@@ -452,12 +504,24 @@ const PetSearch = () => {
                     </button>
                     <button
                         onClick={handleSearch}
-                        disabled={petsLoading}
-                        className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 disabled:bg-blue-300"
+                        disabled={isSearching || petsLoading}
+                        className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 disabled:bg-blue-300 flex items-center justify-center"
                     >
-                        {petsLoading ? 'Searching...' : 'Search'}
+                        {isSearching || petsLoading ? (
+                            <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                Searching...
+                            </>
+                        ) : 'Search'}
                     </button>
                 </div>
+
+                {/* Error message in search container */}
+                {error && (
+                    <div className="mb-4">
+                        {renderErrorMessage(error)}
+                    </div>
+                )}
 
                 {isFilterOpen && (
                     <div id="filter-panel" className="border-t pt-4">
@@ -471,6 +535,7 @@ const PetSearch = () => {
                                     value={filters.type}
                                     onChange={(e) => handleTypeChange(e.target.value)}
                                     className="w-full border rounded-lg p-2"
+                                    disabled={typesLoading}
                                 >
                                     <option value="">Select Type</option>
                                     {typesData?.getPetfinderTypes?.map((type: string) => (
@@ -479,6 +544,7 @@ const PetSearch = () => {
                                         </option>
                                     ))}
                                 </select>
+                                {typesLoading && <p className="text-xs text-gray-500 mt-1">Loading types...</p>}
                             </div>
 
                             <div>
@@ -499,6 +565,7 @@ const PetSearch = () => {
                                         </option>
                                     ))}
                                 </select>
+                                {breedsLoading && <p className="text-xs text-gray-500 mt-1">Loading breeds...</p>}
                             </div>
 
                             <div>
@@ -578,28 +645,28 @@ const PetSearch = () => {
             </div>
 
             {/* Search Results and No Results Message */}
-            {petsData?.searchPetfinderPets?.animals?.length === 0 && (
+            {petsData?.searchPetfinderPets?.animals?.length === 0 && !isSearching && (
                 <div className="text-center py-16 bg-white rounded-lg shadow">
                     <h3 className="text-xl font-semibold mb-2">No pets found</h3>
                     <p className="text-gray-600 mb-4">Try adjusting your search criteria to find more pets.</p>
                 </div>
             )}
 
-            {!petsData && !petsLoading && (
+            {!petsData && !isSearching && !petsLoading && (
                 <div className="text-center py-16 bg-white rounded-lg shadow">
                     <h3 className="text-xl font-semibold mb-2">Ready to search</h3>
                     <p className="text-gray-600 mb-4">Enter your criteria above and click Search to find pets.</p>
                 </div>
             )}
 
-            {petsLoading && (
+            {(isSearching || petsLoading) && (
                 <div className="text-center py-16 bg-white rounded-lg shadow">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
                     <p className="text-gray-600">Searching for pets...</p>
                 </div>
             )}
 
-            {petsData?.searchPetfinderPets?.animals && petsData.searchPetfinderPets.animals.length > 0 && (
+            {petsData?.searchPetfinderPets?.animals && petsData.searchPetfinderPets.animals.length > 0 && !isSearching && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                     {petsData?.searchPetfinderPets?.animals?.map((pet: Pet) => (
                         <div
@@ -610,9 +677,14 @@ const PetSearch = () => {
                         >
                             <div className="relative h-48">
                                 <img
-                                    src={pet.photos[0]?.medium || "/api/placeholder/400/300"}
+                                    src={pet.photos && pet.photos.length > 0 ? pet.photos[0]?.medium || pet.photos[0]?.small || pet.photos[0]?.large : "/api/placeholder/400/300"}
                                     alt={pet.name}
                                     className="w-full h-full object-cover object-center"
+                                    onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.onerror = null;
+                                        target.src = "/api/placeholder/400/300";
+                                    }}
                                 />
                                 {isLoggedIn && (
                                     <button
@@ -645,7 +717,7 @@ const PetSearch = () => {
                                 <p className="text-gray-600 flex items-center text-sm">
                                     <MapPin className="w-4 h-4 mr-1 inline" />
                                     {pet.contact.address.city}, {pet.contact.address.state}
-                                    {pet.distance && (
+                                    {pet.distance !== undefined && (
                                         <span className="ml-1">
                                             ({Math.round(pet.distance)} miles)
                                         </span>
@@ -658,12 +730,12 @@ const PetSearch = () => {
             )}
 
             {/* Pagination Controls */}
-            {petsData?.searchPetfinderPets?.pagination && petsData.searchPetfinderPets.animals.length > 0 && (
+            {petsData?.searchPetfinderPets?.pagination && petsData.searchPetfinderPets.animals.length > 0 && !isSearching && (
                 <div className="mt-8 flex flex-col items-center gap-4">
                     <div className="flex items-center gap-2">
                         <button
                             onClick={() => setFilters(prev => ({ ...prev, page: prev.page - 1 }))}
-                            disabled={filters.page <= 1}
+                            disabled={filters.page <= 1 || isSearching || petsLoading}
                             className="px-4 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                             aria-label="Previous page"
                         >
@@ -677,6 +749,7 @@ const PetSearch = () => {
                                         onClick={() => setFilters(prev => ({ ...prev, page: 1 }))}
                                         className="px-4 py-2 border rounded-lg hover:bg-gray-50"
                                         aria-label="Page 1"
+                                        disabled={isSearching || petsLoading}
                                     >
                                         1
                                     </button>
@@ -693,6 +766,7 @@ const PetSearch = () => {
                                         onClick={() => setFilters(prev => ({ ...prev, page: petsData?.searchPetfinderPets?.pagination.total_pages }))}
                                         className="px-4 py-2 border rounded-lg hover:bg-gray-50"
                                         aria-label={`Page ${petsData?.searchPetfinderPets?.pagination.total_pages}`}
+                                        disabled={isSearching || petsLoading}
                                     >
                                         {petsData?.searchPetfinderPets?.pagination.total_pages}
                                     </button>
@@ -702,7 +776,7 @@ const PetSearch = () => {
 
                         <button
                             onClick={() => setFilters(prev => ({ ...prev, page: prev.page + 1 }))}
-                            disabled={filters.page >= petsData?.searchPetfinderPets?.pagination.total_pages}
+                            disabled={filters.page >= petsData?.searchPetfinderPets?.pagination.total_pages || isSearching || petsLoading}
                             className="px-4 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                             aria-label="Next page"
                         >
@@ -722,10 +796,11 @@ const PetSearch = () => {
                                 }))}
                                 className="border rounded-lg p-2 pr-8"
                                 aria-label="Results per page"
+                                disabled={isSearching || petsLoading}
                             >
                                 <option value={20}>20</option>
+                                <option value={30}>30</option>
                                 <option value={40}>40</option>
-                                <option value={60}>60</option>
                             </select>
                             <span className="text-sm text-gray-600">per page</span>
                         </div>
