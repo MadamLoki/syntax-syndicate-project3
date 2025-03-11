@@ -39,12 +39,6 @@ const petSaveResolver: IResolvers = {
                 if (!input.externalId || !input.name || !input.type) {
                     throw new Error('Missing required field(s): externalId, name, or type');
                 }
-                
-                // Properly handle age data type - could be a string like "Adult" or a number
-                let petAge: number | string = input.age;
-                if (typeof input.age === 'string' && !isNaN(Number(input.age))) {
-                    petAge = Number(input.age);
-                }
 
                 // Create a pet object with proper data typing
                 const petData = {
@@ -52,19 +46,19 @@ const petSaveResolver: IResolvers = {
                     name: input.name,
                     type: input.type || 'Unknown',
                     breed: input.breed || 'Unknown',
-                    age: petAge,
-                    gender: input.gender,
-                    size: input.size,
+                    age: input.age || 'Unknown',
+                    gender: input.gender || 'Unknown',
+                    size: input.size || 'Unknown',
                     status: input.status || 'Available',
                     images: Array.isArray(input.images) ? input.images : [],
                     description: input.description || '',
                     shelterId: input.shelterId || 'petfinder',
                     source: 'petfinder'
                 };
-                
+
                 // Check if pet with this external ID already exists
                 let pet = await Pet.findOne({ externalId: input.externalId });
-                
+
                 if (!pet) {
                     // Create a new pet entry
                     try {
@@ -72,33 +66,35 @@ const petSaveResolver: IResolvers = {
                         console.log('Created new pet:', pet._id);
                     } catch (err) {
                         console.error('Error creating pet document:', err);
-                        // Try a simplified version as fallback if validation failed
-                        const simplifiedPet = {
-                            externalId: input.externalId,
-                            name: input.name,
-                            type: input.type || 'Unknown',
-                            shelterId: 'petfinder',
-                        };
-                        pet = await Pet.create(simplifiedPet);
-                        console.log('Created simplified pet due to validation issues:', pet._id);
+                        throw new Error(`Failed to create pet: ${err instanceof Error ? err.message : 'Unknown error'}`);
                     }
                 } else {
                     console.log('Found existing pet:', pet._id);
                     try {
-                        await Pet.findByIdAndUpdate(pet._id, {
-                            $set: petData
-                        });
+                        pet = await Pet.findByIdAndUpdate(
+                            pet._id,
+                            { $set: petData },
+                            { new: true }
+                        );
                     } catch (updateErr) {
                         console.error('Error updating pet document:', updateErr);
+                        throw new Error(`Failed to update pet: ${updateErr instanceof Error ? updateErr.message : 'Unknown error'}`);
                     }
                 }
 
                 // Add to user's saved pets if not already saved
+                if (!pet) {
+                    throw new Error('Pet not found');
+                }
+
                 const updatedProfile = await Profile.findByIdAndUpdate(
                     context.user._id,
                     { $addToSet: { savedPets: pet._id } },
                     { new: true }
-                ).populate('savedPets');
+                ).populate({
+                    path: 'savedPets',
+                    select: '_id name type breed age gender size status description images shelterId source'
+                });
 
                 if (!updatedProfile) {
                     throw new Error('User profile not found');

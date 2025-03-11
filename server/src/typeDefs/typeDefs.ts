@@ -56,6 +56,7 @@ type Pet {
   name: String!
   type: String
   breed: String
+  secondaryBreed: String
   age: String
   gender: String
   size: String
@@ -64,6 +65,7 @@ type Pet {
   status: String
   shelterId: ID!
   source: String
+  organization_id: String
 }
 
 input CreatePetInput {
@@ -201,6 +203,7 @@ input PetfinderSaveInput {
   images: [String]
   description: String
   shelterId: String
+  organization_id: String
 }
 
 # Shelter (Petfinder Organizations)

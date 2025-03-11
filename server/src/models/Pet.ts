@@ -1,9 +1,11 @@
 import {Schema, model, Document } from 'mongoose';
 
+
 export interface IPet extends Document {
   externalId?: string;
   name: string;
   breed?: string;
+  secondaryBreed?: string;
   age?: number | string;
   images?: string[];
   status?: string;
@@ -13,13 +15,16 @@ export interface IPet extends Document {
   size?: string;
   description?: string;
   source?: string;
+  organization_id?: string;
 }
+
 
 const petSchema = new Schema<IPet>(
   {
     externalId: { type: String },
     name: { type: String, required: true },
     breed: { type: String },
+    secondaryBreed: { type: String },
     age: { 
       type: Schema.Types.Mixed,
       default: 'Unknown'
@@ -31,7 +36,8 @@ const petSchema = new Schema<IPet>(
     images: [{ type: String }],
     status: { type: String, default: 'Available' },
     shelterId: { type: String, required: true },
-    source: { type: String, default: 'user' }
+    source: { type: String, default: 'user' },
+    organization_id: { type: String }
   },
   { timestamps: true }
 );

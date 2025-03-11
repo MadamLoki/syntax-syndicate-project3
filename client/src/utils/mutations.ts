@@ -62,7 +62,13 @@ export const SAVE_PET = gql`
         type
         breed
         age
+        gender
+        size
+        status
+        description
         images
+        shelterId
+        source
       }
     }
   }

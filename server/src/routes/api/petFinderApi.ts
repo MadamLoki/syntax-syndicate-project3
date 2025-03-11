@@ -53,7 +53,7 @@ class PetfinderAPI {
     }
 
     private async getToken(): Promise<string> {
-        console.log('Checking token status...');
+        // console.log('Checking token status...');
         // If we have a valid token with at least 60 seconds left, return it
         if (this.token && Date.now() < this.tokenExpiration - 60000) {
            // console.log('Using existing token (expires in:', Math.round((this.tokenExpiration - Date.now()) / 1000), 'seconds)');

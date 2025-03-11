@@ -57,6 +57,7 @@ interface PetDetailProps {
         contact: PetfinderContact;
         published_at?: string;
         distance?: number;
+        organization_id?: string;
     };
     onClose: () => void;
 }
@@ -76,10 +77,9 @@ const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
             setSaveError(error.message);
         }
     });
-
     const handleSavePet = async (e: React.MouseEvent<HTMLButtonElement>) => {
         e.stopPropagation();
-        
+
         if (!isLoggedIn) {
             alert('Please log in to save pets');
             return;
@@ -91,19 +91,19 @@ const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
                 ? pet.photos.map(photo => photo.medium || photo.small || photo.large).filter(Boolean as any)
                 : [];
 
-            // Simplified input structure based on what our backend expects
+            // Create compatible input object without secondaryBreed
             const petInput = {
                 externalId: pet.id,
                 name: pet.name,
                 type: pet.type,
-                breed: pet.breeds.primary,
+                breed: pet.breeds.primary + (pet.breeds.secondary ? ` / ${pet.breeds.secondary}` : ""),
                 age: pet.age,
                 gender: pet.gender,
                 size: pet.size,
                 status: pet.status || "Available",
                 images: images,
                 description: pet.description || "",
-                shelterId: "petfinder"
+                shelterId: pet.organization_id || "petfinder"
             };
 
             // Call the mutation
@@ -143,13 +143,13 @@ const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
                 attributes: pet.attributes,
                 published_at: pet.published_at
             };
-            
+
             // Store for temporary access
             localStorage.setItem('tempPetDetails', JSON.stringify(petData));
-            
+
             console.log('Navigating to pet details with ID:', pet.id);
             onClose();
-            
+
             // Navigate to the pet details page with the proper ID
             navigate(`/pets/${pet.id}`);
         } catch (error) {
@@ -293,8 +293,8 @@ const PetDetailModal: React.FC<PetDetailProps> = ({ pet, onClose }) => {
                                 <div className="mt-4">
                                     <h3 className="text-lg font-semibold mb-2">About {pet.name}</h3>
                                     <p className="text-gray-700">
-                                        {pet.description.length > 150 
-                                            ? `${pet.description.substring(0, 150)}...` 
+                                        {pet.description.length > 150
+                                            ? `${pet.description.substring(0, 150)}...`
                                             : pet.description}
                                     </p>
                                     {pet.description.length > 150 && (
