@@ -81,7 +81,7 @@ const thread = new Schema<IThread>(
       required: true
     }
   },
-  { timestamps: true }  // This is the critical addition!
+  { timestamps: true }  
 );
 
 export default mongoose.model<IThread>('thread', thread);

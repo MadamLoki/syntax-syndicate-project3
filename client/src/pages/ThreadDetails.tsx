@@ -79,7 +79,7 @@ const ThreadDetails: React.FC<ThreadDetailsProps> = ({ threadId, onClose, curren
   // Query to fetch thread data
   const { data, loading, error, refetch } = useQuery(GET_THREAD, {
     variables: { id: threadId },
-    fetchPolicy: 'network-only', // Forces a network request instead of using cache
+    fetchPolicy: 'network-only', 
     onError: (error) => {
       console.error('Error fetching thread:', error);
     }
@@ -91,7 +91,7 @@ const ThreadDetails: React.FC<ThreadDetailsProps> = ({ threadId, onClose, curren
       // Clear the form and refresh the thread data to show the new comment
       setCommentContent('');
       setCommentError('');
-      refetch(); // This is crucial - it refreshes the thread data
+      refetch(); 
     },
     onError: (error) => {
       console.error('Error creating comment:', error);
@@ -106,10 +106,9 @@ const ThreadDetails: React.FC<ThreadDetailsProps> = ({ threadId, onClose, curren
       console.log('Thread deleted successfully');
       
       // Trigger a page refresh or redirect
-      window.location.reload(); // This will refresh the current page
+      window.location.reload(); // 
       
-      // Alternatively, you can just close the modal
-      // onClose(); // Close the details and return to list view
+     
     },
     onError: (error) => {
       console.error('Error deleting thread:', error);
@@ -134,7 +133,7 @@ const ThreadDetails: React.FC<ThreadDetailsProps> = ({ threadId, onClose, curren
         input: {
           threadId: threadId,
           content: commentContent
-          // parentCommentId is optional, so we omit it for top-level comments
+          
         }
       }
     });
@@ -199,9 +198,8 @@ const ThreadDetails: React.FC<ThreadDetailsProps> = ({ threadId, onClose, curren
   const { thread } = data;
   
   // Check if current user is the author of the thread
-  // For testing, we'll make delete option available to all users until authentication is fully implemented
   const isAuthor = true; // Temporarily set to true so delete button always shows
-  // Later you can revert to: currentUserId && thread.author && currentUserId === thread.author._id;
+ 
   
   // Debug log to check if comments are being received
   console.log('Thread data received:', thread);

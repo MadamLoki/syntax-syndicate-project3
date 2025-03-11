@@ -93,8 +93,6 @@ const getUserFromToken = (authHeader: string) => {
         // For user data that may be nested inside a 'data' property
         const userData = decoded.data || decoded;
         
-        // Log the user data for debugging
-        // console.log('Token decoded user data:', userData);
         
         // Ensure the basic user fields are available
         if (!userData._id) {

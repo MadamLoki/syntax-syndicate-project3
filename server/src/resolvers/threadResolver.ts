@@ -131,7 +131,7 @@ const threadResolvers: IResolvers = {
         // Map raw comments to properly typed objects
         const comments = rawComments.map(comment => ({
           _id: comment._id.toString(),
-          // The key fix: explicitly handle content as a string
+      
           content: String(comment.content || ''),
           author: {
             _id: comment.author && comment.author._id ? comment.author._id.toString() : 'unknown',

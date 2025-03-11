@@ -82,7 +82,7 @@ const CreateThreadForm = () => {
     onCompleted: (data) => {
       setIsSubmitting(false);
       
-      // Show success message (optional)
+      // Show success message 
       alert('Thread created successfully!');
       
       // Navigate back to the forum page to see the new thread
@@ -145,7 +145,7 @@ const CreateThreadForm = () => {
         },
       });
       
-      // Note: We don't need to navigate here as it's handled in onCompleted
+      
     } catch (err) {
       // This catch block handles any errors not caught by onError
       console.error('Unexpected error creating thread:', err);
