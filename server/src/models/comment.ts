@@ -1,12 +1,12 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface comment extends Document {
-    thread: mongoose.Types.ObjectId; // Reference to the thread
-    content: string; // Content of the comment
+    thread: mongoose.Types.ObjectId; 
+    content: string; 
     author: mongoose.Types.ObjectId; // Reference to the user who made the comment
-    parentComment?: mongoose.Types.ObjectId; // Optional reference to the parent comment (for nested comments)
+    parentComment?: mongoose.Types.ObjectId; 
     createdAt: Date; // Timestamp of when the comment was created
-    updatedAt: Date; // Timestamp of when the comment was last updated
+    updatedAt: Date; 
 }
 
 const commentSchema = new Schema<comment>(

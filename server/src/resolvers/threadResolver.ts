@@ -56,9 +56,9 @@ const threadResolvers: IResolvers = {
         // Cast raw data to our interface to help TypeScript
         const threads = threadsData as unknown as RawThread[];
 
-        console.log('Threads retrieved:', threads.map(t => ({
-          id: t._id.toString(),
-          hasAuthor: !!t.author,
+        console.log('Threads retrieved:', threads.map(t => ({ 
+          id: t._id.toString(), 
+          hasAuthor: !!t.author, 
           authorInfo: t.author ? `${t.author._id} - ${t.author.username}` : 'missing'
         })));
 
@@ -91,7 +91,7 @@ const threadResolvers: IResolvers = {
                 email: '',
               },
           comments: [],
-          createdAt: thread.createdAt ? thread.createdAt.toISOString() : new Date().toISOString(),
+          createdAt: thread.createdAt ? thread.createdAt.toISOString() : new Date().toISOString(), // Ensure valid date string
           updatedAt: thread.updatedAt ? thread.updatedAt.toISOString() : new Date().toISOString(),
         }));
       } catch (error) {
@@ -103,13 +103,13 @@ const threadResolvers: IResolvers = {
     thread: async (_, { id }, context) => {
       try {
         const threadData = await Thread.findById(id)
-          .populate({ path: 'author', model: 'Profile', select: 'username email' })
+          .populate({ path: 'author', model: 'Profile', select: 'username email' }) 
           .lean();
 
         if (!threadData) throw new Error(`Thread with ID ${id} not found`);
         
         // Cast raw thread data to our interface
-        const thread = threadData as unknown as RawThread;
+        const thread = threadData as unknown as RawThread; // Type assertion
         
         console.log('Thread found:', {
           id: thread._id.toString(),

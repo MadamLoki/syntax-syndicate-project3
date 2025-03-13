@@ -83,6 +83,7 @@ const CreateThreadForm = () => {
       setIsSubmitting(false);
       
       // Show success message 
+
       alert('Thread created successfully!');
       
       // Navigate back to the forum page to see the new thread
@@ -139,7 +140,7 @@ const CreateThreadForm = () => {
               age: petAge,
               description: petDescription,
               image: petImage,
-              // Note: We don't need to set the owner as the backend will handle this
+              
             },
           },
         },

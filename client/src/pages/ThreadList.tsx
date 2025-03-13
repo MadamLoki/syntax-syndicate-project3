@@ -38,7 +38,7 @@ const ThreadListPage = () => {
   
   // Query for threads with network-only policy to ensure fresh data
   const { data, loading, error, refetch } = useQuery(GET_THREADS, {
-    fetchPolicy: 'network-only', // This ensures we don't use cached data
+    fetchPolicy: 'network-only', // e don't use cached data
     onError: (error) => {
       console.error('GraphQL Query Error:', error);
       if (error.networkError && 'result' in error.networkError) {
@@ -49,7 +49,7 @@ const ThreadListPage = () => {
   
   // Effect to refetch data when the user navigates back to this page
   useEffect(() => {
-    // Refetch threads when the component mounts or when we navigate back to it
+   
     refetch();
     
     // Log to confirm refetching

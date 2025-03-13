@@ -198,7 +198,7 @@ const ThreadDetails: React.FC<ThreadDetailsProps> = ({ threadId, onClose, curren
   const { thread } = data;
   
   // Check if current user is the author of the thread
-  const isAuthor = true; // Temporarily set to true so delete button always shows
+  const isAuthor = true; // set to true so delete button always shows
  
   
   // Debug log to check if comments are being received
