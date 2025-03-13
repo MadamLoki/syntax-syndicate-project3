@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Camera, X } from 'lucide-react';
-import { useImageUpload } from '../utils/CloudinaryService'; // Use consistent import
+import { useImageUpload } from '../utils/CloudinaryService';
 
 interface ProfilePictureProps {
     initialImage?: string;
